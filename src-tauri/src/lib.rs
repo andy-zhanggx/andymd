@@ -1,6 +1,7 @@
 mod error;
 mod commands;
 mod watcher;
+mod menu;
 
 use watcher::WatcherState;
 
@@ -9,6 +10,12 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(WatcherState::new())
+        .setup(|app| {
+            let menu_obj = menu::build_menu(app.handle())?;
+            app.set_menu(menu_obj)?;
+            app.on_menu_event(|h, event| menu::on_menu_event(h, event));
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::fs_cmd::read_file,
             commands::fs_cmd::write_file,
