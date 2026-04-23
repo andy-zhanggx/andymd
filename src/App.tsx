@@ -4,6 +4,7 @@ import { useConfigStore } from './stores/configStore';
 import { TitleBar } from './components/TitleBar';
 import { StatusBar } from './components/StatusBar';
 import { Sidebar } from './components/Sidebar/Sidebar';
+import { MarkdownEditor } from './components/Editor/MarkdownEditor';
 
 export default function App() {
   useTheme();
@@ -36,7 +37,7 @@ export default function App() {
         </aside>
       )}
       <main style={{ gridArea: 'editor', overflow: 'auto', background: 'var(--bg-primary)' }}>
-        {/* filled in Task 17 */}
+        <MarkdownEditor />
       </main>
       <div style={{ gridArea: 'statusbar' }}><StatusBar /></div>
     </div>

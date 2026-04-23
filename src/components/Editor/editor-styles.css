@@ -1,0 +1,18 @@
+.editor-container {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--fg-primary);
+}
+
+.editor-container .milkdown {
+  background: transparent;
+}
+
+.editor-container pre,
+.editor-container code {
+  background: var(--code-bg);
+}
+
+.editor-container a {
+  color: var(--accent);
+}
