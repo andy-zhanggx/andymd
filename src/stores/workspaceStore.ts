@@ -1,0 +1,71 @@
+import { create } from 'zustand';
+import { FileNode, Workspace } from '../types';
+import { fsService } from '../services/fsService';
+import { useConfigStore } from './configStore';
+
+interface WorkspaceState {
+  workspace: Workspace | null;
+  open: (root: string) => Promise<void>;
+  refresh: () => Promise<void>;
+  toggleExpanded: (path: string) => void;
+  createFile: (parent: string, name: string) => Promise<FileNode>;
+  createFolder: (parent: string, name: string) => Promise<FileNode>;
+  rename: (from: string, to: string) => Promise<void>;
+  deleteEntry: (path: string) => Promise<void>;
+  close: () => void;
+}
+
+export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
+  workspace: null,
+
+  async open(root) {
+    const showHidden = useConfigStore.getState().config.showHiddenFiles;
+    const tree = await fsService.listWorkspace(root, showHidden);
+    await fsService.openWorkspace(root);
+    const name = tree.name;
+    set({ workspace: { root, name, tree, expandedPaths: new Set([root]) } });
+    await useConfigStore.getState().addRecentWorkspace(root);
+  },
+
+  async refresh() {
+    const ws = get().workspace;
+    if (!ws) return;
+    const showHidden = useConfigStore.getState().config.showHiddenFiles;
+    const tree = await fsService.listWorkspace(ws.root, showHidden);
+    set({ workspace: { ...ws, tree } });
+  },
+
+  toggleExpanded(path) {
+    const ws = get().workspace;
+    if (!ws) return;
+    const next = new Set(ws.expandedPaths);
+    if (next.has(path)) next.delete(path); else next.add(path);
+    set({ workspace: { ...ws, expandedPaths: next } });
+  },
+
+  async createFile(parent, name) {
+    const node = await fsService.createFile(parent, name);
+    await get().refresh();
+    return node;
+  },
+
+  async createFolder(parent, name) {
+    const node = await fsService.createDir(parent, name);
+    await get().refresh();
+    return node;
+  },
+
+  async rename(from, to) {
+    await fsService.renamePath(from, to);
+    await get().refresh();
+  },
+
+  async deleteEntry(path) {
+    await fsService.deleteToTrash(path);
+    await get().refresh();
+  },
+
+  close() {
+    set({ workspace: null });
+  },
+}));
