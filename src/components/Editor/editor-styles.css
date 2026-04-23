@@ -151,3 +151,20 @@
   max-width: 100%;
   height: auto;
 }
+
+:root[data-theme="dark"] .editor-container .katex {
+  color: var(--fg-primary);
+}
+
+:root[data-theme="dark"] .editor-container .katex-display {
+  background: transparent;
+}
+
+.editor-container .katex-error {
+  color: #c43d3d;
+}
+
+.editor-container .katex-display {
+  margin: 1em 0;
+  overflow-x: auto;
+}

@@ -1,16 +1,41 @@
 // @vitest-environment happy-dom
 
-import { describe, expect, it } from 'vitest';
+import { editorStateCtx } from '@milkdown/core';
+import type { Editor } from '@milkdown/core';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { buildEditor } from './milkdownConfig';
+import { describe, expect, it } from 'vitest';
 import { lenifyHeadings } from '../../lib/markdown';
 
 function fixture(name: string): string {
   return readFileSync(resolve(__dirname, '__fixtures__', name), 'utf-8');
 }
 
-async function mount(md: string): Promise<{ root: HTMLElement; cleanup: () => Promise<void> }> {
+function ensureStandardsMode() {
+  if (document.compatMode !== 'CSS1Compat') {
+    Object.defineProperty(document, 'compatMode', {
+      configurable: true,
+      get: () => 'CSS1Compat',
+    });
+  }
+
+  if (!document.doctype && document.documentElement) {
+    document.insertBefore(
+      document.implementation.createDocumentType('html', '', ''),
+      document.documentElement,
+    );
+  }
+}
+
+async function mount(
+  md: string,
+): Promise<{
+  root: HTMLElement;
+  cleanup: () => Promise<void>;
+  editor: Editor;
+}> {
+  ensureStandardsMode();
+  const { buildEditor } = await import('./milkdownConfig');
   const root = document.createElement('div');
   document.body.appendChild(root);
   const editor = await buildEditor({
@@ -20,6 +45,7 @@ async function mount(md: string): Promise<{ root: HTMLElement; cleanup: () => Pr
   }).create();
   await new Promise((r) => setTimeout(r, 0));
   return {
+    editor,
     root,
     cleanup: async () => {
       try {
@@ -89,6 +115,26 @@ describe('MarkdownEditor integration (happy-dom)', () => {
       const pre = root.querySelector('pre');
       expect(pre).toBeTruthy();
       expect(pre?.textContent).toContain('fn main');
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it('renders inline and block math via KaTeX', async () => {
+    const { editor, cleanup } = await mount(fixture('math.md'));
+    try {
+      const mathNodeNames = editor.action((ctx) => {
+        const names = new Set<string>();
+        ctx.get(editorStateCtx).doc.descendants((node) => {
+          if (node.type.name.includes('math')) {
+            names.add(node.type.name);
+          }
+          return true;
+        });
+        return [...names];
+      });
+
+      expect(mathNodeNames.some((name) => name.includes('math'))).toBe(true);
     } finally {
       await cleanup();
     }

@@ -23,6 +23,9 @@ importers:
       '@milkdown/plugin-listener':
         specifier: ^7.20.0
         version: 7.20.0
+      '@milkdown/plugin-math':
+        specifier: ^7.5.9
+        version: 7.5.9(@milkdown/core@7.20.0)(@milkdown/ctx@7.20.0)(@milkdown/prose@7.20.0)(@milkdown/transformer@7.20.0)
       '@milkdown/plugin-prism':
         specifier: ^7.20.0
         version: 7.20.0
@@ -44,6 +47,9 @@ importers:
       '@tauri-apps/plugin-dialog':
         specifier: ^2.7.0
         version: 2.7.0
+      katex:
+        specifier: ^0.16.45
+        version: 0.16.45
       prismjs:
         specifier: ^1.30.0
         version: 1.30.0
@@ -527,6 +533,9 @@ packages:
   '@milkdown/exception@7.20.0':
     resolution: {integrity: sha512-u8EL7rbqgrWrPpkDhrxUYXauw2DO52JUQmuokrUZvqezmflo7pgIDCr+Rk6AQslzB4Xw+n9eYik5rXX3RXC7Qg==}
 
+  '@milkdown/exception@7.5.9':
+    resolution: {integrity: sha512-9g+WpiRjgLsVlHt7DotlUmKK9oT6Lsr5TgxE0NdDvtr81CC43mgNtoekI6rg/PatEBBXifDK1GJJ4LKnRSseVQ==}
+
   '@milkdown/kit@7.20.0':
     resolution: {integrity: sha512-X74KMa0tcDAAMOE9aFtBRN+RCdD/HMXor5YN18e7d0pe4a65MGFklUGlcg1U6zEfeMMYeC3msNvMKLMwk3O5RA==}
 
@@ -547,6 +556,14 @@ packages:
 
   '@milkdown/plugin-listener@7.20.0':
     resolution: {integrity: sha512-Sj+B63JfM3NVVS3uGXTPkoz8xx8MQYrR28pI9AaqX5q60tvCvOJw9E1ODvSsBEjeqnN4kablDthIugLlBhOlwQ==}
+
+  '@milkdown/plugin-math@7.5.9':
+    resolution: {integrity: sha512-LzFZKNc7zm3uOTs9mEN/12/X+UdGoyQRp5Gt9GE7lPJ96jOZaGJD0vMtX0mTauTOmUxDQoQS0I7NW1g9UhC6qQ==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+    peerDependencies:
+      '@milkdown/core': ^7.2.0
+      '@milkdown/ctx': ^7.2.0
+      '@milkdown/prose': ^7.2.0
 
   '@milkdown/plugin-prism@7.20.0':
     resolution: {integrity: sha512-Iy8rh/KOzTmJIWpPhjzeF2NEkhldLZ0Edu0/zU3UBsom939ZcUdcsLujwpad7P6KlueBHw8QgSNe0gOEQ56yTQ==}
@@ -586,6 +603,14 @@ packages:
 
   '@milkdown/utils@7.20.0':
     resolution: {integrity: sha512-ciEhtLKhIW/Kaz/NRE5DUXVoMCdenn7S4mClrO7sZ/nXtmObnk3okJzSDnamQoDOcLOIbpOu1V3E1Btkvc5x9w==}
+
+  '@milkdown/utils@7.5.9':
+    resolution: {integrity: sha512-udxaIdKm6pOiNACIKR7+NQ7Vj+QivhA5jcRqksEuQOfDFQBFcGaAhGEEiU1cKwE7fmP2ayigfD0IZ01rjLS2fA==}
+    peerDependencies:
+      '@milkdown/core': ^7.2.0
+      '@milkdown/ctx': ^7.2.0
+      '@milkdown/prose': ^7.2.0
+      '@milkdown/transformer': ^7.2.0
 
   '@ocavue/utils@1.6.0':
     resolution: {integrity: sha512-8W3q1hxx9qFdrYgPtbElllG/tqYkO/dMhlRUiqasO0SuDFTj78azSQjhIrBTFWxlBPPsSZN6zXYHmb3RwN2Jtg==}
@@ -1555,6 +1580,9 @@ packages:
   trough@2.2.0:
     resolution: {integrity: sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw==}
 
+  tslib@2.8.1:
+    resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
+
   typescript@5.8.3:
     resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
     engines: {node: '>=14.17'}
@@ -2381,6 +2409,10 @@ snapshots:
 
   '@milkdown/exception@7.20.0': {}
 
+  '@milkdown/exception@7.5.9':
+    dependencies:
+      tslib: 2.8.1
+
   '@milkdown/kit@7.20.0(@codemirror/language@6.12.3)(@codemirror/state@6.6.0)(@codemirror/view@6.41.1)(typescript@5.8.3)':
     dependencies:
       '@milkdown/components': 7.20.0(@codemirror/language@6.12.3)(@codemirror/state@6.6.0)(@codemirror/view@6.41.1)(typescript@5.8.3)
@@ -2463,6 +2495,21 @@ snapshots:
       '@types/lodash-es': 4.17.12
       lodash-es: 4.18.1
     transitivePeerDependencies:
+      - supports-color
+
+  '@milkdown/plugin-math@7.5.9(@milkdown/core@7.20.0)(@milkdown/ctx@7.20.0)(@milkdown/prose@7.20.0)(@milkdown/transformer@7.20.0)':
+    dependencies:
+      '@milkdown/core': 7.20.0
+      '@milkdown/ctx': 7.20.0
+      '@milkdown/exception': 7.5.9
+      '@milkdown/prose': 7.20.0
+      '@milkdown/utils': 7.5.9(@milkdown/core@7.20.0)(@milkdown/ctx@7.20.0)(@milkdown/prose@7.20.0)(@milkdown/transformer@7.20.0)
+      '@types/katex': 0.16.8
+      katex: 0.16.45
+      remark-math: 6.0.0
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@milkdown/transformer'
       - supports-color
 
   '@milkdown/plugin-prism@7.20.0':
@@ -2604,6 +2651,16 @@ snapshots:
       nanoid: 5.1.9
     transitivePeerDependencies:
       - supports-color
+
+  '@milkdown/utils@7.5.9(@milkdown/core@7.20.0)(@milkdown/ctx@7.20.0)(@milkdown/prose@7.20.0)(@milkdown/transformer@7.20.0)':
+    dependencies:
+      '@milkdown/core': 7.20.0
+      '@milkdown/ctx': 7.20.0
+      '@milkdown/exception': 7.5.9
+      '@milkdown/prose': 7.20.0
+      '@milkdown/transformer': 7.20.0
+      nanoid: 5.1.9
+      tslib: 2.8.1
 
   '@ocavue/utils@1.6.0': {}
 
@@ -3792,6 +3849,8 @@ snapshots:
   totalist@3.0.1: {}
 
   trough@2.2.0: {}
+
+  tslib@2.8.1: {}
 
   typescript@5.8.3: {}
 
