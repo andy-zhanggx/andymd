@@ -73,4 +73,26 @@ describe('documentStore', () => {
     expect(fsMock.writeFile).toHaveBeenCalledWith('/chose.md', 'hi');
     expect(useDocumentStore.getState().doc!.path).toBe('/chose.md');
   });
+
+  it('open normalizes spaceless headings', async () => {
+    fsMock.readFile.mockResolvedValue({
+      content: '##数学解释\nsome text\n####标题\n',
+      mtime: 1,
+    });
+    await useDocumentStore.getState().open('/a.md');
+    const d = useDocumentStore.getState().doc!;
+    expect(d.content).toBe('## 数学解释\nsome text\n#### 标题\n');
+    expect(d.draft).toBe(d.content);
+    expect(d.isDirty).toBe(false);
+  });
+
+  it('open preserves already-valid headings and leaves non-heading lines alone', async () => {
+    fsMock.readFile.mockResolvedValue({
+      content: '# Title\n## Heading\ntext with # in middle\n# 正常\n',
+      mtime: 1,
+    });
+    await useDocumentStore.getState().open('/a.md');
+    const d = useDocumentStore.getState().doc!;
+    expect(d.content).toBe('# Title\n## Heading\ntext with # in middle\n# 正常\n');
+  });
 });

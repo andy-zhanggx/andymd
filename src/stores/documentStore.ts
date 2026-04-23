@@ -26,11 +26,23 @@ function emptyDraft(): Document {
   };
 }
 
+/**
+ * Relax ATX heading detection so `##text` (no space after #) is still
+ * recognized as a heading — Typora-style convenience for Chinese writers
+ * who don't add spaces between punctuation and content.
+ *
+ * Matches only at line start; leaves already-valid headings untouched.
+ */
+function lenifyHeadings(md: string): string {
+  return md.replace(/^(#{1,6})([^\s#])/gm, '$1 $2');
+}
+
 export const useDocumentStore = create<DocumentState>((set, get) => ({
   doc: null,
 
   async open(path) {
-    const { content, mtime } = await fsService.readFile(path);
+    const { content: raw, mtime } = await fsService.readFile(path);
+    const content = lenifyHeadings(raw);
     set({
       doc: { path, content, draft: content, isDirty: false, mtime, encoding: 'utf-8' },
     });
@@ -78,7 +90,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   async reload() {
     const d = get().doc;
     if (!d?.path) return;
-    const { content, mtime } = await fsService.readFile(d.path);
+    const { content: raw, mtime } = await fsService.readFile(d.path);
+    const content = lenifyHeadings(raw);
     set({ doc: { path: d.path, content, draft: content, isDirty: false, mtime, encoding: 'utf-8' } });
   },
 
