@@ -3,6 +3,7 @@ import { useTheme } from './hooks/useTheme';
 import { useConfigStore } from './stores/configStore';
 import { TitleBar } from './components/TitleBar';
 import { StatusBar } from './components/StatusBar';
+import { Sidebar } from './components/Sidebar/Sidebar';
 
 export default function App() {
   useTheme();
@@ -31,7 +32,7 @@ export default function App() {
             overflow: 'hidden',
           }}
         >
-          {/* filled in Task 15 */}
+          <Sidebar />
         </aside>
       )}
       <main style={{ gridArea: 'editor', overflow: 'auto', background: 'var(--bg-primary)' }}>
