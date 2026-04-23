@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { buildEditor } from './milkdownConfig';
 import { useDocumentStore } from '../../stores/documentStore';
+import { resolveImageSrc } from '../../lib/asset';
 import './editor-styles.css';
 
 export function MarkdownEditor() {
@@ -31,8 +32,21 @@ export function MarkdownEditor() {
       }
     });
 
+    const rewrite = () => {
+      root.querySelectorAll<HTMLImageElement>('img[src]').forEach((img) => {
+        const origin = img.getAttribute('src') || '';
+        if (origin.startsWith('asset:') || origin.startsWith('http') || origin.startsWith('data:')) return;
+        const resolved = resolveImageSrc(origin, doc.path);
+        if (resolved !== origin) img.setAttribute('src', resolved);
+      });
+    };
+    const mo = new MutationObserver(() => rewrite());
+    mo.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['src'] });
+    rewrite();
+
     return () => {
       disposed = true;
+      mo.disconnect();
       void editor.destroy().finally(() => {
         root.innerHTML = '';
       });

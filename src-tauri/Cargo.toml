@@ -21,7 +21,7 @@ trash = "4"
 tokio = { version = "1", features = ["fs", "rt-multi-thread", "sync"] }
 dirs = "5"
 uuid = { version = "1", features = ["v4"] }
-tauri = { version = "2", features = ["macos-private-api"] }
+tauri = { version = "2", features = ["macos-private-api", "protocol-asset"] }
 tauri-plugin-dialog = "2"
 
 [dev-dependencies]
