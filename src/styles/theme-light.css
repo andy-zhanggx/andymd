@@ -1,0 +1,12 @@
+:root[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f6f7f9;
+  --bg-sidebar: #f2f2f4;
+  --fg-primary: #1d1d1f;
+  --fg-secondary: #555;
+  --fg-muted: #888;
+  --border: #e2e3e6;
+  --accent: #007aff;
+  --code-bg: #f0f1f3;
+  --selection: #b3d4fc;
+}

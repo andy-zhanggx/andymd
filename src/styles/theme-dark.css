@@ -1,0 +1,12 @@
+:root[data-theme="dark"] {
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #252526;
+  --bg-sidebar: #1a1a1a;
+  --fg-primary: #e8e8e8;
+  --fg-secondary: #bbbbbb;
+  --fg-muted: #888888;
+  --border: #333333;
+  --accent: #0a84ff;
+  --code-bg: #2a2a2a;
+  --selection: #264f78;
+}
