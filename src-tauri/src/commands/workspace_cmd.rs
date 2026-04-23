@@ -27,10 +27,13 @@ pub async fn pick_workspace_dir(app: AppHandle) -> CommandResult<Option<String>>
 
 #[tauri::command]
 pub async fn pick_markdown_file(app: AppHandle) -> CommandResult<Option<String>> {
+    // macOS NSOpenPanel grays out .md when the extension isn't a registered UTI.
+    // Provide an All Files escape hatch so users can always pick what they want.
     let picked = app
         .dialog()
         .file()
-        .add_filter("Markdown", &["md", "markdown"])
+        .add_filter("Markdown", &["md", "markdown", "mdown", "mkd", "txt"])
+        .add_filter("All Files", &["*"])
         .blocking_pick_file();
     Ok(picked.map(|p| p.to_string()))
 }

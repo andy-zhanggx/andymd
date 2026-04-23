@@ -1,13 +1,18 @@
 import { useEffect, useRef } from 'react';
+import type { Editor } from '@milkdown/core';
 import { buildEditor } from './milkdownConfig';
 import { useDocumentStore } from '../../stores/documentStore';
 import { useConfigStore } from '../../stores/configStore';
+import { useWorkspaceStore } from '../../stores/workspaceStore';
+import { dialogService } from '../../services/dialogService';
 import { resolveImageSrc } from '../../lib/asset';
 import './editor-styles.css';
 
 export function MarkdownEditor() {
   const doc = useDocumentStore((s) => s.doc);
+  const openDoc = useDocumentStore((s) => s.open);
   const setDraft = useDocumentStore((s) => s.setDraft);
+  const openWs = useWorkspaceStore((s) => s.open);
   const getSession = useConfigStore((s) => s.getSession);
   const recordSession = useConfigStore((s) => s.recordSession);
   const ref = useRef<HTMLDivElement>(null);
@@ -17,15 +22,12 @@ export function MarkdownEditor() {
     const root = ref.current;
     root.innerHTML = '';
     let disposed = false;
-    const editor = buildEditor({
-      root,
-      initialValue: doc.content,
-      onChange: (md) => {
-        if (!disposed) setDraft(md);
-      },
-    });
-    editor.create();
-
+    let editor: Editor | undefined;
+    let createPromise: Promise<Editor> | undefined;
+    let mo: MutationObserver | undefined;
+    const scroller = root.closest('main') as HTMLElement | null;
+    let scrollTimer: number | null = null;
+    let lastScrollTop = scroller?.scrollTop ?? 0;
     const rewrite = () => {
       root.querySelectorAll<HTMLImageElement>('img[src]').forEach((img) => {
         const origin = img.getAttribute('src') || '';
@@ -34,43 +36,7 @@ export function MarkdownEditor() {
         if (resolved !== origin) img.setAttribute('src', resolved);
       });
     };
-    const mo = new MutationObserver(() => rewrite());
-    mo.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['src'] });
-    rewrite();
-
-    const scroller = root.closest('main') as HTMLElement | null;
-
-    if (doc.path && scroller) {
-      const saved = getSession(doc.path);
-      if (saved) {
-        requestAnimationFrame(() => {
-          scroller.scrollTop = saved.scrollTop;
-        });
-      }
-    }
-
-    let scrollTimer: number | null = null;
-    let lastScrollTop = scroller?.scrollTop ?? 0;
-    const scrollHandler = () => {
-      lastScrollTop = scroller?.scrollTop ?? 0;
-      if (scrollTimer) window.clearTimeout(scrollTimer);
-      scrollTimer = window.setTimeout(() => {
-        if (doc.path) {
-          recordSession(doc.path, {
-            scrollTop: lastScrollTop,
-            selection: { anchor: 0, head: 0 },
-            lastAccessedAt: Date.now(),
-          });
-        }
-      }, 500);
-    };
-    scroller?.addEventListener('scroll', scrollHandler, { passive: true });
-
-    return () => {
-      disposed = true;
-      mo.disconnect();
-      scroller?.removeEventListener('scroll', scrollHandler);
-      if (scrollTimer) window.clearTimeout(scrollTimer);
+    const flushSession = () => {
       if (doc.path) {
         recordSession(doc.path, {
           scrollTop: lastScrollTop,
@@ -78,15 +44,109 @@ export function MarkdownEditor() {
           lastAccessedAt: Date.now(),
         });
       }
-      root.innerHTML = '';
+    };
+    const scrollHandler = () => {
+      lastScrollTop = scroller?.scrollTop ?? 0;
+      if (scrollTimer) window.clearTimeout(scrollTimer);
+      scrollTimer = window.setTimeout(() => {
+        flushSession();
+      }, 500);
+    };
+
+    const setup = async () => {
+      createPromise = buildEditor({
+        root,
+        initialValue: doc.content,
+        onChange: (md) => {
+          if (!disposed) setDraft(md);
+        },
+      }).create();
+      const created = await createPromise;
+      if (disposed) return;
+
+      editor = created;
+      mo = new MutationObserver(() => rewrite());
+      mo.observe(root, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['src'],
+      });
+      rewrite();
+
+      if (doc.path && scroller) {
+        const saved = getSession(doc.path);
+        if (saved) {
+          requestAnimationFrame(() => {
+            if (!disposed) {
+              scroller.scrollTop = saved.scrollTop;
+            }
+          });
+        }
+      }
+
+      scroller?.addEventListener('scroll', scrollHandler, { passive: true });
+    };
+
+    void setup().catch(() => {
+      if (!disposed) {
+        root.innerHTML = '';
+      }
+    });
+
+    return () => {
+      disposed = true;
+      mo?.disconnect();
+      scroller?.removeEventListener('scroll', scrollHandler);
+      if (scrollTimer) window.clearTimeout(scrollTimer);
+      flushSession();
+      void (async () => {
+        try {
+          const instance = editor ?? await createPromise?.catch(() => undefined);
+          try {
+            await instance?.destroy();
+          } catch {
+            // Best-effort cleanup during StrictMode remounts.
+          }
+        } finally {
+          root.innerHTML = '';
+        }
+      })();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc?.path]);
 
   if (!doc) {
+    const buttonStyle = {
+      fontSize: 13,
+      background: 'transparent',
+      border: '1px solid var(--border)',
+      color: 'var(--fg-primary)',
+      borderRadius: 4,
+      padding: '8px 14px',
+      cursor: 'pointer',
+    } as const;
+
+    const pickAndOpenFile = async () => {
+      const path = await dialogService.pickMarkdownFile();
+      if (path) await openDoc(path);
+    };
+
+    const pickAndOpenWorkspace = async () => {
+      const path = await dialogService.pickWorkspaceDir();
+      if (path) await openWs(path);
+    };
+
     return (
-      <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: 'var(--fg-muted)' }}>
-        Open a file from the sidebar or press ⌘O
+      <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button onClick={pickAndOpenFile} style={buttonStyle}>
+            Open File
+          </button>
+          <button onClick={pickAndOpenWorkspace} style={buttonStyle}>
+            Open Workspace
+          </button>
+        </div>
       </div>
     );
   }

@@ -16,3 +16,138 @@
 .editor-container a {
   color: var(--accent);
 }
+
+.editor-container .milkdown {
+  background: transparent;
+  outline: none;
+}
+
+.editor-container .milkdown .ProseMirror {
+  min-height: 100%;
+  outline: none;
+}
+
+.editor-container .milkdown h1,
+.editor-container .milkdown h2,
+.editor-container .milkdown h3,
+.editor-container .milkdown h4,
+.editor-container .milkdown h5,
+.editor-container .milkdown h6 {
+  margin: 1.2em 0 0.6em;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.editor-container .milkdown h1 {
+  font-size: 2em;
+}
+
+.editor-container .milkdown h2 {
+  font-size: 1.5em;
+}
+
+.editor-container .milkdown h3 {
+  font-size: 1.25em;
+}
+
+.editor-container .milkdown h4 {
+  font-size: 1.1em;
+}
+
+.editor-container .milkdown h5 {
+  font-size: 1em;
+}
+
+.editor-container .milkdown h6 {
+  font-size: 0.9em;
+  color: var(--fg-muted);
+}
+
+.editor-container .milkdown p {
+  margin: 0 0 1em;
+}
+
+.editor-container .milkdown strong {
+  font-weight: 700;
+}
+
+.editor-container .milkdown em {
+  font-style: italic;
+}
+
+.editor-container .milkdown del {
+  text-decoration: line-through;
+}
+
+.editor-container .milkdown code {
+  background: var(--code-bg);
+  border-radius: 3px;
+  padding: 0 4px;
+  font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.editor-container .milkdown pre {
+  margin: 0 0 1em;
+  padding: 12px;
+  background: var(--code-bg);
+  border-radius: 6px;
+  overflow: auto;
+}
+
+.editor-container .milkdown pre code {
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.editor-container .milkdown blockquote {
+  margin: 0 0 1em;
+  padding-left: 12px;
+  border-left: 3px solid var(--border);
+  color: var(--fg-secondary);
+}
+
+.editor-container .milkdown ul,
+.editor-container .milkdown ol {
+  margin: 0 0 1em;
+  padding-left: 1.5em;
+}
+
+.editor-container .milkdown li {
+  margin: 0.25em 0;
+}
+
+.editor-container .milkdown table {
+  width: 100%;
+  margin: 1em 0;
+  border-collapse: collapse;
+}
+
+.editor-container .milkdown th,
+.editor-container .milkdown td {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+
+.editor-container .milkdown th {
+  font-weight: 600;
+  background: var(--bg-secondary);
+}
+
+.editor-container .milkdown hr {
+  margin: 1.5em 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.editor-container .milkdown a {
+  color: var(--accent);
+}
+
+.editor-container .milkdown img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
