@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Document } from '../types';
 import { fsService } from '../services/fsService';
 import { dialogService } from '../services/dialogService';
+import { lenifyHeadings } from '../lib/markdown';
 
 interface DocumentState {
   doc: Document | null;
@@ -24,17 +25,6 @@ function emptyDraft(): Document {
     mtime: 0,
     encoding: 'utf-8',
   };
-}
-
-/**
- * Relax ATX heading detection so `##text` (no space after #) is still
- * recognized as a heading — Typora-style convenience for Chinese writers
- * who don't add spaces between punctuation and content.
- *
- * Matches only at line start; leaves already-valid headings untouched.
- */
-function lenifyHeadings(md: string): string {
-  return md.replace(/^(#{1,6})([^\s#])/gm, '$1 $2');
 }
 
 export const useDocumentStore = create<DocumentState>((set, get) => ({
