@@ -19,6 +19,8 @@ pub fn run() {
             commands::fs_cmd::delete_to_trash,
             commands::fs_cmd::reveal_in_finder,
             commands::workspace_cmd::open_workspace,
+            commands::config_cmd::get_config,
+            commands::config_cmd::save_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
