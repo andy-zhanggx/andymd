@@ -9,6 +9,11 @@ pub fn run() {
             commands::fs_cmd::read_file,
             commands::fs_cmd::write_file,
             commands::fs_cmd::list_workspace,
+            commands::fs_cmd::create_file,
+            commands::fs_cmd::create_dir,
+            commands::fs_cmd::rename_path,
+            commands::fs_cmd::delete_to_trash,
+            commands::fs_cmd::reveal_in_finder,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

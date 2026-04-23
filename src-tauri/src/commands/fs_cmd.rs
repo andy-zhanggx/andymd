@@ -144,6 +144,64 @@ pub fn list_workspace(root: String, show_hidden: bool) -> CommandResult<FileNode
         .ok_or_else(|| CommandError::Other("empty workspace".into()))
 }
 
+#[tauri::command]
+pub fn create_file(parent: String, name: String) -> CommandResult<FileNode> {
+    let full = PathBuf::from(&parent).join(&name);
+    if full.exists() {
+        return Err(CommandError::Other(format!("{} already exists", name)));
+    }
+    fs::write(&full, "")?;
+    Ok(FileNode {
+        path: full.to_string_lossy().into(),
+        name,
+        kind: FileKind::File,
+        children: None,
+    })
+}
+
+#[tauri::command]
+pub fn create_dir(parent: String, name: String) -> CommandResult<FileNode> {
+    let full = PathBuf::from(&parent).join(&name);
+    if full.exists() {
+        return Err(CommandError::Other(format!("{} already exists", name)));
+    }
+    fs::create_dir(&full)?;
+    Ok(FileNode {
+        path: full.to_string_lossy().into(),
+        name,
+        kind: FileKind::Dir,
+        children: Some(vec![]),
+    })
+}
+
+#[tauri::command]
+pub fn rename_path(from: String, to: String) -> CommandResult<()> {
+    let from_p = PathBuf::from(&from);
+    let to_p = PathBuf::from(&to);
+    if to_p.exists() {
+        return Err(CommandError::Other(format!("{} already exists", to)));
+    }
+    fs::rename(&from_p, &to_p)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_to_trash(path: String) -> CommandResult<()> {
+    trash::delete(&path).map_err(|e| CommandError::Trash(e.to_string()))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn reveal_in_finder(path: String) -> CommandResult<()> {
+    let p = PathBuf::from(&path);
+    std::process::Command::new("open")
+        .arg("-R")
+        .arg(&p)
+        .status()
+        .map_err(|e| CommandError::Other(e.to_string()))?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -226,5 +284,33 @@ mod tests {
         let children = tree.children.as_ref().unwrap();
         assert_eq!(children.len(), 1);
         assert_eq!(children[0].name, "a.md");
+    }
+
+    #[test]
+    fn create_and_delete_file() {
+        let dir = tempdir().unwrap();
+        let node = create_file(dir.path().to_string_lossy().into(), "a.md".into()).unwrap();
+        assert!(PathBuf::from(&node.path).exists());
+        // Skip delete_to_trash — trash interacts with system Trash and may be blocked in sandboxed/CI runs.
+        fs::remove_file(&node.path).unwrap();
+    }
+
+    #[test]
+    fn create_file_rejects_existing() {
+        let dir = tempdir().unwrap();
+        fs::write(dir.path().join("a.md"), "").unwrap();
+        let err = create_file(dir.path().to_string_lossy().into(), "a.md".into());
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn rename_works() {
+        let dir = tempdir().unwrap();
+        let a = dir.path().join("a.md");
+        let b = dir.path().join("b.md");
+        fs::write(&a, "").unwrap();
+        rename_path(a.to_string_lossy().into(), b.to_string_lossy().into()).unwrap();
+        assert!(b.exists());
+        assert!(!a.exists());
     }
 }
