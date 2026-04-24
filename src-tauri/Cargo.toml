@@ -1,12 +1,12 @@
 [package]
-name = "typora_clone"
+name = "andymd"
 version = "0.1.0"
-description = "Typora Clone"
+description = "AndyMD"
 authors = ["andy.zhanggx"]
 edition = "2021"
 
 [lib]
-name = "typora_clone_lib"
+name = "andymd_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

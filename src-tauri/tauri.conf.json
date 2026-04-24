@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Typora Clone",
+  "productName": "AndyMD",
   "version": "0.1.0",
-  "identifier": "com.andyz.typora",
+  "identifier": "com.andyz.andymd",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build",
@@ -13,7 +13,7 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "Typora Clone",
+        "title": "AndyMD",
         "width": 1200,
         "height": 800,
         "minWidth": 800,

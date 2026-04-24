@@ -4,7 +4,7 @@ use tauri::{
 };
 
 pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<tauri::menu::Menu<R>> {
-    let app_menu = SubmenuBuilder::new(app, "Typora Clone")
+    let app_menu = SubmenuBuilder::new(app, "AndyMD")
         .item(&PredefinedMenuItem::about(app, None, None)?)
         .separator()
         .item(&PredefinedMenuItem::services(app, None)?)

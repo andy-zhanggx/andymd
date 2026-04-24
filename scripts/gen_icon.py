@@ -1,4 +1,4 @@
-"""Generate a 1024x1024 macOS-style app icon for Typora Clone."""
+"""Generate a 1024x1024 macOS-style app icon for AndyMD."""
 from PIL import Image, ImageDraw, ImageFont
 import os
 
