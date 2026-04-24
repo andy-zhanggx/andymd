@@ -1,6 +1,7 @@
 import './styles/global.css';
 import { useTheme } from './hooks/useTheme';
 import { useShortcuts } from './hooks/useShortcuts';
+import { useOpenFileRequest } from './hooks/useOpenFileRequest';
 import { useWorkspaceWatcher } from './hooks/useWorkspaceWatcher';
 import { useConfigStore } from './stores/configStore';
 import { TitleBar } from './components/TitleBar';
@@ -11,6 +12,7 @@ import { MarkdownEditor } from './components/Editor/MarkdownEditor';
 export default function App() {
   useTheme();
   useShortcuts();
+  useOpenFileRequest();
   useWorkspaceWatcher();
   const { showSidebar, sidebarWidth } = useConfigStore((s) => s.config);
 

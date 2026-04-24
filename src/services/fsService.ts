@@ -23,6 +23,8 @@ export const fsService = {
   revealInFinder: (path: string) => invoke<void>('reveal_in_finder', { path }),
 
   openWorkspace: (root: string) => invoke<void>('open_workspace', { root }),
+
+  takePendingOpens: () => invoke<string[]>('take_pending_opens'),
 };
 
 export type FsEvent =
@@ -33,4 +35,8 @@ export type FsEvent =
 
 export function onWorkspaceChanged(cb: (ev: FsEvent) => void): Promise<UnlistenFn> {
   return listen<FsEvent>('workspace-changed', (e) => cb(e.payload));
+}
+
+export function onOpenFileRequest(cb: (path: string) => void): Promise<UnlistenFn> {
+  return listen<string>('open-file-request', (e) => cb(e.payload));
 }

@@ -33,6 +33,15 @@
   },
   "bundle": {
     "active": true,
+    "fileAssociations": [
+      {
+        "ext": ["md", "markdown", "mdown", "mkd"],
+        "name": "Markdown Document",
+        "description": "Markdown document",
+        "role": "Editor",
+        "mimeType": "text/markdown"
+      }
+    ],
     "targets": ["app", "dmg"],
     "macOS": {
       "minimumSystemVersion": "11.0"

@@ -1,15 +1,17 @@
-mod error;
 mod commands;
-mod watcher;
+mod error;
 mod menu;
+mod watcher;
 
+use tauri::{Emitter, Manager, RunEvent};
 use watcher::WatcherState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(WatcherState::new())
+        .manage(commands::workspace_cmd::PendingOpensState::default())
         .setup(|app| {
             let menu_obj = menu::build_menu(app.handle())?;
             app.set_menu(menu_obj)?;
@@ -29,9 +31,37 @@ pub fn run() {
             commands::workspace_cmd::pick_workspace_dir,
             commands::workspace_cmd::pick_markdown_file,
             commands::workspace_cmd::save_markdown_dialog,
+            commands::workspace_cmd::take_pending_opens,
             commands::config_cmd::get_config,
             commands::config_cmd::save_config,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|handle, event| {
+        if let RunEvent::Opened { urls } = event {
+            let paths: Vec<String> = urls
+                .into_iter()
+                .filter_map(|url| {
+                    url.to_file_path()
+                        .ok()
+                        .map(|path| path.to_string_lossy().into_owned())
+                })
+                .collect();
+
+            if paths.is_empty() {
+                return;
+            }
+
+            {
+                let pending = handle.state::<commands::workspace_cmd::PendingOpensState>();
+                let mut guard = pending.0.lock().unwrap();
+                guard.extend(paths.iter().cloned());
+            }
+
+            for path in paths {
+                let _ = handle.emit("open-file-request", path);
+            }
+        }
+    });
 }

@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::Mutex;
 use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 
@@ -51,4 +52,18 @@ pub async fn save_markdown_dialog(
         .set_file_name(&default_name)
         .blocking_save_file();
     Ok(picked.map(|p| p.to_string()))
+}
+
+pub struct PendingOpensState(pub Mutex<Vec<String>>);
+
+impl Default for PendingOpensState {
+    fn default() -> Self {
+        Self(Mutex::new(Vec::new()))
+    }
+}
+
+#[tauri::command]
+pub fn take_pending_opens(state: State<'_, PendingOpensState>) -> Vec<String> {
+    let mut guard = state.0.lock().unwrap();
+    std::mem::take(&mut *guard)
 }
