@@ -5,6 +5,7 @@ import { useDocumentStore } from '../../stores/documentStore';
 import { useConfigStore } from '../../stores/configStore';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { dialogService } from '../../services/dialogService';
+import { openWikilink } from '../../services/wikilinkService';
 import { resolveImageSrc } from '../../lib/asset';
 import './editor-styles.css';
 
@@ -44,6 +45,14 @@ export function MarkdownEditor() {
           lastAccessedAt: Date.now(),
         });
       }
+    };
+    const wikilinkClickHandler = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest('a[data-type="wikilink"]');
+      if (!anchor) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const target = anchor.getAttribute('data-target') || '';
+      if (target) void openWikilink(target, doc.path);
     };
     const scrollHandler = () => {
       lastScrollTop = scroller?.scrollTop ?? 0;
@@ -86,6 +95,7 @@ export function MarkdownEditor() {
       }
 
       scroller?.addEventListener('scroll', scrollHandler, { passive: true });
+      root.addEventListener('click', wikilinkClickHandler);
     };
 
     void setup().catch(() => {
@@ -97,6 +107,7 @@ export function MarkdownEditor() {
     return () => {
       disposed = true;
       mo?.disconnect();
+      root.removeEventListener('click', wikilinkClickHandler);
       scroller?.removeEventListener('scroll', scrollHandler);
       if (scrollTimer) window.clearTimeout(scrollTimer);
       flushSession();
@@ -154,7 +165,7 @@ export function MarkdownEditor() {
   return (
     <div
       className="editor-container"
-      style={{ maxWidth: 740, margin: '0 auto', padding: '32px 24px' }}
+      style={{ maxWidth: 740, margin: '0 auto', padding: '32px 24px 30vh' }}
       ref={ref}
     />
   );

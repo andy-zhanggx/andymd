@@ -144,6 +144,26 @@ pub fn list_workspace(root: String, show_hidden: bool) -> CommandResult<FileNode
         .ok_or_else(|| CommandError::Other("empty workspace".into()))
 }
 
+/// Walk up from `from` looking for a directory containing `.obsidian`
+/// (an Obsidian vault root). Falls back to the file's own directory.
+#[tauri::command]
+pub fn find_vault_root(from: String) -> CommandResult<String> {
+    let mut dir = PathBuf::from(&from);
+    if dir.is_file() {
+        dir.pop();
+    }
+    let start = dir.clone();
+    loop {
+        if dir.join(".obsidian").is_dir() {
+            return Ok(dir.to_string_lossy().into_owned());
+        }
+        if !dir.pop() {
+            break;
+        }
+    }
+    Ok(start.to_string_lossy().into_owned())
+}
+
 #[tauri::command]
 pub fn create_file(parent: String, name: String) -> CommandResult<FileNode> {
     let full = PathBuf::from(&parent).join(&name);

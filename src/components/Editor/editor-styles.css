@@ -25,6 +25,16 @@
 .editor-container .milkdown .ProseMirror {
   min-height: 100%;
   outline: none;
+  caret-color: var(--accent);
+}
+
+.editor-container ::selection {
+  background: var(--selection);
+}
+
+/* Documents start flush at the top regardless of which block opens them. */
+.editor-container .milkdown .ProseMirror > :first-child {
+  margin-top: 0;
 }
 
 .editor-container .milkdown h1,
@@ -40,10 +50,12 @@
 
 .editor-container .milkdown h1 {
   font-size: 2em;
+  letter-spacing: -0.02em;
 }
 
 .editor-container .milkdown h2 {
   font-size: 1.5em;
+  letter-spacing: -0.01em;
 }
 
 .editor-container .milkdown h3 {
@@ -101,6 +113,41 @@
   border-radius: 0;
 }
 
+.editor-container .milkdown pre[data-type='frontmatter'] {
+  margin: 0 0 1.5em;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.82em;
+  line-height: 1.55;
+  color: var(--fg-muted);
+}
+
+.editor-container .milkdown pre[data-type='frontmatter']::before {
+  content: 'metadata';
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.85em;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+  opacity: 0.7;
+  user-select: none;
+}
+
+.editor-container .milkdown a.wikilink {
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+  border-bottom: 1px dashed var(--accent);
+}
+
+.editor-container .milkdown a.wikilink:hover {
+  border-bottom-style: solid;
+}
+
 .editor-container .milkdown blockquote {
   margin: 0 0 1em;
   padding-left: 12px;
@@ -116,6 +163,16 @@
 
 .editor-container .milkdown li {
   margin: 0.25em 0;
+}
+
+.editor-container .milkdown li[data-item-type='task'] {
+  list-style: none;
+}
+
+.editor-container .milkdown input[type='checkbox'] {
+  accent-color: var(--accent);
+  margin-right: 0.5em;
+  vertical-align: -0.1em;
 }
 
 .editor-container .milkdown table {

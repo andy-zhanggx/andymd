@@ -27,6 +27,7 @@ pub fn run() {
             commands::fs_cmd::rename_path,
             commands::fs_cmd::delete_to_trash,
             commands::fs_cmd::reveal_in_finder,
+            commands::fs_cmd::find_vault_root,
             commands::workspace_cmd::open_workspace,
             commands::workspace_cmd::pick_workspace_dir,
             commands::workspace_cmd::pick_markdown_file,

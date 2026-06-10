@@ -120,6 +120,58 @@ describe('MarkdownEditor integration (happy-dom)', () => {
     }
   });
 
+  it('renders YAML frontmatter as a metadata block, not headings', async () => {
+    const { editor, root, cleanup } = await mount(fixture('frontmatter.md'));
+    try {
+      // Frontmatter must render as a dedicated block...
+      const block = root.querySelector('[data-type="frontmatter"]');
+      expect(block).toBeTruthy();
+      expect(block?.textContent).toContain('type: tech-note');
+
+      // ...not as a giant setext heading + thematic break.
+      const headings = [...root.querySelectorAll('h1, h2, h3')];
+      expect(headings.some((h) => h.textContent?.includes('tech-note'))).toBe(false);
+      expect(headings.some((h) => h.textContent === 'Diagnosis')).toBe(true);
+      expect(root.querySelector('hr')).toBeNull();
+
+      // Serialization must round-trip the frontmatter fence intact.
+      const { getMarkdown } = await import('@milkdown/utils');
+      const md = editor.action(getMarkdown());
+      expect(md.startsWith('---\ntype: tech-note')).toBe(true);
+      expect(md).toContain('tags: [pcoc, calibration, organic]');
+      expect(md.split('---\n').length).toBeGreaterThanOrEqual(2);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it('renders wikilinks as link elements with alias and path support', async () => {
+    const { editor, root, cleanup } = await mount(fixture('wikilink.md'));
+    try {
+      const links = [...root.querySelectorAll('[data-type="wikilink"]')];
+      expect(links.length).toBe(3);
+      expect(links[0]?.textContent).toBe('organic-vs-ads-pcoc-label-semantics');
+      expect(links[0]?.getAttribute('data-target')).toBe('organic-vs-ads-pcoc-label-semantics');
+      // Alias form displays the alias but keeps the target.
+      expect(links[1]?.textContent).toBe('the mixer note');
+      expect(links[1]?.getAttribute('data-target')).toBe('api0-mixer');
+      expect(links[2]?.getAttribute('data-target')).toBe(
+        '03-resources/sql-recipes/organic-pcoc-by-category/index',
+      );
+      // No raw [[ ]] left as plain text.
+      expect(root.textContent).not.toContain('[[');
+
+      // Serialization round-trips the wikilink syntax.
+      const { getMarkdown } = await import('@milkdown/utils');
+      const md = editor.action(getMarkdown());
+      expect(md).toContain('[[organic-vs-ads-pcoc-label-semantics]]');
+      expect(md).toContain('[[api0-mixer|the mixer note]]');
+      expect(md).toContain('[[03-resources/sql-recipes/organic-pcoc-by-category/index]]');
+    } finally {
+      await cleanup();
+    }
+  });
+
   it('renders inline and block math via KaTeX', async () => {
     const { editor, cleanup } = await mount(fixture('math.md'));
     try {
