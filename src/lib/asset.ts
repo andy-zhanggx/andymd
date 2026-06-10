@@ -4,20 +4,6 @@ export function toAssetUrl(fsPath: string): string {
   return convertFileSrc(fsPath);
 }
 
-export function resolveImageSrc(src: string, docPath: string | null): string {
-  if (!src) return src;
-  if (/^(https?:|data:|asset:)/.test(src)) return src;
-  if (!docPath) return src;
-  const dir = docPath.replace(/[^/]+$/, '');
-  const abs = src.startsWith('/') ? src : dir + src;
-  return toAssetUrl(abs);
-}
-
-export type ResolvedLink =
-  | { kind: 'external'; href: string }
-  | { kind: 'mdfile'; absPath: string }
-  | { kind: 'ignore' };
-
 function decodePath(path: string): string {
   try {
     return decodeURIComponent(path);
@@ -54,6 +40,34 @@ function resolvePosixPath(path: string): string {
   if (absolute) return `/${resolved}`;
   return resolved || '.';
 }
+
+export function resolveImageSrc(src: string, docPath: string | null): string {
+  if (!src) return src;
+  if (/^(https?:\/\/|data:|asset:|file:)/i.test(src)) return src;
+
+  // Strip query and fragment before treating as filesystem path.
+  const noQuery = src.split('?')[0] ?? '';
+  const pathPart = noQuery.split('#')[0] ?? '';
+  if (!pathPart) return src;
+
+  // Decode percent-encoded characters once. CommonMark/Milkdown emits
+  // already-encoded srcs (%20, %E4%B8%AD...); convertFileSrc will encode
+  // again — so we need to decode first to avoid double-encoding.
+  const decoded = decodePath(pathPart);
+
+  if (decoded.startsWith('/')) {
+    return toAssetUrl(resolvePosixPath(decoded));
+  }
+  if (!docPath) return src;
+
+  const joined = `${dirname(docPath)}/${decoded}`;
+  return toAssetUrl(resolvePosixPath(joined));
+}
+
+export type ResolvedLink =
+  | { kind: 'external'; href: string }
+  | { kind: 'mdfile'; absPath: string }
+  | { kind: 'ignore' };
 
 export function resolveLinkHref(href: string, docPath: string | null): ResolvedLink {
   if (/^(https?:\/\/|mailto:)/i.test(href)) return { kind: 'external', href };
