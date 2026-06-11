@@ -23,7 +23,8 @@
     "@milkdown/preset-gfm": "^7.20.0",
     "@milkdown/react": "^7.20.0",
     "@milkdown/theme-nord": "^7.20.0",
-    "@tauri-apps/api": "^2",
+    "@milkdown/utils": "^7.20.0",
+    "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-dialog": "^2.7.0",
     "@tauri-apps/plugin-opener": "^2.5.3",
     "katex": "^0.16.45",
@@ -31,6 +32,8 @@
     "react": "^18.3.1",
     "react-arborist": "^3.5.0",
     "react-dom": "^18.3.1",
+    "remark-frontmatter": "^5.0.0",
+    "remark-wiki-link": "^2.0.1",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

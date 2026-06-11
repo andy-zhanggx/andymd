@@ -1,0 +1,72 @@
+/* Print: the document, nothing else — always ink-on-paper colors,
+   regardless of the on-screen theme. */
+@media print {
+  :root[data-theme='light'],
+  :root[data-theme='dark'] {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f4f4f4;
+    --fg-primary: #000000;
+    --fg-secondary: #333333;
+    --fg-muted: #666666;
+    --border: #cccccc;
+    --accent: #000000;
+    --code-bg: #f4f4f4;
+    --selection: transparent;
+  }
+
+  @page {
+    margin: 2cm;
+  }
+
+  .titlebar,
+  .statusbar,
+  aside,
+  .sidebar-resizer,
+  .context-menu {
+    display: none !important;
+  }
+
+  #app-root {
+    display: block !important;
+    height: auto !important;
+  }
+
+  main {
+    overflow: visible !important;
+  }
+
+  .editor-container {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .editor-container .milkdown pre {
+    overflow: visible;
+    white-space: pre-wrap;
+  }
+
+  .editor-container .milkdown a {
+    color: inherit;
+  }
+
+  /* Keep drawn checkboxes and code-chip backgrounds visible on paper. */
+  .editor-container .milkdown li[data-item-type='task']::before,
+  .editor-container .milkdown code,
+  .editor-container .milkdown pre {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .editor-container .milkdown h1,
+  .editor-container .milkdown h2,
+  .editor-container .milkdown h3 {
+    break-after: avoid;
+  }
+
+  .editor-container .milkdown pre,
+  .editor-container .milkdown blockquote,
+  .editor-container .milkdown table,
+  .editor-container .milkdown img {
+    break-inside: avoid;
+  }
+}

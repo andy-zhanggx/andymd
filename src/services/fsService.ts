@@ -22,6 +22,8 @@ export const fsService = {
 
   revealInFinder: (path: string) => invoke<void>('reveal_in_finder', { path }),
 
+  findVaultRoot: (from: string) => invoke<string>('find_vault_root', { from }),
+
   openWorkspace: (root: string) => invoke<void>('open_workspace', { root }),
 
   takePendingOpens: () => invoke<string[]>('take_pending_opens'),

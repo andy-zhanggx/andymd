@@ -1,7 +1,8 @@
 .editor-container {
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.7; /* mixed CJK/Latin needs more leading than Latin-only 1.6 */
   color: var(--fg-primary);
+  overflow-wrap: break-word;
 }
 
 .editor-container .milkdown {
@@ -25,6 +26,16 @@
 .editor-container .milkdown .ProseMirror {
   min-height: 100%;
   outline: none;
+  caret-color: var(--accent);
+}
+
+.editor-container ::selection {
+  background: var(--selection);
+}
+
+/* Documents start flush at the top regardless of which block opens them. */
+.editor-container .milkdown .ProseMirror > :first-child {
+  margin-top: 0;
 }
 
 .editor-container .milkdown h1,
@@ -40,10 +51,12 @@
 
 .editor-container .milkdown h1 {
   font-size: 2em;
+  letter-spacing: -0.02em;
 }
 
 .editor-container .milkdown h2 {
   font-size: 1.5em;
+  letter-spacing: -0.01em;
 }
 
 .editor-container .milkdown h3 {
@@ -65,6 +78,14 @@
 
 .editor-container .milkdown p {
   margin: 0 0 1em;
+}
+
+.editor-container .milkdown li > p {
+  margin: 0;
+}
+
+.editor-container .milkdown blockquote > p:last-child {
+  margin-bottom: 0;
 }
 
 .editor-container .milkdown strong {
@@ -101,6 +122,41 @@
   border-radius: 0;
 }
 
+.editor-container .milkdown pre[data-type='frontmatter'] {
+  margin: 0 0 1.5em;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.82em;
+  line-height: 1.55;
+  color: var(--fg-muted);
+}
+
+.editor-container .milkdown pre[data-type='frontmatter']::before {
+  content: 'metadata';
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.85em;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+  opacity: 0.7;
+  user-select: none;
+}
+
+.editor-container .milkdown a.wikilink {
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+  border-bottom: 1px dashed var(--accent);
+}
+
+.editor-container .milkdown a.wikilink:hover {
+  border-bottom-style: solid;
+}
+
 .editor-container .milkdown blockquote {
   margin: 0 0 1em;
   padding-left: 12px;
@@ -116,6 +172,37 @@
 
 .editor-container .milkdown li {
   margin: 0.25em 0;
+}
+
+/* Milkdown emits no checkbox element for task items — draw one from data-checked. */
+.editor-container .milkdown li[data-item-type='task'] {
+  list-style: none;
+  position: relative;
+}
+
+.editor-container .milkdown li[data-item-type='task']::before {
+  content: '';
+  position: absolute;
+  left: -1.45em;
+  top: 0.3em;
+  width: 1em;
+  height: 1em;
+  box-sizing: border-box;
+  border: 1.5px solid var(--fg-muted);
+  border-radius: 4px;
+}
+
+.editor-container .milkdown li[data-item-type='task'][data-checked='true']::before {
+  border-color: var(--accent);
+  background-color: var(--accent);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="white" stroke-width="2"/></svg>');
+  background-size: 80%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.editor-container .milkdown li[data-item-type='task'][data-checked='true'] {
+  color: var(--fg-muted);
 }
 
 .editor-container .milkdown table {
@@ -144,6 +231,9 @@
 
 .editor-container .milkdown a {
   color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
 }
 
 .editor-container .milkdown img {
