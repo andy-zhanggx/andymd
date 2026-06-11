@@ -22,6 +22,10 @@ export const wikilinkSchema = $nodeSchema('wikilink', () => ({
   parseDOM: [
     {
       tag: 'a[data-type="wikilink"]',
+      // Must outrank the commonmark link mark's `a[href]` rule (priority 50):
+      // DOMParser tries mark rules before node rules at equal priority, and the
+      // clipboard plugin re-parses pasted markdown through toDOM/parseDOM.
+      priority: 100,
       getAttrs: (dom) => ({
         target: (dom as HTMLElement).getAttribute('data-target') ?? '',
         alias: (dom as HTMLElement).getAttribute('data-alias'),

@@ -172,6 +172,44 @@ describe('MarkdownEditor integration (happy-dom)', () => {
     }
   });
 
+  it('pastes markdown wikilinks as wikilink nodes, not plain links', async () => {
+    const { editor, root, cleanup } = await mount('Start here.\n');
+    try {
+      const { editorViewCtx } = await import('@milkdown/core');
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const data = new DataTransfer();
+        data.setData(
+          'text/plain',
+          'See [[api0-mixer|the mixer note]] and [[plain-target]].',
+        );
+        const event = new ClipboardEvent('paste', { clipboardData: data });
+        if (!event.clipboardData) {
+          // Some DOM implementations ignore the clipboardData init option.
+          Object.defineProperty(event, 'clipboardData', { value: data });
+        }
+        view.dom.dispatchEvent(event);
+      });
+      await new Promise((r) => setTimeout(r, 0));
+
+      const links = [...root.querySelectorAll('a[data-type="wikilink"]')];
+      expect(links.length).toBe(2);
+      expect(links[0]?.getAttribute('data-target')).toBe('api0-mixer');
+      expect(links[0]?.textContent).toBe('the mixer note');
+      expect(links[1]?.getAttribute('data-target')).toBe('plain-target');
+      // No leftover plain anchors swallowing the wikilinks.
+      expect(root.querySelectorAll('a:not([data-type="wikilink"])').length).toBe(0);
+
+      const { getMarkdown } = await import('@milkdown/utils');
+      const md = editor.action(getMarkdown());
+      expect(md).toContain('[[api0-mixer|the mixer note]]');
+      expect(md).toContain('[[plain-target]]');
+      expect(md).not.toContain('](');
+    } finally {
+      await cleanup();
+    }
+  });
+
   it('renders inline and block math via KaTeX', async () => {
     const { editor, cleanup } = await mount(fixture('math.md'));
     try {
