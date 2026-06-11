@@ -3,19 +3,41 @@ import { useConfigStore } from '../../stores/configStore';
 import { dialogService } from '../../services/dialogService';
 import { useDocumentStore } from '../../stores/documentStore';
 
+function ChevronDown() {
+  return (
+    <svg width="9" height="9" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M3.5 6 8 10.5 12.5 6" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function DocumentIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M4 1.5h5.5L13 5v8.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1Z"
+        stroke="currentColor"
+      />
+      <path d="M9.5 1.5V5H13" stroke="currentColor" />
+    </svg>
+  );
+}
+
+function FolderIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M1.5 4.5a1 1 0 0 1 1-1h3.6l1.5 2h5.9a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-8Z"
+        stroke="currentColor"
+      />
+    </svg>
+  );
+}
+
 export function WorkspaceSwitcher() {
   const workspace = useWorkspaceStore((s) => s.workspace);
   const openWs = useWorkspaceStore((s) => s.open);
   const recent = useConfigStore((s) => s.config.recentWorkspaces);
-  const buttonStyle = {
-    fontSize: 11,
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    color: 'var(--fg-primary)',
-    borderRadius: 4,
-    padding: '2px 8px',
-    cursor: 'pointer',
-  } as const;
 
   async function pickAndOpen() {
     const path = await dialogService.pickWorkspaceDir();
@@ -28,48 +50,32 @@ export function WorkspaceSwitcher() {
   }
 
   return (
-    <div
-      style={{
-        height: 40,
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0 8px',
-        borderBottom: '1px solid var(--border)',
-        fontSize: 12,
-        gap: 6,
-      }}
-    >
-      <select
-        value={workspace?.root ?? ''}
-        onChange={(e) => { if (e.target.value) openWs(e.target.value); }}
-        style={{
-          flex: 1,
-          background: 'transparent',
-          color: 'var(--fg-primary)',
-          border: 'none',
-          outline: 'none',
-        }}
-      >
-        <option value="" disabled>
-          {workspace ? workspace.name : 'No workspace'}
-        </option>
-        {recent.map((r) => (
-          <option key={r} value={r}>
-            {r.split('/').pop()}
+    <div className="ws-header">
+      <div className="ws-select-wrap">
+        <select
+          className="ws-select"
+          value={workspace?.root ?? ''}
+          onChange={(e) => { if (e.target.value) openWs(e.target.value); }}
+          aria-label="Switch workspace"
+        >
+          <option value="" disabled>
+            {workspace ? workspace.name : 'No Workspace'}
           </option>
-        ))}
-      </select>
-      <button
-        onClick={pickAndOpenFile}
-        style={{ ...buttonStyle, marginRight: 2 }}
-      >
-        Open File
+          {recent.map((r) => (
+            <option key={r} value={r}>
+              {r.split('/').pop()}
+            </option>
+          ))}
+        </select>
+        <span className="ws-select-chevron">
+          <ChevronDown />
+        </span>
+      </div>
+      <button className="ws-action" onClick={pickAndOpenFile} aria-label="Open file" title="Open File…">
+        <DocumentIcon />
       </button>
-      <button
-        onClick={pickAndOpen}
-        style={buttonStyle}
-      >
-        Open…
+      <button className="ws-action" onClick={pickAndOpen} aria-label="Open folder" title="Open Folder…">
+        <FolderIcon />
       </button>
     </div>
   );

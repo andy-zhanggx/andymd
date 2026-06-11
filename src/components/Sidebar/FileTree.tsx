@@ -34,6 +34,33 @@ interface NodeProps extends NodeRendererProps<FileNode> {
   onContextMenu: (path: string, kind: 'file' | 'dir', x: number, y: number) => void;
 }
 
+function FileIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M4 1.5h5.5L13 5v8.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1Z"
+        stroke="currentColor"
+      />
+      <path d="M9.5 1.5V5H13" stroke="currentColor" />
+    </svg>
+  );
+}
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+      style={{ transform: open ? 'rotate(90deg)' : 'none' }}
+    >
+      <path d="M6 3.5 11 8l-5 4.5" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
 function Node({ node, style, dragHandle, activePath, onContextMenu }: NodeProps) {
   const openDoc = useDocumentStore((s) => s.open);
   const isFile = node.data.kind === 'file';
@@ -42,16 +69,8 @@ function Node({ node, style, dragHandle, activePath, onContextMenu }: NodeProps)
   return (
     <div
       ref={dragHandle}
-      style={{
-        ...style,
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0 8px',
-        cursor: 'pointer',
-        background: isActive ? 'var(--selection)' : 'transparent',
-        fontSize: 13,
-        color: 'var(--fg-primary)',
-      }}
+      className={isActive ? 'filetree-row active' : 'filetree-row'}
+      style={style}
       onClick={() => {
         if (isFile) openDoc(node.data.path);
         else node.toggle();
@@ -61,12 +80,10 @@ function Node({ node, style, dragHandle, activePath, onContextMenu }: NodeProps)
         onContextMenu(node.data.path, node.data.kind, e.clientX, e.clientY);
       }}
     >
-      <span style={{ marginRight: 6, width: 12, display: 'inline-block' }}>
-        {isFile ? '📄' : node.isOpen ? '▾' : '▸'}
+      <span className="filetree-glyph">
+        {isFile ? <FileIcon /> : <Chevron open={node.isOpen} />}
       </span>
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {node.data.name}
-      </span>
+      <span className="filetree-name">{node.data.name}</span>
     </div>
   );
 }

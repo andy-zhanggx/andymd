@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useDocumentStore } from '../../stores/documentStore';
 import { useConfigStore } from '../../stores/configStore';
+import { dialogService } from '../../services/dialogService';
 import { FileTree } from './FileTree';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import { ContextMenu } from './ContextMenu';
 
 export function Sidebar() {
   const workspace = useWorkspaceStore((s) => s.workspace);
+  const openWs = useWorkspaceStore((s) => s.open);
   const openDocPath = useDocumentStore((s) => s.doc?.path ?? null);
   const sidebarWidth = useConfigStore((s) => s.config.sidebarWidth);
   const ref = useRef<HTMLDivElement>(null);
@@ -27,7 +29,7 @@ export function Sidebar() {
   return (
     <div ref={ref} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <WorkspaceSwitcher />
-      {workspace && (
+      {workspace ? (
         <FileTree
           root={workspace.tree}
           height={size.h}
@@ -35,6 +37,19 @@ export function Sidebar() {
           activePath={openDocPath}
           onContextMenu={(path, kind, x, y) => setMenu({ x, y, path, kind })}
         />
+      ) : (
+        <div className="sidebar-empty">
+          <p>No folder open</p>
+          <button
+            className="sidebar-empty-action"
+            onClick={async () => {
+              const path = await dialogService.pickWorkspaceDir();
+              if (path) await openWs(path);
+            }}
+          >
+            Open Folder…
+          </button>
+        </div>
       )}
       {menu && (
         <ContextMenu

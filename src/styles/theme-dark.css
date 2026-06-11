@@ -9,4 +9,6 @@
   --accent: #0a84ff;
   --code-bg: #2a2a2a;
   --selection: #264f78;
+  --hover: rgba(255, 255, 255, 0.07);
+  --danger: #ff453a;
 }

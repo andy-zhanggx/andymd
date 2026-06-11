@@ -1,0 +1,337 @@
+.titlebar {
+  position: relative;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px 0 80px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.titlebar-toggle {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.titlebar-toggle:hover {
+  background: var(--hover);
+  color: var(--fg-primary);
+}
+
+.titlebar-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--fg-primary);
+}
+
+.titlebar-dirty {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--fg-muted);
+  vertical-align: 1px;
+}
+
+.filetree-row {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--fg-primary);
+}
+
+.filetree-row:hover {
+  background: var(--hover);
+}
+
+.filetree-row.active {
+  background: var(--selection);
+}
+
+.filetree-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  margin-right: 5px;
+  flex-shrink: 0;
+  color: var(--fg-muted);
+}
+
+.filetree-glyph svg {
+  transition: transform 0.12s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filetree-glyph svg {
+    transition: none;
+  }
+}
+
+.filetree-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  user-select: none;
+}
+
+.empty-mark {
+  margin-bottom: 24px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--fg-muted);
+}
+
+.empty-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 230px;
+}
+
+.empty-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--fg-secondary);
+  cursor: pointer;
+}
+
+.empty-action:hover {
+  background: var(--hover);
+  color: var(--fg-primary);
+}
+
+.empty-action kbd {
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--fg-muted);
+}
+
+.ws-header {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+
+.ws-select-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.ws-select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  padding: 3px 20px 3px 6px;
+  background: transparent;
+  border: none;
+  outline: none;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-primary);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-select:hover {
+  background: var(--hover);
+}
+
+.ws-select-chevron {
+  position: absolute;
+  right: 6px;
+  display: inline-flex;
+  pointer-events: none;
+  color: var(--fg-muted);
+}
+
+.ws-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.ws-action:hover {
+  background: var(--hover);
+  color: var(--fg-primary);
+}
+
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  bottom: 0;
+  width: 6px;
+  z-index: 10;
+  cursor: col-resize;
+}
+
+.sidebar-resizer:focus-visible {
+  outline: none;
+}
+
+.sidebar-resizer:hover::after,
+.sidebar-resizer:focus-visible::after,
+.sidebar-resizer.dragging::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2px;
+  width: 2px;
+  background: var(--accent);
+  opacity: 0.55;
+}
+
+.sidebar-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  user-select: none;
+}
+
+.sidebar-empty p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.sidebar-empty-action {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.sidebar-empty-action:hover {
+  background: var(--hover);
+}
+
+/* Keyboard focus — one consistent ring across all chrome controls. */
+.titlebar-toggle:focus-visible,
+.ws-action:focus-visible,
+.ws-select:focus-visible,
+.empty-action:focus-visible,
+.sidebar-empty-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.context-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 180px;
+  padding: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  font-size: 13px;
+  color: var(--fg-primary);
+  user-select: none;
+}
+
+.context-menu-item {
+  padding: 4px 10px;
+  border-radius: 5px;
+  cursor: default;
+}
+
+.context-menu-item:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.context-menu-item.danger {
+  color: var(--danger);
+}
+
+.context-menu-item.danger:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
+.context-menu-sep {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--border);
+}
+
+.statusbar {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
+  font-size: 11px;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}

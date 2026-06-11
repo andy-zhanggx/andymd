@@ -6,16 +6,26 @@ import { useDocumentStore } from '../../stores/documentStore';
 import { useConfigStore } from '../../stores/configStore';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { dialogService } from '../../services/dialogService';
+import { openWikilink } from '../../services/wikilinkService';
 import { resolveImageSrc, resolveLinkHref } from '../../lib/asset';
 import './editor-styles.css';
+
+const EDITOR_MAX_WIDTH: Record<string, number | 'none'> = {
+  narrow: 620,
+  normal: 740,
+  wide: 920,
+  full: 'none',
+};
 
 export function MarkdownEditor() {
   const doc = useDocumentStore((s) => s.doc);
   const openDoc = useDocumentStore((s) => s.open);
+  const newDraft = useDocumentStore((s) => s.newDraft);
   const setDraft = useDocumentStore((s) => s.setDraft);
   const openWs = useWorkspaceStore((s) => s.open);
   const getSession = useConfigStore((s) => s.getSession);
   const recordSession = useConfigStore((s) => s.recordSession);
+  const { fontSize, lineHeight, fontFamily, editorWidth } = useConfigStore((s) => s.config);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -45,6 +55,14 @@ export function MarkdownEditor() {
           lastAccessedAt: Date.now(),
         });
       }
+    };
+    const wikilinkClickHandler = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest('a[data-type="wikilink"]');
+      if (!anchor) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const target = anchor.getAttribute('data-target') || '';
+      if (target) void openWikilink(target, doc.path);
     };
     const scrollHandler = () => {
       lastScrollTop = scroller?.scrollTop ?? 0;
@@ -113,6 +131,7 @@ export function MarkdownEditor() {
       }
 
       scroller?.addEventListener('scroll', scrollHandler, { passive: true });
+      root.addEventListener('click', wikilinkClickHandler);
     };
 
     void setup().catch(() => {
@@ -124,6 +143,7 @@ export function MarkdownEditor() {
     return () => {
       disposed = true;
       mo?.disconnect();
+      root.removeEventListener('click', wikilinkClickHandler);
       root.removeEventListener('click', clickHandler);
       scroller?.removeEventListener('scroll', scrollHandler);
       if (scrollTimer) window.clearTimeout(scrollTimer);
@@ -145,16 +165,6 @@ export function MarkdownEditor() {
   }, [doc?.path]);
 
   if (!doc) {
-    const buttonStyle = {
-      fontSize: 13,
-      background: 'transparent',
-      border: '1px solid var(--border)',
-      color: 'var(--fg-primary)',
-      borderRadius: 4,
-      padding: '8px 14px',
-      cursor: 'pointer',
-    } as const;
-
     const pickAndOpenFile = async () => {
       const path = await dialogService.pickMarkdownFile();
       if (path) await openDoc(path);
@@ -166,13 +176,20 @@ export function MarkdownEditor() {
     };
 
     return (
-      <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button onClick={pickAndOpenFile} style={buttonStyle}>
-            Open File
+      <div className="empty-state">
+        <div className="empty-mark">andy.md</div>
+        <div className="empty-actions">
+          <button className="empty-action" onClick={() => newDraft()}>
+            <span>New Document</span>
+            <kbd>⌘N</kbd>
           </button>
-          <button onClick={pickAndOpenWorkspace} style={buttonStyle}>
-            Open Workspace
+          <button className="empty-action" onClick={pickAndOpenFile}>
+            <span>Open File…</span>
+            <kbd>⌘O</kbd>
+          </button>
+          <button className="empty-action" onClick={pickAndOpenWorkspace}>
+            <span>Open Folder…</span>
+            <kbd>⇧⌘O</kbd>
           </button>
         </div>
       </div>
@@ -182,7 +199,14 @@ export function MarkdownEditor() {
   return (
     <div
       className="editor-container"
-      style={{ maxWidth: 740, margin: '0 auto', padding: '32px 24px' }}
+      style={{
+        maxWidth: EDITOR_MAX_WIDTH[editorWidth] ?? 740,
+        margin: '0 auto',
+        padding: '32px 24px 30vh',
+        fontSize,
+        lineHeight,
+        fontFamily,
+      }}
       ref={ref}
     />
   );
