@@ -10,6 +10,7 @@ use watcher::WatcherState;
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .manage(WatcherState::new())
         .manage(commands::workspace_cmd::PendingOpensState::default())
         .setup(|app| {

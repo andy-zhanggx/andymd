@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react';
 import type { Editor } from '@milkdown/core';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { buildEditor } from './milkdownConfig';
 import { useDocumentStore } from '../../stores/documentStore';
 import { useConfigStore } from '../../stores/configStore';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { dialogService } from '../../services/dialogService';
 import { openWikilink } from '../../services/wikilinkService';
-import { resolveImageSrc } from '../../lib/asset';
+import { resolveImageSrc, resolveLinkHref } from '../../lib/asset';
 import './editor-styles.css';
 
 const EDITOR_MAX_WIDTH: Record<string, number | 'none'> = {
@@ -70,6 +71,31 @@ export function MarkdownEditor() {
         flushSession();
       }, 500);
     };
+    const clickHandler = (e: MouseEvent) => {
+      if (!e.metaKey) return;
+
+      const start = e.target instanceof Element
+        ? e.target
+        : e.target instanceof Node
+          ? e.target.parentElement
+          : null;
+      const anchor = start?.closest<HTMLAnchorElement>('a');
+      if (!anchor || !root.contains(anchor)) return;
+
+      const rawHref = anchor.getAttribute('href');
+      if (!rawHref) return;
+
+      const resolved = resolveLinkHref(rawHref, doc.path);
+      if (resolved.kind === 'external') {
+        e.preventDefault();
+        e.stopPropagation();
+        void openUrl(resolved.href);
+      } else if (resolved.kind === 'mdfile') {
+        e.preventDefault();
+        e.stopPropagation();
+        void openDoc(resolved.absPath);
+      }
+    };
 
     const setup = async () => {
       createPromise = buildEditor({
@@ -91,6 +117,7 @@ export function MarkdownEditor() {
         attributeFilter: ['src'],
       });
       rewrite();
+      root.addEventListener('click', clickHandler);
 
       if (doc.path && scroller) {
         const saved = getSession(doc.path);
@@ -117,6 +144,7 @@ export function MarkdownEditor() {
       disposed = true;
       mo?.disconnect();
       root.removeEventListener('click', wikilinkClickHandler);
+      root.removeEventListener('click', clickHandler);
       scroller?.removeEventListener('scroll', scrollHandler);
       if (scrollTimer) window.clearTimeout(scrollTimer);
       flushSession();
