@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { fsService } from '../../services/fsService';
 
@@ -16,19 +16,38 @@ export function ContextMenu({ x, y, path, kind, onClose }: Props) {
   const rename = useWorkspaceStore((s) => s.rename);
   const deleteEntry = useWorkspaceStore((s) => s.deleteEntry);
 
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ x, y });
+
   useEffect(() => {
     const off = () => onClose();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
     window.addEventListener('click', off);
     window.addEventListener('contextmenu', off);
+    window.addEventListener('keydown', onKey);
     return () => {
       window.removeEventListener('click', off);
       window.removeEventListener('contextmenu', off);
+      window.removeEventListener('keydown', onKey);
     };
   }, [onClose]);
 
+  // Keep the menu inside the viewport when invoked near an edge.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setPos({
+      x: Math.max(4, Math.min(x, window.innerWidth - rect.width - 4)),
+      y: Math.max(4, Math.min(y, window.innerHeight - rect.height - 4)),
+    });
+  }, [x, y]);
+
   const parent = kind === 'dir' ? path : path.split('/').slice(0, -1).join('/');
 
-  const items: Array<{ label: string; action: () => Promise<void> | void } | 'sep'> = [
+  const items: Array<{ label: string; action: () => Promise<void> | void; danger?: boolean } | 'sep'> = [
     {
       label: 'New File',
       action: async () => {
@@ -62,6 +81,7 @@ export function ContextMenu({ x, y, path, kind, onClose }: Props) {
     'sep',
     {
       label: 'Move to Trash',
+      danger: true,
       action: async () => {
         if (window.confirm(`Move "${path.split('/').pop()}" to Trash?`)) {
           await deleteEntry(path);
@@ -72,30 +92,20 @@ export function ContextMenu({ x, y, path, kind, onClose }: Props) {
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        top: y,
-        left: x,
-        minWidth: 180,
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border)',
-        padding: '4px 0',
-        fontSize: 12,
-        zIndex: 1000,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        color: 'var(--fg-primary)',
-      }}
+      ref={ref}
+      className="context-menu"
+      role="menu"
+      style={{ top: pos.y, left: pos.x }}
       onClick={(e) => e.stopPropagation()}
     >
       {items.map((it, i) =>
         it === 'sep' ? (
-          <div key={i} style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+          <div key={i} className="context-menu-sep" role="separator" />
         ) : (
           <div
             key={i}
-            style={{ padding: '4px 12px', cursor: 'pointer' }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.background = 'var(--selection)')}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.background = 'transparent')}
+            className={it.danger ? 'context-menu-item danger' : 'context-menu-item'}
+            role="menuitem"
             onClick={async () => {
               await it.action();
               onClose();

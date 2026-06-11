@@ -9,13 +9,22 @@ import { openWikilink } from '../../services/wikilinkService';
 import { resolveImageSrc } from '../../lib/asset';
 import './editor-styles.css';
 
+const EDITOR_MAX_WIDTH: Record<string, number | 'none'> = {
+  narrow: 620,
+  normal: 740,
+  wide: 920,
+  full: 'none',
+};
+
 export function MarkdownEditor() {
   const doc = useDocumentStore((s) => s.doc);
   const openDoc = useDocumentStore((s) => s.open);
+  const newDraft = useDocumentStore((s) => s.newDraft);
   const setDraft = useDocumentStore((s) => s.setDraft);
   const openWs = useWorkspaceStore((s) => s.open);
   const getSession = useConfigStore((s) => s.getSession);
   const recordSession = useConfigStore((s) => s.recordSession);
+  const { fontSize, lineHeight, fontFamily, editorWidth } = useConfigStore((s) => s.config);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -128,16 +137,6 @@ export function MarkdownEditor() {
   }, [doc?.path]);
 
   if (!doc) {
-    const buttonStyle = {
-      fontSize: 13,
-      background: 'transparent',
-      border: '1px solid var(--border)',
-      color: 'var(--fg-primary)',
-      borderRadius: 4,
-      padding: '8px 14px',
-      cursor: 'pointer',
-    } as const;
-
     const pickAndOpenFile = async () => {
       const path = await dialogService.pickMarkdownFile();
       if (path) await openDoc(path);
@@ -149,13 +148,20 @@ export function MarkdownEditor() {
     };
 
     return (
-      <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button onClick={pickAndOpenFile} style={buttonStyle}>
-            Open File
+      <div className="empty-state">
+        <div className="empty-mark">andy.md</div>
+        <div className="empty-actions">
+          <button className="empty-action" onClick={() => newDraft()}>
+            <span>New Document</span>
+            <kbd>⌘N</kbd>
           </button>
-          <button onClick={pickAndOpenWorkspace} style={buttonStyle}>
-            Open Workspace
+          <button className="empty-action" onClick={pickAndOpenFile}>
+            <span>Open File…</span>
+            <kbd>⌘O</kbd>
+          </button>
+          <button className="empty-action" onClick={pickAndOpenWorkspace}>
+            <span>Open Folder…</span>
+            <kbd>⇧⌘O</kbd>
           </button>
         </div>
       </div>
@@ -165,7 +171,14 @@ export function MarkdownEditor() {
   return (
     <div
       className="editor-container"
-      style={{ maxWidth: 740, margin: '0 auto', padding: '32px 24px 30vh' }}
+      style={{
+        maxWidth: EDITOR_MAX_WIDTH[editorWidth] ?? 740,
+        margin: '0 auto',
+        padding: '32px 24px 30vh',
+        fontSize,
+        lineHeight,
+        fontFamily,
+      }}
       ref={ref}
     />
   );

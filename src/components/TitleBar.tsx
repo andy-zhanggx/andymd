@@ -1,6 +1,14 @@
-import React from 'react';
 import { useConfigStore } from '../stores/configStore';
 import { useDocumentStore } from '../stores/documentStore';
+
+function SidebarIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="1.5" y="2.5" width="13" height="11" rx="2" stroke="currentColor" />
+      <line x1="6" y1="2.5" x2="6" y2="13.5" stroke="currentColor" />
+    </svg>
+  );
+}
 
 export function TitleBar() {
   const showSidebar = useConfigStore((s) => s.config.showSidebar);
@@ -8,39 +16,20 @@ export function TitleBar() {
   const doc = useDocumentStore((s) => s.doc);
 
   const name = doc?.path?.split('/').pop() ?? (doc ? 'Untitled' : '');
-  const dirty = doc?.isDirty ? '● ' : '';
 
   return (
-    <div
-      style={{
-        height: '38px',
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0 12px 0 80px',
-        borderBottom: '1px solid var(--border)',
-        background: 'var(--bg-secondary)',
-        userSelect: 'none',
-        WebkitAppRegion: 'drag',
-      } as React.CSSProperties}
-    >
+    <div className="titlebar">
       <button
+        className="titlebar-toggle"
         onClick={() => update({ showSidebar: !showSidebar })}
-        style={{
-          WebkitAppRegion: 'no-drag',
-          marginRight: 12,
-          background: 'transparent',
-          border: '1px solid var(--border)',
-          color: 'var(--fg-primary)',
-          borderRadius: 4,
-          padding: '2px 8px',
-          cursor: 'pointer',
-        } as React.CSSProperties}
         aria-label="Toggle sidebar"
+        title="Toggle sidebar"
       >
-        ≡
+        <SidebarIcon />
       </button>
-      <div style={{ flex: 1, textAlign: 'center', fontSize: 13, color: 'var(--fg-primary)' }}>
-        {dirty}{name}
+      <div className="titlebar-title">
+        {doc?.isDirty && <span className="titlebar-dirty" />}
+        {name}
       </div>
     </div>
   );

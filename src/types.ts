@@ -50,9 +50,10 @@ export interface AppConfig {
 
 export const DEFAULT_CONFIG: AppConfig = {
   theme: 'system',
-  fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif',
+  fontFamily:
+    '-apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif',
   fontSize: 16,
-  lineHeight: 1.6,
+  lineHeight: 1.7, // mixed CJK/Latin needs more leading than Latin-only
   editorWidth: 'normal',
   showSidebar: true,
   sidebarWidth: 260,

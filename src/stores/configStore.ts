@@ -49,3 +49,9 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     await get().update({ recentWorkspaces, lastWorkspace: root });
   },
 }));
+
+// Dev-only handle so browser-based QA can drive the app's real store instance
+// (dynamic import() in the console resolves to a separate module copy).
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  (window as unknown as Record<string, unknown>).__configStore = useConfigStore;
+}
