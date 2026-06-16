@@ -59,6 +59,27 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<tauri::menu::
         .item(&PredefinedMenuItem::copy(app, None)?)
         .item(&PredefinedMenuItem::paste(app, None)?)
         .item(&PredefinedMenuItem::select_all(app, None)?)
+        .separator()
+        .item(
+            &MenuItemBuilder::with_id("find", "Find…")
+                .accelerator("CmdOrCtrl+F")
+                .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("find-next", "Find Next")
+                .accelerator("CmdOrCtrl+G")
+                .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("find-prev", "Find Previous")
+                .accelerator("CmdOrCtrl+Shift+G")
+                .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("replace", "Replace…")
+                .accelerator("CmdOrCtrl+Alt+F")
+                .build(app)?,
+        )
         .build()?;
 
     let view_menu = SubmenuBuilder::new(app, "View")
