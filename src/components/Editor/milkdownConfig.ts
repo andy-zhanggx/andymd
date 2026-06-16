@@ -17,6 +17,7 @@ import { frontmatter } from './frontmatter';
 import { wikilink } from './wikilink';
 import { searchPlugin } from './searchPlugin';
 import { viewModePlugin } from './viewModePlugin';
+import { autoPairPlugin } from './autoPairPlugin';
 import { highlight, superscript } from './marks';
 import { emoji } from '@milkdown/plugin-emoji';
 import { diagram } from '@milkdown/plugin-diagram';
@@ -88,6 +89,7 @@ export function buildEditor(opts: BuildOpts) {
     .use(diagram)
     .use(searchPlugin)
     .use(viewModePlugin)
+    .use(autoPairPlugin)
     .use(listener)
     .use(history)
     .use(clipboard)
