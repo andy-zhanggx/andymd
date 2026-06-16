@@ -9,13 +9,16 @@ Personal project by Andy Zhang.
 - WYSIWYG Markdown editing: CommonMark + GFM (tables, task lists, strikethrough)
 - Code block syntax highlighting (Prism)
 - KaTeX math (`$inline$` and `$$block$$`)
-- Highlight mark: `==text==`
+- Extended marks: `==highlight==`, `^superscript^` (with live input rules)
+- Mermaid diagrams (` ```mermaid `), emoji shortcodes (`:smile:`)
+- Auto-pair brackets & quotes
 - Lenient Chinese-friendly heading parsing (`##标题` without space still renders as H2)
 - File tree sidebar **+ document outline (TOC) panel**
 - **Find & Replace** (⌘F / ⌘G / ⌘⌥F) with live match highlights
 - **Source-code mode** (⌘/), **Focus mode** (F8), **Typewriter mode** (F9)
 - **Document statistics** popover (words, chars, lines, reading time)
-- **Export to HTML** (⌘⇧E) and **Print / Save-as-PDF** (⌘P)
+- **Export** to HTML (⌘⇧E), **Word / ePub / LaTeX / RTF** (pandoc), Print / Save-as-PDF (⌘P)
+- **Copy as Markdown / HTML**
 - **Open Recent** files & folders; **Full Screen** (F11)
 - Per-file scroll memory (reopen a file where you left off)
 - macOS native menu, red-dot dirty indicator, ⌘S / ⌘O / ⌘N / ⌘W / ⌘B shortcuts
@@ -39,7 +42,7 @@ pnpm tauri build          # produces src-tauri/target/release/bundle/{macos,dmg}
 ## Test
 
 ```bash
-pnpm test                 # TypeScript / Vitest (101 tests)
+pnpm test                 # TypeScript / Vitest (115 tests)
 cd src-tauri && cargo test  # Rust (10 tests)
 ```
 
