@@ -7,6 +7,27 @@ import { useWorkspaceStore } from '../stores/workspaceStore';
 import { useUIStore } from '../stores/uiStore';
 import { getActiveView } from '../components/Editor/activeView';
 import { navigate } from '../components/Editor/searchPlugin';
+import { fsService } from '../services/fsService';
+import { buildExportHtml } from '../lib/exportHtml';
+
+function baseName(path: string | null): string {
+  if (!path) return 'Untitled';
+  return (path.split('/').pop() ?? path).replace(/\.[^.]+$/, '');
+}
+
+async function exportToHtml() {
+  const doc = useDocumentStore.getState().doc;
+  if (!doc) return;
+  const view = getActiveView();
+  if (!view) {
+    window.alert('Switch off Source Code Mode to export.');
+    return;
+  }
+  const base = baseName(doc.path);
+  const html = buildExportHtml({ title: base, body: view.dom.innerHTML });
+  const target = await dialogService.saveExportAs(`${base}.html`, 'html');
+  if (target) await fsService.writeFile(target, html);
+}
 
 function findNext(dir: 1 | -1) {
   const ui = useUIStore.getState();
@@ -56,6 +77,12 @@ export async function handleMenuAction(id: string) {
       break;
     case 'close':
       await doc.closeWithConfirmation();
+      break;
+    case 'export-html':
+      await exportToHtml();
+      break;
+    case 'print':
+      window.print();
       break;
     case 'toggle-sidebar':
       await cfg.update({ showSidebar: !cfg.config.showSidebar });

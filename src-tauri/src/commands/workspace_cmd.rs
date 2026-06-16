@@ -54,6 +54,23 @@ pub async fn save_markdown_dialog(
     Ok(picked.map(|p| p.to_string()))
 }
 
+#[tauri::command]
+pub async fn save_export_dialog(
+    app: AppHandle,
+    default_name: String,
+    extension: String,
+) -> CommandResult<Option<String>> {
+    let ext = extension.clone();
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Export")
+        .add_filter(extension.to_uppercase(), &[ext.as_str()])
+        .set_file_name(&default_name)
+        .blocking_save_file();
+    Ok(picked.map(|p| p.to_string()))
+}
+
 pub struct PendingOpensState(pub Mutex<Vec<String>>);
 
 impl Default for PendingOpensState {
