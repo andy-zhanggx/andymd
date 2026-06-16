@@ -15,6 +15,7 @@ import { commonmark } from '@milkdown/preset-commonmark';
 import { gfm } from '@milkdown/preset-gfm';
 import { frontmatter } from './frontmatter';
 import { wikilink } from './wikilink';
+import { searchPlugin } from './searchPlugin';
 import 'katex/dist/katex.min.css';
 import './prosemirror.css';
 
@@ -77,6 +78,7 @@ export function buildEditor(opts: BuildOpts) {
     .use(gfm)
     .use(frontmatter)
     .use(wikilink)
+    .use(searchPlugin)
     .use(listener)
     .use(history)
     .use(clipboard)

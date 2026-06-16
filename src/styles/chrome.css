@@ -335,3 +335,79 @@
   font-variant-numeric: tabular-nums;
   user-select: none;
 }
+
+/* ── Find / Replace bar ──────────────────────────────────────────────── */
+.find-bar {
+  position: fixed;
+  top: 46px;
+  right: 22px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+.find-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.find-input {
+  width: 200px;
+  height: 26px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: var(--fg-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  outline: none;
+}
+.find-input:focus {
+  border-color: var(--accent);
+}
+.find-count {
+  min-width: 42px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.find-btn {
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--fg-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.find-btn.wide {
+  min-width: 56px;
+}
+.find-btn:hover:not(:disabled) {
+  background: var(--hover);
+}
+.find-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.find-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Search match highlights (ProseMirror inline decorations) */
+.search-match {
+  background: rgba(255, 213, 0, 0.35);
+  border-radius: 2px;
+}
+.search-match-current {
+  background: rgba(255, 145, 0, 0.65);
+}

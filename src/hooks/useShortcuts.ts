@@ -4,6 +4,16 @@ import { useDocumentStore } from '../stores/documentStore';
 import { useConfigStore } from '../stores/configStore';
 import { dialogService } from '../services/dialogService';
 import { useWorkspaceStore } from '../stores/workspaceStore';
+import { useUIStore } from '../stores/uiStore';
+import { getActiveView } from '../components/Editor/activeView';
+import { navigate } from '../components/Editor/searchPlugin';
+
+function findNext(dir: 1 | -1) {
+  const ui = useUIStore.getState();
+  if (!ui.findOpen) ui.openFind(false);
+  const view = getActiveView();
+  if (view) navigate(view, dir);
+}
 
 async function saveDocument() {
   const docStore = useDocumentStore.getState();
@@ -50,6 +60,18 @@ export async function handleMenuAction(id: string) {
     case 'toggle-sidebar':
       await cfg.update({ showSidebar: !cfg.config.showSidebar });
       break;
+    case 'find':
+      useUIStore.getState().openFind(false);
+      break;
+    case 'replace':
+      useUIStore.getState().openFind(true);
+      break;
+    case 'find-next':
+      findNext(1);
+      break;
+    case 'find-prev':
+      findNext(-1);
+      break;
   }
 }
 
@@ -95,6 +117,14 @@ export function useShortcuts() {
           }
           break;
         }
+        case 'f':
+          e.preventDefault();
+          useUIStore.getState().openFind(e.altKey);
+          break;
+        case 'g':
+          e.preventDefault();
+          findNext(e.shiftKey ? -1 : 1);
+          break;
       }
     }
     window.addEventListener('keydown', handler);

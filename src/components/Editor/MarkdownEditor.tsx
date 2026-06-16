@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react';
-import type { Editor } from '@milkdown/core';
+import { Editor, editorViewCtx } from '@milkdown/core';
+import type { EditorView } from '@milkdown/prose/view';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { buildEditor } from './milkdownConfig';
+import { FindReplace } from './FindReplace';
+import { setActiveView } from './activeView';
 import { useDocumentStore } from '../../stores/documentStore';
 import { useConfigStore } from '../../stores/configStore';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
@@ -27,6 +30,7 @@ export function MarkdownEditor() {
   const recordSession = useConfigStore((s) => s.recordSession);
   const { fontSize, lineHeight, fontFamily, editorWidth } = useConfigStore((s) => s.config);
   const ref = useRef<HTMLDivElement>(null);
+  const viewRef = useRef<EditorView | null>(null);
 
   useEffect(() => {
     if (!ref.current || !doc) return;
@@ -109,6 +113,12 @@ export function MarkdownEditor() {
       if (disposed) return;
 
       editor = created;
+      try {
+        viewRef.current = created.ctx.get(editorViewCtx);
+        setActiveView(viewRef.current);
+      } catch {
+        viewRef.current = null;
+      }
       mo = new MutationObserver(() => rewrite());
       mo.observe(root, {
         subtree: true,
@@ -142,6 +152,8 @@ export function MarkdownEditor() {
 
     return () => {
       disposed = true;
+      viewRef.current = null;
+      setActiveView(null);
       mo?.disconnect();
       root.removeEventListener('click', wikilinkClickHandler);
       root.removeEventListener('click', clickHandler);
@@ -197,17 +209,20 @@ export function MarkdownEditor() {
   }
 
   return (
-    <div
-      className="editor-container"
-      style={{
-        maxWidth: EDITOR_MAX_WIDTH[editorWidth] ?? 740,
-        margin: '0 auto',
-        padding: '32px 24px 30vh',
-        fontSize,
-        lineHeight,
-        fontFamily,
-      }}
-      ref={ref}
-    />
+    <>
+      <FindReplace getView={() => viewRef.current} />
+      <div
+        className="editor-container"
+        style={{
+          maxWidth: EDITOR_MAX_WIDTH[editorWidth] ?? 740,
+          margin: '0 auto',
+          padding: '32px 24px 30vh',
+          fontSize,
+          lineHeight,
+          fontFamily,
+        }}
+        ref={ref}
+      />
+    </>
   );
 }
