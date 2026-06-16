@@ -96,6 +96,12 @@ pub fn build_menu<R: Runtime>(
                 .accelerator("CmdOrCtrl+Shift+E")
                 .build(app)?,
         )
+        .item(&SubmenuBuilder::new(app, "Export to")
+            .item(&MenuItemBuilder::with_id("export-docx", "Word (.docx)…").build(app)?)
+            .item(&MenuItemBuilder::with_id("export-epub", "ePub…").build(app)?)
+            .item(&MenuItemBuilder::with_id("export-latex", "LaTeX (.tex)…").build(app)?)
+            .item(&MenuItemBuilder::with_id("export-rtf", "Rich Text (.rtf)…").build(app)?)
+            .build()?)
         .item(
             &MenuItemBuilder::with_id("print", "Print…")
                 .accelerator("CmdOrCtrl+P")

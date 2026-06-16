@@ -16,6 +16,19 @@ function baseName(path: string | null): string {
   return (path.split('/').pop() ?? path).replace(/\.[^.]+$/, '');
 }
 
+async function exportPandoc(to: string, ext: string) {
+  const doc = useDocumentStore.getState().doc;
+  if (!doc) return;
+  const base = baseName(doc.path);
+  const target = await dialogService.saveExportAs(`${base}.${ext}`, ext);
+  if (!target) return;
+  try {
+    await invoke('export_via_pandoc', { markdown: doc.draft, to, outPath: target });
+  } catch (e) {
+    window.alert(`Export failed: ${e}`);
+  }
+}
+
 async function exportToHtml() {
   const doc = useDocumentStore.getState().doc;
   if (!doc) return;
@@ -93,6 +106,18 @@ export async function handleMenuAction(id: string) {
       break;
     case 'export-html':
       await exportToHtml();
+      break;
+    case 'export-docx':
+      await exportPandoc('docx', 'docx');
+      break;
+    case 'export-epub':
+      await exportPandoc('epub', 'epub');
+      break;
+    case 'export-latex':
+      await exportPandoc('latex', 'tex');
+      break;
+    case 'export-rtf':
+      await exportPandoc('rtf', 'rtf');
       break;
     case 'print':
       window.print();
