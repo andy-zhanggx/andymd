@@ -95,3 +95,35 @@ describe('superscript mark (^text^)', () => {
     }
   });
 });
+
+describe('subscript mark (~text~)', () => {
+  it('parses ~text~ into a <sub> element', async () => {
+    const { editor, cleanup } = await mount('H~2~O is water');
+    try {
+      expect(editor.ctx.get(editorViewCtx).dom.querySelector('sub')?.textContent).toBe('2');
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it('round-trips ~text~ back to markdown', async () => {
+    const { editor, cleanup } = await mount('H~2~O is water');
+    try {
+      expect(serialize(editor)).toContain('~2~');
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it('keeps ~~strikethrough~~ as strikethrough (not subscript)', async () => {
+    const { editor, cleanup } = await mount('a ~~gone~~ b');
+    try {
+      const view = editor.ctx.get(editorViewCtx);
+      expect(view.dom.querySelector('del, s, strike')).not.toBeNull();
+      expect(view.dom.querySelector('sub')).toBeNull();
+      expect(serialize(editor)).toContain('~~gone~~');
+    } finally {
+      await cleanup();
+    }
+  });
+});
