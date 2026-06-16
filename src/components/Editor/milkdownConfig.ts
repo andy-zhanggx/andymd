@@ -18,6 +18,7 @@ import { wikilink } from './wikilink';
 import { searchPlugin } from './searchPlugin';
 import { viewModePlugin } from './viewModePlugin';
 import { highlight, superscript } from './marks';
+import { emoji } from '@milkdown/plugin-emoji';
 import 'katex/dist/katex.min.css';
 import './prosemirror.css';
 
@@ -82,6 +83,7 @@ export function buildEditor(opts: BuildOpts) {
     .use(wikilink)
     .use(highlight)
     .use(superscript)
+    .use(emoji)
     .use(searchPlugin)
     .use(viewModePlugin)
     .use(listener)
