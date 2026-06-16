@@ -1,5 +1,28 @@
-import { $markSchema, $remark } from '@milkdown/utils';
+import { $markSchema, $remark, $inputRule } from '@milkdown/utils';
+import { InputRule } from '@milkdown/prose/inputrules';
+import type { MarkType } from '@milkdown/prose/model';
+import type { EditorState } from '@milkdown/prose/state';
 import remarkFlexibleMarkers from 'remark-flexible-markers';
+
+/**
+ * Wrap the captured group (match[1]) of `regexp` in `markType` as it is typed.
+ * Canonical ProseMirror "mark input rule" — the closing delimiter triggers it.
+ */
+function markInputRule(regexp: RegExp, markType: MarkType): InputRule {
+  return new InputRule(regexp, (state: EditorState, match, start, end) => {
+    const captured = match[1];
+    if (!captured) return null;
+    const tr = state.tr;
+    const textStart = start + match[0].indexOf(captured);
+    const textEnd = textStart + captured.length;
+    if (textEnd < end) tr.delete(textEnd, end);
+    if (textStart > start) tr.delete(start, textStart);
+    const to = start + captured.length;
+    tr.addMark(start, to, markType.create());
+    tr.removeStoredMark(markType);
+    return tr;
+  });
+}
 
 /**
  * Typora-style highlight: `==text==` ↔ a ProseMirror mark rendered as <mark>.
@@ -55,7 +78,16 @@ export const highlightSchema = $markSchema('highlight', () => ({
   },
 }));
 
-export const highlight = [remarkHighlightParse, remarkHighlightStringify, highlightSchema].flat();
+export const highlightInputRule = $inputRule((ctx) =>
+  markInputRule(/(?:==)([^=]+)(?:==)$/, highlightSchema.type(ctx)),
+);
+
+export const highlight = [
+  remarkHighlightParse,
+  remarkHighlightStringify,
+  highlightSchema,
+  highlightInputRule,
+].flat();
 
 // ── Superscript: ^text^ ↔ <sup> ──────────────────────────────────────────
 // `^text^` (no spaces/carets inside, pandoc-style) becomes a superscript mark.
@@ -148,8 +180,13 @@ export const superscriptSchema = $markSchema('superscript', () => ({
   },
 }));
 
+export const superscriptInputRule = $inputRule((ctx) =>
+  markInputRule(/(?:\^)([^^\s]+)(?:\^)$/, superscriptSchema.type(ctx)),
+);
+
 export const superscript = [
   remarkSuperscriptParse,
   remarkSuperscriptStringify,
   superscriptSchema,
+  superscriptInputRule,
 ].flat();

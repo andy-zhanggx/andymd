@@ -143,6 +143,16 @@ export async function handleMenuAction(id: string) {
       if (!cfg.config.showSidebar) await cfg.update({ showSidebar: true });
       break;
     }
+    case 'copy-as-markdown': {
+      const d = useDocumentStore.getState().doc;
+      if (d) await navigator.clipboard.writeText(d.draft).catch((e) => console.warn(e));
+      break;
+    }
+    case 'copy-as-html': {
+      const view = getActiveView();
+      if (view) await navigator.clipboard.writeText(view.dom.innerHTML).catch((e) => console.warn(e));
+      break;
+    }
     case 'find':
       useUIStore.getState().openFind(false);
       break;
