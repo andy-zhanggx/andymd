@@ -68,3 +68,4 @@ export const SESSION_CAP = 200; // LRU limit for sessions map
 // IPC result types (mirror Rust structs)
 export interface ReadFileResult { content: string; mtime: number; }
 export interface WriteFileResult { mtime: number; }
+export interface ImportImageResult { relPath: string; absPath: string; }

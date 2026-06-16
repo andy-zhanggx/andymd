@@ -211,6 +211,116 @@ pub fn delete_to_trash(path: String) -> CommandResult<()> {
     Ok(())
 }
 
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportImageResult {
+    /// Path to insert into markdown, relative to the document's directory.
+    pub rel_path: String,
+    /// Absolute path of the copied asset.
+    pub abs_path: String,
+}
+
+/// Pick a non-colliding destination inside `dir` for `file_name`,
+/// appending `-1`, `-2`, … to the stem until the path is free.
+fn unique_dest(dir: &Path, file_name: &str) -> PathBuf {
+    let candidate = dir.join(file_name);
+    if !candidate.exists() {
+        return candidate;
+    }
+    let path = Path::new(file_name);
+    let stem = path
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_else(|| file_name.to_string());
+    let ext = path.extension().map(|e| e.to_string_lossy().into_owned());
+    for n in 1.. {
+        let name = match &ext {
+            Some(ext) => format!("{stem}-{n}.{ext}"),
+            None => format!("{stem}-{n}"),
+        };
+        let candidate = dir.join(&name);
+        if !candidate.exists() {
+            return candidate;
+        }
+    }
+    unreachable!()
+}
+
+/// Resolve a collision-free destination inside `<doc-dir>/assets/` for an image
+/// named `file_name`, creating the assets dir. Returns (absolute dest, result).
+fn resolve_assets_dest(
+    file_name: &str,
+    doc_path: Option<String>,
+) -> CommandResult<(PathBuf, ImportImageResult)> {
+    let base_dir = doc_path
+        .as_ref()
+        .filter(|s| !s.is_empty())
+        .and_then(|dp| PathBuf::from(dp).parent().map(|p| p.to_path_buf()))
+        .ok_or_else(|| {
+            CommandError::Other("save the document before importing images".into())
+        })?;
+
+    let clean = Path::new(file_name)
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .filter(|n| !n.is_empty())
+        .unwrap_or_else(|| "image.png".to_string());
+
+    let assets_dir = base_dir.join("assets");
+    fs::create_dir_all(&assets_dir)?;
+    let dest = unique_dest(&assets_dir, &clean);
+    let dest_name = dest
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or(clean);
+
+    Ok((
+        dest.clone(),
+        ImportImageResult {
+            rel_path: format!("assets/{dest_name}"),
+            abs_path: dest.to_string_lossy().into_owned(),
+        },
+    ))
+}
+
+/// Copy an existing image file into `<doc-dir>/assets/` and return the
+/// document-relative path to embed.
+#[tauri::command]
+pub fn import_image(
+    src_path: String,
+    doc_path: Option<String>,
+) -> CommandResult<ImportImageResult> {
+    let src = PathBuf::from(&src_path);
+    if !src.is_file() {
+        return Err(CommandError::Other(format!("{src_path} is not a file")));
+    }
+    let file_name = src
+        .file_name()
+        .ok_or_else(|| CommandError::Other("source has no file name".into()))?
+        .to_string_lossy()
+        .to_string();
+    let (dest, result) = resolve_assets_dest(&file_name, doc_path)?;
+    fs::copy(&src, &dest)?;
+    Ok(result)
+}
+
+/// Write dropped image bytes into `<doc-dir>/assets/` and return the
+/// document-relative path. Used by the editor's drag-and-drop handler, which
+/// receives file contents (not a filesystem path) from the webview.
+#[tauri::command]
+pub fn import_image_bytes(
+    file_name: String,
+    data: Vec<u8>,
+    doc_path: Option<String>,
+) -> CommandResult<ImportImageResult> {
+    if data.is_empty() {
+        return Err(CommandError::Other("dropped image is empty".into()));
+    }
+    let (dest, result) = resolve_assets_dest(&file_name, doc_path)?;
+    fs::write(&dest, &data)?;
+    Ok(result)
+}
+
 #[tauri::command]
 pub fn reveal_in_finder(path: String) -> CommandResult<()> {
     let p = PathBuf::from(&path);
@@ -320,6 +430,111 @@ mod tests {
         let dir = tempdir().unwrap();
         fs::write(dir.path().join("a.md"), "").unwrap();
         let err = create_file(dir.path().to_string_lossy().into(), "a.md".into());
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn import_image_copies_into_assets_and_returns_relative_path() {
+        let dir = tempdir().unwrap();
+        let doc = dir.path().join("note.md");
+        fs::write(&doc, "# hi").unwrap();
+        let img = dir.path().join("pic.png");
+        fs::write(&img, b"\x89PNG fake").unwrap();
+
+        let res = import_image(
+            img.to_string_lossy().into(),
+            Some(doc.to_string_lossy().into()),
+        )
+        .unwrap();
+
+        assert_eq!(res.rel_path, "assets/pic.png");
+        assert!(dir.path().join("assets/pic.png").exists());
+        assert_eq!(fs::read(&res.abs_path).unwrap(), b"\x89PNG fake");
+    }
+
+    #[test]
+    fn import_image_dedupes_name_on_collision() {
+        let dir = tempdir().unwrap();
+        let doc = dir.path().join("note.md");
+        fs::write(&doc, "").unwrap();
+        fs::create_dir(dir.path().join("assets")).unwrap();
+        fs::write(dir.path().join("assets/pic.png"), "old").unwrap();
+        let img = dir.path().join("pic.png");
+        fs::write(&img, "new").unwrap();
+
+        let res = import_image(
+            img.to_string_lossy().into(),
+            Some(doc.to_string_lossy().into()),
+        )
+        .unwrap();
+
+        assert_eq!(res.rel_path, "assets/pic-1.png");
+        assert!(dir.path().join("assets/pic-1.png").exists());
+    }
+
+    #[test]
+    fn import_image_bytes_writes_into_assets() {
+        let dir = tempdir().unwrap();
+        let doc = dir.path().join("note.md");
+        fs::write(&doc, "").unwrap();
+
+        let res = import_image_bytes(
+            "股指.jpg.png".into(),
+            b"\x89PNG bytes".to_vec(),
+            Some(doc.to_string_lossy().into()),
+        )
+        .unwrap();
+
+        assert_eq!(res.rel_path, "assets/股指.jpg.png");
+        assert_eq!(
+            fs::read(dir.path().join("assets/股指.jpg.png")).unwrap(),
+            b"\x89PNG bytes"
+        );
+    }
+
+    #[test]
+    fn import_image_bytes_dedupes_and_rejects_empty() {
+        let dir = tempdir().unwrap();
+        let doc = dir.path().join("note.md");
+        fs::write(&doc, "").unwrap();
+        fs::create_dir(dir.path().join("assets")).unwrap();
+        fs::write(dir.path().join("assets/pic.png"), "old").unwrap();
+
+        let res = import_image_bytes(
+            "pic.png".into(),
+            b"new".to_vec(),
+            Some(doc.to_string_lossy().into()),
+        )
+        .unwrap();
+        assert_eq!(res.rel_path, "assets/pic-1.png");
+
+        let empty = import_image_bytes("x.png".into(), vec![], Some(doc.to_string_lossy().into()));
+        assert!(empty.is_err());
+    }
+
+    #[test]
+    fn import_image_bytes_strips_path_components_from_name() {
+        let dir = tempdir().unwrap();
+        let doc = dir.path().join("note.md");
+        fs::write(&doc, "").unwrap();
+
+        let res = import_image_bytes(
+            "../../evil.png".into(),
+            b"x".to_vec(),
+            Some(doc.to_string_lossy().into()),
+        )
+        .unwrap();
+
+        assert_eq!(res.rel_path, "assets/evil.png");
+        assert!(dir.path().join("assets/evil.png").exists());
+    }
+
+    #[test]
+    fn import_image_without_doc_path_errors() {
+        let dir = tempdir().unwrap();
+        let img = dir.path().join("pic.png");
+        fs::write(&img, "x").unwrap();
+        let err = import_image(img.to_string_lossy().into(), None);
         assert!(err.is_err());
     }
 
