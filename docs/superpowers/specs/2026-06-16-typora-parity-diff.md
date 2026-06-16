@@ -134,14 +134,25 @@ Each lands as its own commit with unit tests + a build/test gate.
 15. **Pandoc exports** — Word/ePub/LaTeX/RTF via a path-resolving Rust command.
 16. **Copy as Markdown / Copy as HTML** (Edit menu).
 
-### ⛔ Genuinely out of scope / blocked (not "deferred laziness")
+### ✅ Shipped — third batch (closing the rest)
 
-- **Subscript `~text~`** — single `~` is already GFM strikethrough (the more
-  standard behavior); supporting subscript would require disabling
-  `singleTilde`, breaking existing strikethrough. Conscious tradeoff.
-- **Spell check / grammar** — handled by macOS at the OS text level.
-- **Image upload services, auto-save / version history** — larger infra, and
-  image insert is owned by the live main-worktree session.
+17. **Subscript `~text~`** — disabled GFM `singleTilde` so `~x~`=subscript and
+    `~~x~~`=strikethrough (true Typora semantics); round-trip + input rule.
+18. **Spell-check** — native OS spell-checking, live toggle (default on).
+19. **Auto-save** — debounced save of files with a path (toggle).
+20. **Version history / file recovery** — every save snapshots to an app-data
+    store (deduped, last 50); File ▸ Version History modal with preview +
+    restore.
+21. **Smart punctuation** — `--`→–, `---`→—, `...`→… (toggle, off by default,
+    code-guarded).
+
+### Remaining (owned elsewhere / functionally covered)
+
+- **Image insert / drag-drop / upload** — owned by the live main-worktree
+  session; not duplicated here.
+- **`[TOC]` in-document block** — navigation is covered by the Outline panel.
+- **Grammar checking, image-upload-to-host services** — out of scope (external
+  services / beyond a local editor).
 
 ### Owned elsewhere — intentionally untouched
 
