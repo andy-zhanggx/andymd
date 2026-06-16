@@ -90,6 +90,7 @@ pub fn build_menu<R: Runtime>(
                 .accelerator("CmdOrCtrl+Shift+S")
                 .build(app)?,
         )
+        .item(&MenuItemBuilder::with_id("autosave-toggle", "Auto Save").build(app)?)
         .separator()
         .item(
             &MenuItemBuilder::with_id("export-html", "Export to HTML…")
@@ -151,6 +152,11 @@ pub fn build_menu<R: Runtime>(
         )
         .item(
             &MenuItemBuilder::with_id("copy-as-html", "Copy as HTML")
+                .build(app)?,
+        )
+        .separator()
+        .item(
+            &MenuItemBuilder::with_id("spell-toggle", "Check Spelling While Typing")
                 .build(app)?,
         )
         .build()?;

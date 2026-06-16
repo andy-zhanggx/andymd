@@ -125,6 +125,12 @@ export async function handleMenuAction(id: string) {
     case 'toggle-sidebar':
       await cfg.update({ showSidebar: !cfg.config.showSidebar });
       break;
+    case 'spell-toggle':
+      await cfg.update({ spellcheck: !cfg.config.spellcheck });
+      break;
+    case 'autosave-toggle':
+      await cfg.update({ autoSave: !cfg.config.autoSave });
+      break;
     case 'toggle-source':
       useUIStore.getState().toggleSourceMode();
       break;

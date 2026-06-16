@@ -30,7 +30,9 @@ export function MarkdownEditor() {
   const openWs = useWorkspaceStore((s) => s.open);
   const getSession = useConfigStore((s) => s.getSession);
   const recordSession = useConfigStore((s) => s.recordSession);
-  const { fontSize, lineHeight, fontFamily, editorWidth } = useConfigStore((s) => s.config);
+  const { fontSize, lineHeight, fontFamily, editorWidth, spellcheck, autoSave } = useConfigStore(
+    (s) => s.config,
+  );
   const sourceMode = useUIStore((s) => s.sourceMode);
   const focusMode = useUIStore((s) => s.focusMode);
   const typewriterMode = useUIStore((s) => s.typewriterMode);
@@ -112,6 +114,7 @@ export function MarkdownEditor() {
         // Seed from the live buffer (not on-disk content) so round-tripping
         // through source mode preserves unsaved edits.
         initialValue: doc.draft,
+        spellcheck,
         onChange: (md) => {
           if (!disposed) setDraft(md);
         },
@@ -187,6 +190,22 @@ export function MarkdownEditor() {
   useEffect(() => {
     setTypewriter(typewriterMode);
   }, [typewriterMode]);
+
+  // Toggle native spell-checking live (without rebuilding the editor).
+  useEffect(() => {
+    viewRef.current?.dom.setAttribute('spellcheck', String(spellcheck));
+  }, [spellcheck]);
+
+  // Debounced auto-save for files on disk.
+  useEffect(() => {
+    if (!autoSave || !doc?.path || !doc.isDirty) return;
+    const t = window.setTimeout(() => {
+      void useDocumentStore.getState().save().catch(() => {
+        /* external-modification or IO error — leave it to manual save */
+      });
+    }, 1200);
+    return () => window.clearTimeout(t);
+  }, [autoSave, doc?.draft, doc?.path, doc?.isDirty]);
 
   if (!doc) {
     const pickAndOpenFile = async () => {
