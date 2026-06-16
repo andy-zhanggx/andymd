@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Document } from '../types';
 import { fsService } from '../services/fsService';
 import { dialogService } from '../services/dialogService';
+import { useWorkspaceStore } from './workspaceStore';
 import { lenifyHeadings } from '../lib/markdown';
 
 interface DocumentState {
@@ -36,6 +37,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     set({
       doc: { path, content, draft: content, isDirty: false, mtime, encoding: 'utf-8' },
     });
+    // Make the sidebar (namespace) follow the file's vault. Never let a
+    // workspace-follow failure prevent the document from opening.
+    try {
+      await useWorkspaceStore.getState().followFile(path);
+    } catch {
+      // ignore — the document is already open
+    }
   },
 
   newDraft() {

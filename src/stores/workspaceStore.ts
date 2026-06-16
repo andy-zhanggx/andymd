@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 import { FileNode, Workspace } from '../types';
 import { fsService } from '../services/fsService';
+import { isPathInside } from '../lib/workspacePath';
 import { useConfigStore } from './configStore';
 
 interface WorkspaceState {
   workspace: Workspace | null;
   open: (root: string) => Promise<void>;
+  followFile: (path: string) => Promise<void>;
   refresh: () => Promise<void>;
   toggleExpanded: (path: string) => void;
   createFile: (parent: string, name: string) => Promise<FileNode>;
@@ -25,6 +27,22 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const name = tree.name;
     set({ workspace: { root, name, tree, expandedPaths: new Set([root]) } });
     await useConfigStore.getState().addRecentWorkspace(root);
+  },
+
+  // Switch the sidebar to follow a freshly opened file. No-op when the file is
+  // already inside the current workspace; otherwise resolves the file's vault
+  // root (Obsidian `.obsidian` ancestor, else its own folder) and opens it.
+  async followFile(path) {
+    const ws = get().workspace;
+    if (ws && isPathInside(path, ws.root)) return;
+    let root: string;
+    try {
+      root = await fsService.findVaultRoot(path);
+    } catch {
+      return; // can't resolve a root — leave the workspace as-is
+    }
+    if (!root || (ws && ws.root === root)) return;
+    await get().open(root);
   },
 
   async refresh() {

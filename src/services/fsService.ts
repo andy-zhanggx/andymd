@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { FileNode, ReadFileResult, WriteFileResult } from '../types';
+import type { FileNode, ImportImageResult, ReadFileResult, WriteFileResult } from '../types';
 
 export const fsService = {
   readFile: (path: string) => invoke<ReadFileResult>('read_file', { path }),
@@ -21,6 +21,12 @@ export const fsService = {
   deleteToTrash: (path: string) => invoke<void>('delete_to_trash', { path }),
 
   revealInFinder: (path: string) => invoke<void>('reveal_in_finder', { path }),
+
+  importImage: (srcPath: string, docPath: string | null) =>
+    invoke<ImportImageResult>('import_image', { srcPath, docPath }),
+
+  importImageBytes: (fileName: string, data: number[], docPath: string | null) =>
+    invoke<ImportImageResult>('import_image_bytes', { fileName, data, docPath }),
 
   findVaultRoot: (from: string) => invoke<string>('find_vault_root', { from }),
 
