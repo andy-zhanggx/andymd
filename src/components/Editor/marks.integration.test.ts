@@ -65,3 +65,33 @@ describe('highlight mark (==text==)', () => {
     }
   });
 });
+
+describe('superscript mark (^text^)', () => {
+  it('parses ^text^ into a <sup> element', async () => {
+    const { editor, cleanup } = await mount('E = mc^2^ here');
+    try {
+      const view = editor.ctx.get(editorViewCtx);
+      expect(view.dom.querySelector('sup')?.textContent).toBe('2');
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it('round-trips ^text^ back to markdown', async () => {
+    const { editor, cleanup } = await mount('E = mc^2^ here');
+    try {
+      expect(serialize(editor)).toContain('^2^');
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it('leaves a lone caret untouched', async () => {
+    const { editor, cleanup } = await mount('2 ^ 3 is exponent');
+    try {
+      expect(editor.ctx.get(editorViewCtx).dom.querySelector('sup')).toBeNull();
+    } finally {
+      await cleanup();
+    }
+  });
+});
