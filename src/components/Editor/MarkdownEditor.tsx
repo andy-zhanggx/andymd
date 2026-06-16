@@ -5,6 +5,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { buildEditor } from './milkdownConfig';
 import { FindReplace } from './FindReplace';
 import { setActiveView } from './activeView';
+import { useUIStore } from '../../stores/uiStore';
 import { useDocumentStore } from '../../stores/documentStore';
 import { useConfigStore } from '../../stores/configStore';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
@@ -29,6 +30,7 @@ export function MarkdownEditor() {
   const getSession = useConfigStore((s) => s.getSession);
   const recordSession = useConfigStore((s) => s.recordSession);
   const { fontSize, lineHeight, fontFamily, editorWidth } = useConfigStore((s) => s.config);
+  const sourceMode = useUIStore((s) => s.sourceMode);
   const ref = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
 
@@ -104,7 +106,9 @@ export function MarkdownEditor() {
     const setup = async () => {
       createPromise = buildEditor({
         root,
-        initialValue: doc.content,
+        // Seed from the live buffer (not on-disk content) so round-tripping
+        // through source mode preserves unsaved edits.
+        initialValue: doc.draft,
         onChange: (md) => {
           if (!disposed) setDraft(md);
         },
@@ -174,7 +178,7 @@ export function MarkdownEditor() {
       })();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc?.path]);
+  }, [doc?.path, sourceMode]);
 
   if (!doc) {
     const pickAndOpenFile = async () => {
@@ -205,6 +209,19 @@ export function MarkdownEditor() {
           </button>
         </div>
       </div>
+    );
+  }
+
+  if (sourceMode) {
+    return (
+      <textarea
+        className="source-editor"
+        value={doc.draft}
+        spellCheck={false}
+        onChange={(e) => setDraft(e.target.value)}
+        style={{ fontSize, lineHeight }}
+        aria-label="Markdown source"
+      />
     );
   }
 

@@ -60,6 +60,9 @@ export async function handleMenuAction(id: string) {
     case 'toggle-sidebar':
       await cfg.update({ showSidebar: !cfg.config.showSidebar });
       break;
+    case 'toggle-source':
+      useUIStore.getState().toggleSourceMode();
+      break;
     case 'toggle-outline': {
       const ui = useUIStore.getState();
       ui.setSidebarTab(ui.sidebarTab === 'outline' ? 'files' : 'outline');
@@ -130,6 +133,10 @@ export function useShortcuts() {
         case 'g':
           e.preventDefault();
           findNext(e.shiftKey ? -1 : 1);
+          break;
+        case '/':
+          e.preventDefault();
+          useUIStore.getState().toggleSourceMode();
           break;
       }
     }

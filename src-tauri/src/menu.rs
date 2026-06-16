@@ -93,6 +93,12 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<tauri::menu::
                 .accelerator("CmdOrCtrl+Shift+1")
                 .build(app)?,
         )
+        .separator()
+        .item(
+            &MenuItemBuilder::with_id("toggle-source", "Source Code Mode")
+                .accelerator("CmdOrCtrl+/")
+                .build(app)?,
+        )
         .build()?;
 
     MenuBuilder::new(app)
