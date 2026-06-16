@@ -43,6 +43,7 @@ export interface AppConfig {
   showSidebar: boolean;
   sidebarWidth: number;            // px
   recentWorkspaces: string[];      // absolute paths, max 10
+  recentFiles: string[];           // absolute paths, max 10
   lastWorkspace: string | null;
   showHiddenFiles: boolean;
   sessions: Record<string, DocumentSession>;  // key = file absolute path
@@ -58,6 +59,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   showSidebar: true,
   sidebarWidth: 260,
   recentWorkspaces: [],
+  recentFiles: [],
   lastWorkspace: null,
   showHiddenFiles: false,
   sessions: {},

@@ -14,7 +14,7 @@ pub fn run() {
         .manage(WatcherState::new())
         .manage(commands::workspace_cmd::PendingOpensState::default())
         .setup(|app| {
-            let menu_obj = menu::build_menu(app.handle())?;
+            let menu_obj = menu::build_menu(app.handle(), &[], &[])?;
             app.set_menu(menu_obj)?;
             app.on_menu_event(|h, event| menu::on_menu_event(h, event));
             Ok(())
@@ -37,6 +37,7 @@ pub fn run() {
             commands::workspace_cmd::take_pending_opens,
             commands::config_cmd::get_config,
             commands::config_cmd::save_config,
+            menu::rebuild_recent_menu,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

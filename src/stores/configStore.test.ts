@@ -37,6 +37,26 @@ describe('configStore', () => {
     expect(useConfigStore.getState().config.recentWorkspaces[0]).toBe('/path/11');
   });
 
+  it('addRecentFile dedupes and caps at 10', async () => {
+    for (let i = 0; i < 12; i++) {
+      await useConfigStore.getState().addRecentFile(`/f/${i}.md`);
+    }
+    const recent = useConfigStore.getState().config.recentFiles;
+    expect(recent.length).toBe(10);
+    expect(recent[0]).toBe('/f/11.md');
+    await useConfigStore.getState().addRecentFile('/f/5.md');
+    expect(useConfigStore.getState().config.recentFiles[0]).toBe('/f/5.md');
+    expect(useConfigStore.getState().config.recentFiles.length).toBe(10);
+  });
+
+  it('clearRecent empties both recent lists', async () => {
+    await useConfigStore.getState().addRecentFile('/a.md');
+    await useConfigStore.getState().addRecentWorkspace('/ws');
+    await useConfigStore.getState().clearRecent();
+    expect(useConfigStore.getState().config.recentFiles).toEqual([]);
+    expect(useConfigStore.getState().config.recentWorkspaces).toEqual([]);
+  });
+
   it('recordSession caps at SESSION_CAP', async () => {
     for (let i = 0; i < 201; i++) {
       await useConfigStore.getState().recordSession(`/f${i}.md`, {

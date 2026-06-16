@@ -3,7 +3,53 @@ use tauri::{
     AppHandle, Emitter, Runtime,
 };
 
-pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<tauri::menu::Menu<R>> {
+fn base_name(path: &str) -> String {
+    path.rsplit(['/', '\\'])
+        .next()
+        .filter(|s| !s.is_empty())
+        .unwrap_or(path)
+        .to_string()
+}
+
+fn build_recent_submenu<R: Runtime>(
+    app: &AppHandle<R>,
+    recent_files: &[String],
+    recent_workspaces: &[String],
+) -> tauri::Result<tauri::menu::Submenu<R>> {
+    let mut builder = SubmenuBuilder::new(app, "Open Recent");
+    if recent_files.is_empty() && recent_workspaces.is_empty() {
+        builder = builder.item(
+            &MenuItemBuilder::with_id("recent-none", "No Recent Items")
+                .enabled(false)
+                .build(app)?,
+        );
+        return builder.build();
+    }
+    for path in recent_files {
+        builder = builder.item(
+            &MenuItemBuilder::with_id(format!("recent-file:{path}"), base_name(path)).build(app)?,
+        );
+    }
+    if !recent_workspaces.is_empty() {
+        builder = builder.separator();
+        for path in recent_workspaces {
+            builder = builder.item(
+                &MenuItemBuilder::with_id(format!("recent-ws:{path}"), format!("📁 {}", base_name(path)))
+                    .build(app)?,
+            );
+        }
+    }
+    builder = builder.separator().item(
+        &MenuItemBuilder::with_id("clear-recent", "Clear Menu").build(app)?,
+    );
+    builder.build()
+}
+
+pub fn build_menu<R: Runtime>(
+    app: &AppHandle<R>,
+    recent_files: &[String],
+    recent_workspaces: &[String],
+) -> tauri::Result<tauri::menu::Menu<R>> {
     let app_menu = SubmenuBuilder::new(app, "AndyMD")
         .item(&PredefinedMenuItem::about(app, None, None)?)
         .separator()
@@ -32,6 +78,7 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<tauri::menu::
                 .accelerator("CmdOrCtrl+Shift+O")
                 .build(app)?,
         )
+        .item(&build_recent_submenu(app, recent_files, recent_workspaces)?)
         .separator()
         .item(
             &MenuItemBuilder::with_id("save", "Save")
@@ -129,4 +176,17 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<tauri::menu::
 
 pub fn on_menu_event<R: Runtime>(app: &AppHandle<R>, event: MenuEvent) {
     let _ = app.emit("menu", event.id().as_ref());
+}
+
+/// Rebuild the application menu so the "Open Recent" submenu reflects the
+/// latest recents. Called from the frontend whenever recents change.
+#[tauri::command]
+pub fn rebuild_recent_menu(
+    app: AppHandle,
+    recent_files: Vec<String>,
+    recent_workspaces: Vec<String>,
+) -> Result<(), String> {
+    let menu = build_menu(&app, &recent_files, &recent_workspaces).map_err(|e| e.to_string())?;
+    app.set_menu(menu).map_err(|e| e.to_string())?;
+    Ok(())
 }

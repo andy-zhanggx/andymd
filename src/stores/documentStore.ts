@@ -3,6 +3,7 @@ import { Document } from '../types';
 import { fsService } from '../services/fsService';
 import { dialogService } from '../services/dialogService';
 import { lenifyHeadings } from '../lib/markdown';
+import { useConfigStore } from './configStore';
 
 interface DocumentState {
   doc: Document | null;
@@ -36,6 +37,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     set({
       doc: { path, content, draft: content, isDirty: false, mtime, encoding: 'utf-8' },
     });
+    // Best-effort: recording recents persists config; never let it surface.
+    void useConfigStore.getState().addRecentFile(path).catch(() => {});
   },
 
   newDraft() {
