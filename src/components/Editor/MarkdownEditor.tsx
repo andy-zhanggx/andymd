@@ -5,6 +5,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { buildEditor } from './milkdownConfig';
 import { FindReplace } from './FindReplace';
 import { setActiveView } from './activeView';
+import { setTypewriter } from './viewModePlugin';
 import { useUIStore } from '../../stores/uiStore';
 import { useDocumentStore } from '../../stores/documentStore';
 import { useConfigStore } from '../../stores/configStore';
@@ -31,6 +32,8 @@ export function MarkdownEditor() {
   const recordSession = useConfigStore((s) => s.recordSession);
   const { fontSize, lineHeight, fontFamily, editorWidth } = useConfigStore((s) => s.config);
   const sourceMode = useUIStore((s) => s.sourceMode);
+  const focusMode = useUIStore((s) => s.focusMode);
+  const typewriterMode = useUIStore((s) => s.typewriterMode);
   const ref = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
 
@@ -180,6 +183,11 @@ export function MarkdownEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc?.path, sourceMode]);
 
+  // Keep the typewriter plugin's module flag in sync with UI state.
+  useEffect(() => {
+    setTypewriter(typewriterMode);
+  }, [typewriterMode]);
+
   if (!doc) {
     const pickAndOpenFile = async () => {
       const path = await dialogService.pickMarkdownFile();
@@ -229,7 +237,9 @@ export function MarkdownEditor() {
     <>
       <FindReplace getView={() => viewRef.current} />
       <div
-        className="editor-container"
+        className={`editor-container${focusMode ? ' focus-mode' : ''}${
+          typewriterMode ? ' typewriter-mode' : ''
+        }`}
         style={{
           maxWidth: EDITOR_MAX_WIDTH[editorWidth] ?? 740,
           margin: '0 auto',

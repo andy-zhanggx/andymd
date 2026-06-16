@@ -99,6 +99,16 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<tauri::menu::
                 .accelerator("CmdOrCtrl+/")
                 .build(app)?,
         )
+        .item(
+            &MenuItemBuilder::with_id("toggle-focus", "Focus Mode")
+                .accelerator("F8")
+                .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("toggle-typewriter", "Typewriter Mode")
+                .accelerator("F9")
+                .build(app)?,
+        )
         .build()?;
 
     MenuBuilder::new(app)
