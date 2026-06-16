@@ -144,6 +144,15 @@ pub fn build_menu<R: Runtime>(
                 .accelerator("CmdOrCtrl+Alt+F")
                 .build(app)?,
         )
+        .separator()
+        .item(
+            &MenuItemBuilder::with_id("copy-as-markdown", "Copy as Markdown")
+                .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("copy-as-html", "Copy as HTML")
+                .build(app)?,
+        )
         .build()?;
 
     let view_menu = SubmenuBuilder::new(app, "View")
