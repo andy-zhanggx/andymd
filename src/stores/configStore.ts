@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { AppConfig, DEFAULT_CONFIG, DocumentSession, SESSION_CAP } from '../types';
 import { configService } from '../services/configService';
+import { menuService } from '../services/menuService';
 
 interface ConfigState {
   config: AppConfig;
@@ -10,6 +11,8 @@ interface ConfigState {
   recordSession: (path: string, session: DocumentSession) => Promise<void>;
   getSession: (path: string) => DocumentSession | undefined;
   addRecentWorkspace: (root: string) => Promise<void>;
+  addRecentFile: (path: string) => Promise<void>;
+  clearRecent: () => Promise<void>;
 }
 
 function trimSessions(sessions: Record<string, DocumentSession>): Record<string, DocumentSession> {
@@ -26,6 +29,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   async load() {
     const cfg = await configService.load();
     set({ config: cfg, loaded: true });
+    void menuService.syncRecentMenu(cfg.recentFiles, cfg.recentWorkspaces);
   },
 
   async update(patch) {
@@ -47,6 +51,19 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     const existing = get().config.recentWorkspaces.filter((r) => r !== root);
     const recentWorkspaces = [root, ...existing].slice(0, 10);
     await get().update({ recentWorkspaces, lastWorkspace: root });
+    void menuService.syncRecentMenu(get().config.recentFiles, recentWorkspaces);
+  },
+
+  async addRecentFile(path) {
+    const existing = get().config.recentFiles.filter((r) => r !== path);
+    const recentFiles = [path, ...existing].slice(0, 10);
+    await get().update({ recentFiles });
+    void menuService.syncRecentMenu(recentFiles, get().config.recentWorkspaces);
+  },
+
+  async clearRecent() {
+    await get().update({ recentFiles: [], recentWorkspaces: [] });
+    void menuService.syncRecentMenu([], []);
   },
 }));
 

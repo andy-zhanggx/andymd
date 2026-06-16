@@ -55,7 +55,19 @@ export async function handleMenuAction(id: string) {
   const ws = useWorkspaceStore.getState();
   const cfg = useConfigStore.getState();
 
+  if (id.startsWith('recent-file:')) {
+    await doc.open(id.slice('recent-file:'.length));
+    return;
+  }
+  if (id.startsWith('recent-ws:')) {
+    await ws.open(id.slice('recent-ws:'.length));
+    return;
+  }
+
   switch (id) {
+    case 'clear-recent':
+      await cfg.clearRecent();
+      break;
     case 'new':
       doc.newDraft();
       break;
