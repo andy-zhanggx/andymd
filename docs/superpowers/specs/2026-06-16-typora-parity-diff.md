@@ -103,3 +103,41 @@ what remains a **gap** for this session to close.
 10. **Toggle fullscreen**.
 
 Each lands as its own commit with unit tests + a build/test gate.
+
+---
+
+## Status (end of session) — branch `worktree-feature-parity`
+
+### ✅ Shipped this session (each its own commit, full test/build/cargo gate)
+
+1. **Find & Replace** — ⌘F / ⌘G / ⌘⇧G / ⌘⌥F, decoration highlights, match
+   counter, case toggle, replace + replace-all. *(also fixed a ProseMirror
+   dual-instance hazard in the vitest harness)*
+2. **Outline / TOC panel** — Files/Outline sidebar tabs, click-to-scroll,
+   active-heading tracking; View ▸ Outline (⌘⇧1).
+3. **Document statistics** — clickable status-bar popover (words, chars,
+   chars-no-spaces, lines, reading time).
+4. **Source code mode** — ⌘/ toggles WYSIWYG ↔ raw textarea, round-tripping.
+5. **Focus mode (F8) + Typewriter mode (F9)**.
+6. **Export HTML / Print / PDF** — File ▸ Export to HTML (⌘⇧E), Print (⌘P).
+7. **Open Recent** — recent files + workspaces, live-rebuilt native submenu.
+8. **Toggle Full Screen (F11)**.
+9. **Highlight mark** — `==text==` round-trips (load/save/source/paste).
+
+### ⏳ Remaining (deliberately deferred — higher risk or lower value)
+
+- **Superscript `^x^` / subscript `~x~`** — `~` collides with GFM strikethrough;
+  needs a custom round-trip remark transformer. Follow-up.
+- **Live input rule for `==`** — highlight currently applies on parse/paste, not
+  while typing in WYSIWYG.
+- **Auto-pair brackets/quotes + smart punctuation** — typing-UX, needs
+  interactive verification in the Tauri window.
+- **Mermaid diagrams** — `@milkdown/plugin-diagram` (heavy mermaid dep).
+- **Emoji `:smile:` autocomplete**, **copy as HTML/Markdown**.
+- **Pandoc-based exports** (docx/epub/rtf/latex), **auto-save / version history**
+  — out of scope (need pandoc / larger infra).
+
+### Owned elsewhere — intentionally untouched
+
+Formatting toolbar + insert-image + quick-open (main worktree, live session),
+View ▸ Zoom (`.worktrees/zoom-view`), dev framework (`.worktrees/iter-001-…`).
