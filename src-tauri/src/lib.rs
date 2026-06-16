@@ -34,6 +34,7 @@ pub fn run() {
             commands::workspace_cmd::pick_markdown_file,
             commands::workspace_cmd::save_markdown_dialog,
             commands::workspace_cmd::save_export_dialog,
+            commands::workspace_cmd::toggle_fullscreen,
             commands::workspace_cmd::take_pending_opens,
             commands::config_cmd::get_config,
             commands::config_cmd::save_config,
