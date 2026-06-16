@@ -573,3 +573,11 @@
   margin: 12px 0;
   overflow-x: auto;
 }
+
+/* Subscript (~text~) */
+.editor-container sub,
+.markdown-body sub {
+  font-size: 0.75em;
+  vertical-align: sub;
+  line-height: 0;
+}

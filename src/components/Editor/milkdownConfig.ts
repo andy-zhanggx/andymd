@@ -12,13 +12,13 @@ import { math, mathBlockSchema, katexOptionsCtx } from '@milkdown/plugin-math';
 import katex from 'katex';
 import { prism } from '@milkdown/plugin-prism';
 import { commonmark } from '@milkdown/preset-commonmark';
-import { gfm } from '@milkdown/preset-gfm';
+import { gfm, remarkGFMPlugin } from '@milkdown/preset-gfm';
 import { frontmatter } from './frontmatter';
 import { wikilink } from './wikilink';
 import { searchPlugin } from './searchPlugin';
 import { viewModePlugin } from './viewModePlugin';
 import { autoPairPlugin } from './autoPairPlugin';
-import { highlight, superscript } from './marks';
+import { highlight, superscript, subscript } from './marks';
 import { emoji } from '@milkdown/plugin-emoji';
 import { diagram } from '@milkdown/plugin-diagram';
 import 'katex/dist/katex.min.css';
@@ -40,6 +40,9 @@ export function buildEditor(opts: BuildOpts) {
         opts.onChange(markdown);
       });
       ctx.set(katexOptionsCtx.key, { throwOnError: false });
+      // Disable GFM single-tilde strikethrough so `~x~` is free for subscript;
+      // `~~x~~` remains strikethrough.
+      ctx.set(remarkGFMPlugin.options.key, { singleTilde: false });
       // plugin-math renders $$ blocks with the same options as inline math,
       // so they come out textstyle and left-aligned; force displayMode here.
       ctx.set(mathBlockSchema.ctx.key, () => ({
@@ -85,6 +88,7 @@ export function buildEditor(opts: BuildOpts) {
     .use(wikilink)
     .use(highlight)
     .use(superscript)
+    .use(subscript)
     .use(emoji)
     .use(diagram)
     .use(searchPlugin)

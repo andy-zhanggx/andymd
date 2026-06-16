@@ -190,3 +190,96 @@ export const superscript = [
   superscriptSchema,
   superscriptInputRule,
 ].flat();
+
+// ── Subscript: ~text~ ↔ <sub> ────────────────────────────────────────────
+// Requires GFM single-tilde strikethrough to be disabled (see milkdownConfig);
+// `~~x~~` stays strikethrough, `~x~` becomes subscript (Typora behavior).
+
+const SUB_RE = /~([^~\s]+)~/g;
+
+function splitSubscript(value: string): MdNode[] | null {
+  const out: MdNode[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  SUB_RE.lastIndex = 0;
+  while ((m = SUB_RE.exec(value))) {
+    if (m.index > last) out.push({ type: 'text', value: value.slice(last, m.index) });
+    out.push({ type: 'subscript', children: [{ type: 'text', value: m[1] }] });
+    last = m.index + m[0].length;
+  }
+  if (out.length === 0) return null;
+  if (last < value.length) out.push({ type: 'text', value: value.slice(last) });
+  return out;
+}
+
+function transformSubscript(tree: MdNode): void {
+  if (!tree.children) return;
+  const next: MdNode[] = [];
+  for (const child of tree.children) {
+    if (child.type === 'text' && typeof child.value === 'string') {
+      const parts = splitSubscript(child.value);
+      if (parts) next.push(...parts);
+      else next.push(child);
+    } else {
+      transformSubscript(child);
+      next.push(child);
+    }
+  }
+  tree.children = next;
+}
+
+export const remarkSubscriptParse = $remark('remarkSubscriptParse', () => {
+  return () => (tree: MdNode) => transformSubscript(tree);
+});
+
+export const remarkSubscriptStringify = $remark('remarkSubscriptStringify', () => {
+  return function (this: { data: () => Record<string, unknown> }) {
+    const data = this.data();
+    const extensions = (data.toMarkdownExtensions ||= []) as Array<{
+      handlers: Record<string, unknown>;
+    }>;
+    extensions.push({
+      handlers: {
+        subscript(
+          node: { children: unknown[] },
+          _parent: unknown,
+          state: { containerPhrasing: (n: unknown, info: unknown) => string },
+          info: Record<string, unknown>,
+        ) {
+          const value = state.containerPhrasing(node, { ...info, before: '~', after: '~' });
+          return `~${value}~`;
+        },
+      },
+    });
+  };
+});
+
+export const subscriptSchema = $markSchema('subscript', () => ({
+  parseDOM: [{ tag: 'sub' }],
+  toDOM: () => ['sub', { class: 'md-sub' }, 0],
+  parseMarkdown: {
+    match: (node) => node.type === 'subscript',
+    runner: (state, node, markType) => {
+      state.openMark(markType);
+      state.next(node.children);
+      state.closeMark(markType);
+    },
+  },
+  toMarkdown: {
+    match: (mark) => mark.type.name === 'subscript',
+    runner: (state, mark) => {
+      state.withMark(mark, 'subscript');
+    },
+  },
+}));
+
+export const subscriptInputRule = $inputRule((ctx) =>
+  markInputRule(/(?:~)([^~\s]+)(?:~)$/, subscriptSchema.type(ctx)),
+);
+
+export const subscript = [
+  remarkSubscriptParse,
+  remarkSubscriptStringify,
+  subscriptSchema,
+  subscriptInputRule,
+].flat();
