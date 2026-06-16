@@ -124,18 +124,24 @@ Each lands as its own commit with unit tests + a build/test gate.
 8. **Toggle Full Screen (F11)**.
 9. **Highlight mark** — `==text==` round-trips (load/save/source/paste).
 
-### ⏳ Remaining (deliberately deferred — higher risk or lower value)
+### ✅ Shipped — second batch (closing the deferred list)
 
-- **Superscript `^x^` / subscript `~x~`** — `~` collides with GFM strikethrough;
-  needs a custom round-trip remark transformer. Follow-up.
-- **Live input rule for `==`** — highlight currently applies on parse/paste, not
-  while typing in WYSIWYG.
-- **Auto-pair brackets/quotes + smart punctuation** — typing-UX, needs
-  interactive verification in the Tauri window.
-- **Mermaid diagrams** — `@milkdown/plugin-diagram` (heavy mermaid dep).
-- **Emoji `:smile:` autocomplete**, **copy as HTML/Markdown**.
-- **Pandoc-based exports** (docx/epub/rtf/latex), **auto-save / version history**
-  — out of scope (need pandoc / larger infra).
+10. **Superscript `^text^`** — own round-trip transformer (no dep).
+11. **Live `==` / `^` input rules** — marks apply while typing.
+12. **Auto-pair brackets/quotes** — pure decision fn + thin plugin.
+13. **Mermaid diagrams** — `@milkdown/plugin-diagram`.
+14. **Emoji `:smile:`** — `@milkdown/plugin-emoji`.
+15. **Pandoc exports** — Word/ePub/LaTeX/RTF via a path-resolving Rust command.
+16. **Copy as Markdown / Copy as HTML** (Edit menu).
+
+### ⛔ Genuinely out of scope / blocked (not "deferred laziness")
+
+- **Subscript `~text~`** — single `~` is already GFM strikethrough (the more
+  standard behavior); supporting subscript would require disabling
+  `singleTilde`, breaking existing strikethrough. Conscious tradeoff.
+- **Spell check / grammar** — handled by macOS at the OS text level.
+- **Image upload services, auto-save / version history** — larger infra, and
+  image insert is owned by the live main-worktree session.
 
 ### Owned elsewhere — intentionally untouched
 
