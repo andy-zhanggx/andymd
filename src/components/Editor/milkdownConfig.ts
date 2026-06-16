@@ -17,6 +17,7 @@ import { frontmatter } from './frontmatter';
 import { wikilink } from './wikilink';
 import { searchPlugin } from './searchPlugin';
 import { viewModePlugin } from './viewModePlugin';
+import { highlight } from './marks';
 import 'katex/dist/katex.min.css';
 import './prosemirror.css';
 
@@ -79,6 +80,7 @@ export function buildEditor(opts: BuildOpts) {
     .use(gfm)
     .use(frontmatter)
     .use(wikilink)
+    .use(highlight)
     .use(searchPlugin)
     .use(viewModePlugin)
     .use(listener)
