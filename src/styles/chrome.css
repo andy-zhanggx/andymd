@@ -277,9 +277,63 @@
 .ws-action:focus-visible,
 .ws-select:focus-visible,
 .empty-action:focus-visible,
-.sidebar-empty-action:focus-visible {
+.sidebar-empty-action:focus-visible,
+.md-toolbar-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -1px;
+}
+
+/* Markdown formatting toolbar — pinned to the top of the editor pane. */
+.md-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+
+.md-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.md-toolbar-group:not(:last-child)::after {
+  content: '';
+  width: 1px;
+  height: 18px;
+  margin: 0 6px;
+  background: var(--border);
+}
+
+.md-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.md-toolbar-btn:hover {
+  background: var(--hover);
+  color: var(--fg-primary);
+}
+
+.md-toolbar-btn:active {
+  background: var(--accent);
+  color: #fff;
 }
 
 .context-menu {

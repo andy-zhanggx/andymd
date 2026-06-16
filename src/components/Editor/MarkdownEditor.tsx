@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { Editor } from '@milkdown/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { buildEditor } from './milkdownConfig';
+import { Toolbar } from './Toolbar';
 import { useDocumentStore } from '../../stores/documentStore';
 import { useConfigStore } from '../../stores/configStore';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
@@ -197,17 +198,20 @@ export function MarkdownEditor() {
   }
 
   return (
-    <div
-      className="editor-container"
-      style={{
-        maxWidth: EDITOR_MAX_WIDTH[editorWidth] ?? 740,
-        margin: '0 auto',
-        padding: '32px 24px 30vh',
-        fontSize,
-        lineHeight,
-        fontFamily,
-      }}
-      ref={ref}
-    />
+    <>
+      <Toolbar getEditor={() => editorRef.current} />
+      <div
+        className="editor-container"
+        style={{
+          maxWidth: EDITOR_MAX_WIDTH[editorWidth] ?? 740,
+          margin: '0 auto',
+          padding: '32px 24px 30vh',
+          fontSize,
+          lineHeight,
+          fontFamily,
+        }}
+        ref={ref}
+      />
+    </>
   );
 }
