@@ -160,6 +160,10 @@ pub fn build_menu<R: Runtime>(
             &MenuItemBuilder::with_id("spell-toggle", "Check Spelling While Typing")
                 .build(app)?,
         )
+        .item(
+            &MenuItemBuilder::with_id("smart-punctuation", "Smart Punctuation")
+                .build(app)?,
+        )
         .build()?;
 
     let view_menu = SubmenuBuilder::new(app, "View")

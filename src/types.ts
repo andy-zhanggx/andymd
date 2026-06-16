@@ -48,6 +48,7 @@ export interface AppConfig {
   showHiddenFiles: boolean;
   spellcheck: boolean;             // native OS spell-checking in the editor
   autoSave: boolean;               // debounced auto-save of files with a path
+  smartPunctuation: boolean;       // -- → en dash, ... → ellipsis, etc.
   sessions: Record<string, DocumentSession>;  // key = file absolute path
 }
 
@@ -66,6 +67,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   showHiddenFiles: false,
   spellcheck: true,
   autoSave: false,
+  smartPunctuation: false,
   sessions: {},
 };
 

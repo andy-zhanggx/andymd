@@ -18,6 +18,7 @@ import { wikilink } from './wikilink';
 import { searchPlugin } from './searchPlugin';
 import { viewModePlugin } from './viewModePlugin';
 import { autoPairPlugin } from './autoPairPlugin';
+import { smartPunctuation } from './smartPunctuation';
 import { highlight, superscript, subscript } from './marks';
 import { emoji } from '@milkdown/plugin-emoji';
 import { diagram } from '@milkdown/plugin-diagram';
@@ -98,6 +99,7 @@ export function buildEditor(opts: BuildOpts) {
     .use(searchPlugin)
     .use(viewModePlugin)
     .use(autoPairPlugin)
+    .use(smartPunctuation)
     .use(listener)
     .use(history)
     .use(clipboard)
