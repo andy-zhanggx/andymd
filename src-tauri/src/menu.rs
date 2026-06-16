@@ -45,6 +45,17 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<tauri::menu::
         )
         .separator()
         .item(
+            &MenuItemBuilder::with_id("export-html", "Export to HTML…")
+                .accelerator("CmdOrCtrl+Shift+E")
+                .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("print", "Print…")
+                .accelerator("CmdOrCtrl+P")
+                .build(app)?,
+        )
+        .separator()
+        .item(
             &MenuItemBuilder::with_id("close", "Close")
                 .accelerator("CmdOrCtrl+W")
                 .build(app)?,
