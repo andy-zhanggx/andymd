@@ -167,6 +167,12 @@ pub fn build_menu<R: Runtime>(
                 .accelerator("F9")
                 .build(app)?,
         )
+        .separator()
+        .item(
+            &MenuItemBuilder::with_id("toggle-fullscreen", "Toggle Full Screen")
+                .accelerator("F11")
+                .build(app)?,
+        )
         .build()?;
 
     MenuBuilder::new(app)

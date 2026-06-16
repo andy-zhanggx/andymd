@@ -71,6 +71,13 @@ pub async fn save_export_dialog(
     Ok(picked.map(|p| p.to_string()))
 }
 
+#[tauri::command]
+pub fn toggle_fullscreen(window: tauri::Window) -> Result<(), String> {
+    let fs = window.is_fullscreen().map_err(|e| e.to_string())?;
+    window.set_fullscreen(!fs).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 pub struct PendingOpensState(pub Mutex<Vec<String>>);
 
 impl Default for PendingOpensState {

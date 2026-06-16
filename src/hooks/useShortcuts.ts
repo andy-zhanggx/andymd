@@ -9,6 +9,7 @@ import { getActiveView } from '../components/Editor/activeView';
 import { navigate } from '../components/Editor/searchPlugin';
 import { fsService } from '../services/fsService';
 import { buildExportHtml } from '../lib/exportHtml';
+import { invoke } from '@tauri-apps/api/core';
 
 function baseName(path: string | null): string {
   if (!path) return 'Untitled';
@@ -107,6 +108,9 @@ export async function handleMenuAction(id: string) {
       break;
     case 'toggle-typewriter':
       useUIStore.getState().toggleTypewriterMode();
+      break;
+    case 'toggle-fullscreen':
+      await invoke('toggle_fullscreen').catch((e) => console.warn(e));
       break;
     case 'toggle-outline': {
       const ui = useUIStore.getState();
