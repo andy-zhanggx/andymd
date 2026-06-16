@@ -564,3 +564,12 @@
   vertical-align: super;
   line-height: 0;
 }
+
+/* Mermaid diagrams */
+.editor-container .mermaid,
+.editor-container [data-type='diagram'] {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0;
+  overflow-x: auto;
+}
