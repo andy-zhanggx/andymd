@@ -28,6 +28,7 @@ export interface BuildOpts {
   root: HTMLElement;
   initialValue: string;
   onChange: (markdown: string) => void;
+  spellcheck?: boolean;
 }
 
 export function buildEditor(opts: BuildOpts) {
@@ -35,7 +36,10 @@ export function buildEditor(opts: BuildOpts) {
     .config((ctx) => {
       ctx.set(rootCtx, opts.root);
       ctx.set(defaultValueCtx, opts.initialValue);
-      ctx.set(editorViewOptionsCtx, { editable: () => true });
+      ctx.set(editorViewOptionsCtx, {
+        editable: () => true,
+        attributes: { spellcheck: String(opts.spellcheck ?? true) },
+      });
       ctx.get(listenerCtx).markdownUpdated((_ctx, markdown) => {
         opts.onChange(markdown);
       });
