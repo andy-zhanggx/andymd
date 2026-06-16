@@ -547,3 +547,12 @@
   padding-top: 42vh;
   padding-bottom: 42vh;
 }
+
+/* ── Highlight mark (==text==) ───────────────────────────────────────── */
+.editor-container mark,
+.markdown-body mark {
+  background: rgba(255, 213, 0, 0.4);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
