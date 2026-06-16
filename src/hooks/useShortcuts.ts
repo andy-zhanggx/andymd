@@ -60,6 +60,12 @@ export async function handleMenuAction(id: string) {
     case 'toggle-sidebar':
       await cfg.update({ showSidebar: !cfg.config.showSidebar });
       break;
+    case 'toggle-outline': {
+      const ui = useUIStore.getState();
+      ui.setSidebarTab(ui.sidebarTab === 'outline' ? 'files' : 'outline');
+      if (!cfg.config.showSidebar) await cfg.update({ showSidebar: true });
+      break;
+    }
     case 'find':
       useUIStore.getState().openFind(false);
       break;

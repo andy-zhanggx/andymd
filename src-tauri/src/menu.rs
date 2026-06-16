@@ -88,6 +88,11 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<tauri::menu::
                 .accelerator("CmdOrCtrl+B")
                 .build(app)?,
         )
+        .item(
+            &MenuItemBuilder::with_id("toggle-outline", "Outline")
+                .accelerator("CmdOrCtrl+Shift+1")
+                .build(app)?,
+        )
         .build()?;
 
     MenuBuilder::new(app)
