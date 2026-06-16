@@ -39,6 +39,9 @@ pub fn run() {
             commands::workspace_cmd::take_pending_opens,
             commands::config_cmd::get_config,
             commands::config_cmd::save_config,
+            commands::version_cmd::save_version,
+            commands::version_cmd::list_versions,
+            commands::version_cmd::read_version,
             menu::rebuild_recent_menu,
         ])
         .build(tauri::generate_context!())

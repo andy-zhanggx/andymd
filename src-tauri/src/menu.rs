@@ -91,6 +91,7 @@ pub fn build_menu<R: Runtime>(
                 .build(app)?,
         )
         .item(&MenuItemBuilder::with_id("autosave-toggle", "Auto Save").build(app)?)
+        .item(&MenuItemBuilder::with_id("version-history", "Version History…").build(app)?)
         .separator()
         .item(
             &MenuItemBuilder::with_id("export-html", "Export to HTML…")

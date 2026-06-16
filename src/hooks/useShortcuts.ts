@@ -131,6 +131,10 @@ export async function handleMenuAction(id: string) {
     case 'autosave-toggle':
       await cfg.update({ autoSave: !cfg.config.autoSave });
       break;
+    case 'version-history':
+      if (doc.doc?.path) useUIStore.getState().setVersionHistoryOpen(true);
+      else window.alert('Save the document first to keep version history.');
+      break;
     case 'toggle-source':
       useUIStore.getState().toggleSourceMode();
       break;

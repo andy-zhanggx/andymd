@@ -581,3 +581,121 @@
   vertical-align: sub;
   line-height: 0;
 }
+
+/* ── Version history modal ───────────────────────────────────────────── */
+.vh-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+.vh-modal {
+  width: min(720px, 90vw);
+  height: min(520px, 80vh);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+.vh-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--fg-primary);
+}
+.vh-close {
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+  font-size: 13px;
+}
+.vh-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  min-height: 0;
+}
+.vh-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+}
+.vh-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--fg-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.vh-item:hover {
+  background: var(--hover);
+}
+.vh-item.active {
+  background: var(--accent);
+  color: #fff;
+}
+.vh-preview {
+  overflow: auto;
+  padding: 12px 14px;
+}
+.vh-preview pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--fg-primary);
+}
+.vh-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: var(--fg-muted);
+  font-size: 13px;
+  text-align: center;
+}
+.vh-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}
+.vh-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--fg-primary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.vh-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.vh-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
