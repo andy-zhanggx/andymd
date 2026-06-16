@@ -63,6 +63,12 @@ export async function handleMenuAction(id: string) {
     case 'toggle-source':
       useUIStore.getState().toggleSourceMode();
       break;
+    case 'toggle-focus':
+      useUIStore.getState().toggleFocusMode();
+      break;
+    case 'toggle-typewriter':
+      useUIStore.getState().toggleTypewriterMode();
+      break;
     case 'toggle-outline': {
       const ui = useUIStore.getState();
       ui.setSidebarTab(ui.sidebarTab === 'outline' ? 'files' : 'outline');

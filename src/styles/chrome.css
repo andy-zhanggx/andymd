@@ -532,3 +532,18 @@
   white-space: pre-wrap;
   overflow-wrap: break-word;
 }
+
+/* ── Focus mode (dim inactive blocks) ────────────────────────────────── */
+.focus-mode .ProseMirror > * {
+  transition: opacity 0.2s ease;
+  opacity: 0.28;
+}
+.focus-mode .ProseMirror > .focused {
+  opacity: 1;
+}
+
+/* ── Typewriter mode (room to keep the caret centered) ───────────────── */
+.typewriter-mode .ProseMirror {
+  padding-top: 42vh;
+  padding-bottom: 42vh;
+}
