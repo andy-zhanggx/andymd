@@ -9,9 +9,10 @@ Personal project by Andy Zhang.
 - WYSIWYG Markdown editing: CommonMark + GFM (tables, task lists, strikethrough)
 - Code block syntax highlighting (Prism)
 - KaTeX math (`$inline$` and `$$block$$`)
-- Extended marks: `==highlight==`, `^superscript^` (with live input rules)
+- Extended marks: `==highlight==`, `^superscript^`, `~subscript~` (live input rules)
 - Mermaid diagrams (` ```mermaid `), emoji shortcodes (`:smile:`)
-- Auto-pair brackets & quotes
+- Auto-pair brackets & quotes; optional smart punctuation
+- Native spell-check, optional auto-save, and per-file version history
 - Lenient Chinese-friendly heading parsing (`##标题` without space still renders as H2)
 - File tree sidebar **+ document outline (TOC) panel**
 - **Find & Replace** (⌘F / ⌘G / ⌘⌥F) with live match highlights
