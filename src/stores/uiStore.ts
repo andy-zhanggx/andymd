@@ -13,6 +13,10 @@ interface UIState {
   sidebarTab: SidebarTab;
   setSidebarTab: (tab: SidebarTab) => void;
 
+  // Version history modal
+  versionHistoryOpen: boolean;
+  setVersionHistoryOpen: (open: boolean) => void;
+
   // Editor view modes
   sourceMode: boolean;
   toggleSourceMode: () => void;
@@ -30,6 +34,9 @@ export const useUIStore = create<UIState>((set) => ({
 
   sidebarTab: 'files',
   setSidebarTab: (tab) => set({ sidebarTab: tab }),
+
+  versionHistoryOpen: false,
+  setVersionHistoryOpen: (open) => set({ versionHistoryOpen: open }),
 
   sourceMode: false,
   toggleSourceMode: () => set((s) => ({ sourceMode: !s.sourceMode })),
