@@ -4,6 +4,18 @@ import { useDocumentStore } from '../stores/documentStore';
 import { useConfigStore } from '../stores/configStore';
 import { dialogService } from '../services/dialogService';
 import { useWorkspaceStore } from '../stores/workspaceStore';
+import { useUIStore } from '../stores/uiStore';
+
+// Inside a workspace, open the in-app file selector (which also creates new
+// files); otherwise fall back to the native file picker.
+async function chooseFileToOpen() {
+  if (useWorkspaceStore.getState().workspace) {
+    useUIStore.getState().setOpenFileDialog(true);
+    return;
+  }
+  const file = await dialogService.pickMarkdownFile();
+  if (file) await useDocumentStore.getState().open(file);
+}
 
 async function saveDocument() {
   const docStore = useDocumentStore.getState();
@@ -29,8 +41,7 @@ export async function handleMenuAction(id: string) {
       doc.newDraft();
       break;
     case 'open': {
-      const file = await dialogService.pickMarkdownFile();
-      if (file) await doc.open(file);
+      await chooseFileToOpen();
       break;
     }
     case 'open-workspace': {
@@ -79,8 +90,7 @@ export function useShortcuts() {
             const dir = await dialogService.pickWorkspaceDir();
             if (dir) await wsStore.open(dir);
           } else {
-            const f = await dialogService.pickMarkdownFile();
-            if (f) await docStore.open(f);
+            await chooseFileToOpen();
           }
           break;
         case 'w':

@@ -2,14 +2,24 @@ import { useEffect, useRef } from 'react';
 import type { Editor } from '@milkdown/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { buildEditor } from './milkdownConfig';
+import { insertImageNode } from './insertImage';
 import { Toolbar } from './Toolbar';
 import { useDocumentStore } from '../../stores/documentStore';
 import { useConfigStore } from '../../stores/configStore';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
+import { useUIStore } from '../../stores/uiStore';
 import { dialogService } from '../../services/dialogService';
+import { fsService } from '../../services/fsService';
 import { openWikilink } from '../../services/wikilinkService';
 import { resolveImageSrc, resolveLinkHref } from '../../lib/asset';
+import { isImageFile } from '../../lib/image';
 import './editor-styles.css';
+
+function altFromPath(path: string): string {
+  const base = path.split('/').pop() ?? path;
+  const dot = base.lastIndexOf('.');
+  return dot > 0 ? base.slice(0, dot) : base;
+}
 
 const EDITOR_MAX_WIDTH: Record<string, number | 'none'> = {
   narrow: 620,
@@ -28,6 +38,59 @@ export function MarkdownEditor() {
   const recordSession = useConfigStore((s) => s.recordSession);
   const { fontSize, lineHeight, fontFamily, editorWidth } = useConfigStore((s) => s.config);
   const ref = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<Editor | null>(null);
+
+  // Handle image drops at the DOM level. Tauri's native drag interception is
+  // disabled (dragDropEnabled: false), so the webview receives the HTML5 drop
+  // with real File objects. We intercept in the capture phase — before
+  // ProseMirror inserts its own broken placeholder — read the bytes, write them
+  // into assets/ next to the document, and insert a proper image node at the
+  // drop point.
+  useEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+
+    const hasFiles = (e: DragEvent) =>
+      Array.from(e.dataTransfer?.types ?? []).includes('Files');
+
+    const onDragOver = (e: DragEvent) => {
+      if (hasFiles(e)) e.preventDefault();
+    };
+
+    const onDrop = async (e: DragEvent) => {
+      const images = Array.from(e.dataTransfer?.files ?? []).filter(isImageFile);
+      if (images.length === 0) return; // let ProseMirror handle non-image drops
+      e.preventDefault();
+      e.stopPropagation();
+
+      const editor = editorRef.current;
+      const current = useDocumentStore.getState().doc;
+      if (!editor || !current) {
+        window.alert('Open a document before dropping images.');
+        return;
+      }
+      const coords = { left: e.clientX, top: e.clientY };
+      for (const file of images) {
+        try {
+          const bytes = Array.from(new Uint8Array(await file.arrayBuffer()));
+          const { relPath } = await fsService.importImageBytes(file.name, bytes, current.path);
+          insertImageNode(editor, relPath, altFromPath(file.name), coords);
+        } catch (err) {
+          window.alert(
+            (err as Error)?.message ?? 'Failed to import image. Save the document first.'
+          );
+          break;
+        }
+      }
+    };
+
+    root.addEventListener('dragover', onDragOver, true);
+    root.addEventListener('drop', onDrop, true);
+    return () => {
+      root.removeEventListener('dragover', onDragOver, true);
+      root.removeEventListener('drop', onDrop, true);
+    };
+  }, []);
 
   useEffect(() => {
     if (!ref.current || !doc) return;
@@ -110,6 +173,7 @@ export function MarkdownEditor() {
       if (disposed) return;
 
       editor = created;
+      editorRef.current = created;
       mo = new MutationObserver(() => rewrite());
       mo.observe(root, {
         subtree: true,
@@ -143,6 +207,7 @@ export function MarkdownEditor() {
 
     return () => {
       disposed = true;
+      editorRef.current = null;
       mo?.disconnect();
       root.removeEventListener('click', wikilinkClickHandler);
       root.removeEventListener('click', clickHandler);
@@ -167,6 +232,10 @@ export function MarkdownEditor() {
 
   if (!doc) {
     const pickAndOpenFile = async () => {
+      if (useWorkspaceStore.getState().workspace) {
+        useUIStore.getState().setOpenFileDialog(true);
+        return;
+      }
       const path = await dialogService.pickMarkdownFile();
       if (path) await openDoc(path);
     };

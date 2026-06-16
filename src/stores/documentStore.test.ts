@@ -15,6 +15,7 @@ vi.mock('../services/dialogService', () => ({
 }));
 
 import { useDocumentStore } from './documentStore';
+import { useWorkspaceStore } from './workspaceStore';
 import { dialogService } from '../services/dialogService';
 
 beforeEach(() => {
@@ -31,6 +32,16 @@ describe('documentStore', () => {
     expect(d.content).toBe('# x');
     expect(d.draft).toBe('# x');
     expect(d.isDirty).toBe(false);
+  });
+
+  it('open makes the workspace follow the opened file', async () => {
+    fsMock.readFile.mockResolvedValue({ content: 'x', mtime: 1 });
+    const spy = vi
+      .spyOn(useWorkspaceStore.getState(), 'followFile')
+      .mockResolvedValue(undefined);
+    await useDocumentStore.getState().open('/some/vault/a.md');
+    expect(spy).toHaveBeenCalledWith('/some/vault/a.md');
+    spy.mockRestore();
   });
 
   it('setDraft marks dirty only when different', async () => {
