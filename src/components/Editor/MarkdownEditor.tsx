@@ -6,6 +6,7 @@ import { buildEditor } from './milkdownConfig';
 import { FindReplace } from './FindReplace';
 import { setActiveView } from './activeView';
 import { setTypewriter } from './viewModePlugin';
+import { setSmartPunctuation } from './smartPunctuation';
 import { useUIStore } from '../../stores/uiStore';
 import { useDocumentStore } from '../../stores/documentStore';
 import { useConfigStore } from '../../stores/configStore';
@@ -30,9 +31,8 @@ export function MarkdownEditor() {
   const openWs = useWorkspaceStore((s) => s.open);
   const getSession = useConfigStore((s) => s.getSession);
   const recordSession = useConfigStore((s) => s.recordSession);
-  const { fontSize, lineHeight, fontFamily, editorWidth, spellcheck, autoSave } = useConfigStore(
-    (s) => s.config,
-  );
+  const { fontSize, lineHeight, fontFamily, editorWidth, spellcheck, autoSave, smartPunctuation } =
+    useConfigStore((s) => s.config);
   const sourceMode = useUIStore((s) => s.sourceMode);
   const focusMode = useUIStore((s) => s.focusMode);
   const typewriterMode = useUIStore((s) => s.typewriterMode);
@@ -190,6 +190,11 @@ export function MarkdownEditor() {
   useEffect(() => {
     setTypewriter(typewriterMode);
   }, [typewriterMode]);
+
+  // Keep smart-punctuation in sync with config.
+  useEffect(() => {
+    setSmartPunctuation(smartPunctuation);
+  }, [smartPunctuation]);
 
   // Toggle native spell-checking live (without rebuilding the editor).
   useEffect(() => {

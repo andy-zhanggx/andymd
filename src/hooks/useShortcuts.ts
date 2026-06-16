@@ -128,6 +128,9 @@ export async function handleMenuAction(id: string) {
     case 'spell-toggle':
       await cfg.update({ spellcheck: !cfg.config.spellcheck });
       break;
+    case 'smart-punctuation':
+      await cfg.update({ smartPunctuation: !cfg.config.smartPunctuation });
+      break;
     case 'autosave-toggle':
       await cfg.update({ autoSave: !cfg.config.autoSave });
       break;
