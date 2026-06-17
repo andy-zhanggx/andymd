@@ -20,6 +20,7 @@ import { viewModePlugin } from './viewModePlugin';
 import { autoPairPlugin } from './autoPairPlugin';
 import { smartPunctuation } from './smartPunctuation';
 import { highlight, superscript, subscript } from './marks';
+import { htmlComment } from './htmlComment';
 import { emoji } from '@milkdown/plugin-emoji';
 import { diagram } from '@milkdown/plugin-diagram';
 import 'katex/dist/katex.min.css';
@@ -105,6 +106,9 @@ export function buildEditor(opts: BuildOpts) {
     .use(superscript)
     .use(subscript)
     .use(emoji)
+    // After emoji (and other inline splitters) so it can stitch fragmented
+    // HTML comments back into a single node.
+    .use(htmlComment)
     .use(diagram)
     .use(searchPlugin)
     .use(viewModePlugin)

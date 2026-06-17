@@ -10,6 +10,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _Nothing yet._
 
+## [0.1.3] — 2026-06-17
+
+### Added
+
+- Sidebar workspace context menu: right-click the workspace header for
+  **New File**, **New Folder**, and **Reveal in Finder** (destructive actions
+  are intentionally omitted on the vault root).
+
+### Fixed
+
+- HTML comments (`<!-- … -->`) no longer render as visible literal text. They
+  are shown as muted meta-text, and multi-line comments containing emoji/markers
+  are kept as a single node instead of being fragmented (which previously leaked
+  a stray emoji glyph). Comments round-trip losslessly.
+- Emoji now render as inline glyphs sized to the surrounding text instead of
+  ballooning to full-size block images.
+
 ## [0.1.2] — 2026-06-17
 
 ### Changed
