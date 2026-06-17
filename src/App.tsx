@@ -16,6 +16,8 @@ import { VersionHistory } from './components/VersionHistory';
 import { ShareDialog } from './components/Collab/ShareDialog';
 import { ONLINE_COLLAB } from './featureFlags';
 import { Tour } from './components/Tour';
+import { WhatsNew } from './components/WhatsNew';
+import { runWhatsNewCheck } from './lib/whatsNew';
 
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 420;
@@ -37,6 +39,11 @@ export default function App() {
   useEffect(() => {
     if (configLoaded && !hasSeenTour) useUIStore.getState().startTour();
   }, [configLoaded, hasSeenTour]);
+
+  // After config loads, show "What's New" if the app version advanced.
+  useEffect(() => {
+    if (configLoaded) void runWhatsNewCheck();
+  }, [configLoaded]);
 
   const startResize = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -119,6 +126,7 @@ export default function App() {
       <VersionHistory />
       {ONLINE_COLLAB && <ShareDialog />}
       <Tour />
+      <WhatsNew />
     </div>
   );
 }
