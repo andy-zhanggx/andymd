@@ -92,7 +92,9 @@ const STEPS: Step[] = [
 ];
 
 const CARD_WIDTH = 330;
+const CARD_EST_H = 230; // height estimate used to keep the card inside the viewport
 const GAP = 14;
+const MARGIN = 10; // keep the spotlight ring and card this far from screen edges
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 export function Tour() {
@@ -155,17 +157,36 @@ export function Tour() {
 
   if (!open) return null;
 
-  // Position the card near the target (below it if there's room, else above),
-  // or dead-center when there's no target.
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  // Only spotlight targets that comfortably fit. A near-fullscreen element
+  // (e.g. the editor pane) would make the ring hug all four screen edges and
+  // push the card off-screen — for those, fall back to a plain dimmed backdrop
+  // with a centered card.
+  const tooBig = rect ? rect.width > vw * 0.7 && rect.height > vh * 0.55 : false;
+  const spot =
+    rect && !tooBig
+      ? {
+          top: Math.max(MARGIN, rect.top - 6),
+          left: Math.max(MARGIN, rect.left - 6),
+          right: Math.min(vw - MARGIN, rect.right + 6),
+          bottom: Math.min(vh - MARGIN, rect.bottom + 6),
+        }
+      : null;
+
+  // Anchor the card near the spotlight (below if there's room, else above, else
+  // overlapping-centered), always clamped fully inside the viewport.
   let cardStyle: React.CSSProperties;
-  if (rect) {
-    const placeBelow = window.innerHeight - rect.bottom > 200;
+  if (spot) {
+    let top: number;
+    if (spot.bottom + GAP + CARD_EST_H <= vh - MARGIN) top = spot.bottom + GAP;
+    else if (spot.top - GAP - CARD_EST_H >= MARGIN) top = spot.top - GAP - CARD_EST_H;
+    else top = (vh - CARD_EST_H) / 2;
     cardStyle = {
       position: 'fixed',
-      left: clamp(rect.left, 16, window.innerWidth - CARD_WIDTH - 16),
-      ...(placeBelow
-        ? { top: rect.bottom + GAP }
-        : { bottom: window.innerHeight - rect.top + GAP }),
+      left: clamp(spot.left, MARGIN, vw - CARD_WIDTH - MARGIN),
+      top: clamp(top, MARGIN, vh - CARD_EST_H - MARGIN),
     };
   } else {
     cardStyle = {
@@ -180,14 +201,14 @@ export function Tour() {
     <div className="tour-root" role="dialog" aria-modal="true" aria-label="Welcome tour">
       {/* Click-blocker so the tour stays in control; clicks on the dim area are ignored. */}
       <div className="tour-block" onClick={(e) => e.stopPropagation()} />
-      {rect ? (
+      {spot ? (
         <div
           className="tour-spot"
           style={{
-            top: rect.top - 6,
-            left: rect.left - 6,
-            width: rect.width + 12,
-            height: rect.height + 12,
+            top: spot.top,
+            left: spot.left,
+            width: spot.right - spot.left,
+            height: spot.bottom - spot.top,
           }}
         />
       ) : (
