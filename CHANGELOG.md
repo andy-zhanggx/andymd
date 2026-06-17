@@ -8,7 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_Nothing yet._
+### Fixed
+
+- macOS build: ad-hoc sign the app bundle (`bundle.macOS.signingIdentity: "-"`)
+  so the `.app` has a valid, resource-sealed signature. Without it the bundle's
+  signature was invalid (no sealed resources) and macOS refused to launch the
+  downloaded app as "damaged". The v0.1.1 `.dmg` asset was re-uploaded with the
+  fix. (First launch still needs right-click → Open — the app is ad-hoc signed,
+  not notarized.)
 
 ## [0.1.1] — 2026-06-17
 
