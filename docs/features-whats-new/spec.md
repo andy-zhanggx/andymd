@@ -8,9 +8,30 @@ bundled `CHANGELOG.md`. The popup can also be reopened on demand from the Help
 menu.
 
 This is the first of two related features. A separate spec will cover an
-**auto-updater** (silent download, install on restart, sourced from GitLab
-releases); after a self-update + relaunch, this popup is what surfaces the
-changes. This spec covers **only** the What's New popup.
+**auto-updater**; after a self-update + relaunch, this popup is what surfaces
+the changes. This spec covers **only** the What's New popup.
+
+### Forward reference: auto-update (separate spec)
+
+Decisions already made for the future auto-update feature, recorded here so they
+are not lost:
+
+- Mechanism: Tauri `tauri-plugin-updater`, updates sourced from **GitLab
+  releases** via a `latest.json` manifest at a stable URL; artifacts signed with
+  a dedicated minisign updater keypair (separate from Apple code signing, which
+  is currently ad-hoc).
+- Cadence: check **on launch and periodically** while running.
+- Behavior: **silently download** a newer version in the background, then show a
+  subtle **"Restart to update"** button in the top bar
+  (`src/components/TitleBar.tsx`) — Claude Code / Codex style. Clicking it
+  relaunches and applies the (pre-fetched) update.
+- Release-flow impact: no macOS CI runner exists, so the updater tarball + `.sig`
+  + manifest are produced and uploaded locally, alongside the existing `.dmg`
+  flow (`scripts/release-dmg.mjs`).
+- Risk to verify on a real machine: the app is not notarized, so Gatekeeper
+  behavior on a self-applied update must be tested, not assumed.
+
+None of the above is implemented or required by the What's New popup.
 
 ## Goals
 
