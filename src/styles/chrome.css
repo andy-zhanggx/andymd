@@ -29,6 +29,18 @@
   color: var(--fg-primary);
 }
 
+.titlebar-toggle.active {
+  color: var(--accent);
+}
+
+.titlebar-right {
+  -webkit-app-region: no-drag;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .titlebar-title {
   position: absolute;
   left: 50%;

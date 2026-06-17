@@ -1,0 +1,14 @@
+{
+  "name": "andymd-collab-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Yjs collaboration relay for AndyMD (Hocuspocus + SQLite).",
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "@hocuspocus/extension-sqlite": "^2.13.5",
+    "@hocuspocus/server": "^2.13.5"
+  }
+}
