@@ -1,4 +1,19 @@
-# Feature: In-app auto-update (GitLab, authenticated)
+# Feature: In-app auto-update
+
+> **Amendment (channel change):** the original design below hosted artifacts on
+> the internal GitLab with a per-user PAT. That required every user to supply a
+> token. We switched the channel to a **public GitHub releases repo**
+> (`OldBao/andymd-releases`, source stays private on GitLab), so the in-app
+> updater fetches the manifest + binary **anonymously — no token**. What changed:
+> the updater endpoint in `tauri.conf.json` points at
+> `https://github.com/OldBao/andymd-releases/releases/latest/download/latest.json`;
+> `updater.ts` sends no auth header; the `updateToken` config field and the token
+> input in the Software Update dialog were removed (the dialog keeps "Check for
+> updates now" + status); and `scripts/release-update.mjs` publishes the signed
+> universal `.app.tar.gz` + `.sig` + `latest.json` to the GitHub release via `gh`.
+> The minisign signing scheme, silent-download → title-bar button, and
+> Gatekeeper caveat are unchanged. Sections below describing GitLab/PAT are
+> superseded by this amendment.
 
 ## Summary
 
