@@ -11,6 +11,7 @@ import { StatusBar } from './components/StatusBar';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { MarkdownEditor } from './components/Editor/MarkdownEditor';
 import { OpenFileDialog } from './components/OpenFileDialog';
+import { VersionHistory } from './components/VersionHistory';
 
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 420;
@@ -104,6 +105,7 @@ export default function App() {
       </main>
       <div style={{ gridArea: 'statusbar' }}><StatusBar /></div>
       <OpenFileDialog />
+      <VersionHistory />
     </div>
   );
 }

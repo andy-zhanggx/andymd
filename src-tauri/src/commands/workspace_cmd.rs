@@ -54,6 +54,97 @@ pub async fn save_markdown_dialog(
     Ok(picked.map(|p| p.to_string()))
 }
 
+#[tauri::command]
+pub async fn save_export_dialog(
+    app: AppHandle,
+    default_name: String,
+    extension: String,
+) -> CommandResult<Option<String>> {
+    let ext = extension.clone();
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Export")
+        .add_filter(extension.to_uppercase(), &[ext.as_str()])
+        .set_file_name(&default_name)
+        .blocking_save_file();
+    Ok(picked.map(|p| p.to_string()))
+}
+
+/// Locate the pandoc binary. A Finder-launched .app has a minimal PATH that
+/// usually excludes Homebrew / conda, so fall back to common install dirs.
+fn resolve_pandoc() -> Option<String> {
+    use std::process::{Command, Stdio};
+    let on_path = Command::new("pandoc")
+        .arg("--version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+    if on_path {
+        return Some("pandoc".to_string());
+    }
+    let home = std::env::var("HOME").unwrap_or_default();
+    let candidates = [
+        "/opt/homebrew/bin/pandoc".to_string(),
+        "/usr/local/bin/pandoc".to_string(),
+        format!("{home}/miniconda3/bin/pandoc"),
+        format!("{home}/.local/bin/pandoc"),
+        format!("{home}/anaconda3/bin/pandoc"),
+    ];
+    candidates.into_iter().find(|p| std::path::Path::new(p).exists())
+}
+
+/// Export markdown to `to` (a pandoc writer name, e.g. docx/epub/latex/rtf/odt)
+/// at `out_path`, piping the document through pandoc's stdin.
+#[tauri::command]
+pub fn export_via_pandoc(markdown: String, to: String, out_path: String) -> Result<(), String> {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+
+    let pandoc = resolve_pandoc()
+        .ok_or_else(|| "pandoc not found. Install it (e.g. `brew install pandoc`).".to_string())?;
+
+    let mut child = Command::new(pandoc)
+        .args([
+            "-f",
+            "markdown+tex_math_dollars+pipe_tables",
+            "-t",
+            &to,
+            "--standalone",
+            "-o",
+            &out_path,
+        ])
+        .stdin(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("failed to launch pandoc: {e}"))?;
+
+    child
+        .stdin
+        .take()
+        .ok_or("failed to open pandoc stdin")?
+        .write_all(markdown.as_bytes())
+        .map_err(|e| e.to_string())?;
+
+    let output = child.wait_with_output().map_err(|e| e.to_string())?;
+    if !output.status.success() {
+        return Err(format!(
+            "pandoc failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn toggle_fullscreen(window: tauri::Window) -> Result<(), String> {
+    let fs = window.is_fullscreen().map_err(|e| e.to_string())?;
+    window.set_fullscreen(!fs).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 pub struct PendingOpensState(pub Mutex<Vec<String>>);
 
 impl Default for PendingOpensState {

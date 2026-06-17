@@ -22,7 +22,9 @@
   .statusbar,
   aside,
   .sidebar-resizer,
-  .context-menu {
+  .context-menu,
+  .find-bar,
+  .stats-popover {
     display: none !important;
   }
 

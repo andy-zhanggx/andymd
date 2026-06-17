@@ -4,6 +4,8 @@ import { fsService } from '../services/fsService';
 import { dialogService } from '../services/dialogService';
 import { useWorkspaceStore } from './workspaceStore';
 import { lenifyHeadings } from '../lib/markdown';
+import { useConfigStore } from './configStore';
+import { versionService } from '../services/versionService';
 
 interface DocumentState {
   doc: Document | null;
@@ -44,6 +46,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     } catch {
       // ignore — the document is already open
     }
+    // Best-effort: recording recents persists config; never let it surface.
+    void useConfigStore.getState().addRecentFile(path).catch(() => {});
   },
 
   newDraft() {
@@ -73,6 +77,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     }
     const { mtime } = await fsService.writeFile(d.path, d.draft);
     set({ doc: { ...d, content: d.draft, isDirty: false, mtime } });
+    void versionService.save(d.path, d.draft);
   },
 
   async saveAs() {
@@ -83,6 +88,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     if (!target) return;
     const { mtime } = await fsService.writeFile(target, d.draft);
     set({ doc: { ...d, path: target, content: d.draft, isDirty: false, mtime } });
+    void versionService.save(target, d.draft);
   },
 
   async reload() {
