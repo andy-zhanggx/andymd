@@ -13,6 +13,7 @@ import { Sidebar } from './components/Sidebar/Sidebar';
 import { MarkdownEditor } from './components/Editor/MarkdownEditor';
 import { OpenFileDialog } from './components/OpenFileDialog';
 import { VersionHistory } from './components/VersionHistory';
+import { ShareDialog } from './components/Collab/ShareDialog';
 import { Tour } from './components/Tour';
 
 const SIDEBAR_MIN = 180;
@@ -115,6 +116,7 @@ export default function App() {
       <div style={{ gridArea: 'statusbar' }}><StatusBar /></div>
       <OpenFileDialog />
       <VersionHistory />
+      <ShareDialog />
       <Tour />
     </div>
   );

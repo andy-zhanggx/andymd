@@ -50,6 +50,8 @@ export interface AppConfig {
   autoSave: boolean;               // debounced auto-save of files with a path
   smartPunctuation: boolean;       // -- → en dash, ... → ellipsis, etc.
   hasSeenTour: boolean;            // first-run onboarding tour shown once
+  collabServerUrl: string;         // WebSocket URL of the collaboration relay
+  displayName: string;             // name shown to collaborators (blank = auto)
   sessions: Record<string, DocumentSession>;  // key = file absolute path
 }
 
@@ -70,6 +72,8 @@ export const DEFAULT_CONFIG: AppConfig = {
   autoSave: false,
   smartPunctuation: false,
   hasSeenTour: false,
+  collabServerUrl: 'ws://localhost:1234',
+  displayName: '',
   sessions: {},
 };
 

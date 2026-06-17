@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { Editor, editorViewCtx } from '@milkdown/core';
+import { collabServiceCtx } from '@milkdown/plugin-collab';
 import type { EditorView } from '@milkdown/prose/view';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { buildEditor } from './milkdownConfig';
+import { useCollabStore, getActiveSession } from '../../collab/collabStore';
+import { cursorBuilder, selectionBuilder } from '../../collab/cursor';
 import { insertImageNode } from './insertImage';
 import { Toolbar } from './Toolbar';
 import { FindReplace } from './FindReplace';
@@ -46,6 +49,9 @@ export function MarkdownEditor() {
   const sourceMode = useUIStore((s) => s.sourceMode);
   const focusMode = useUIStore((s) => s.focusMode);
   const typewriterMode = useUIStore((s) => s.typewriterMode);
+  const roomCode = useCollabStore((s) => s.roomCode);
+  const collabRole = useCollabStore((s) => s.role);
+  const collabActive = roomCode !== null;
   const ref = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Editor | null>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -174,10 +180,12 @@ export function MarkdownEditor() {
     const setup = async () => {
       createPromise = buildEditor({
         root,
-        // Seed from the live buffer (not on-disk content) so round-tripping
-        // through source mode preserves unsaved edits.
-        initialValue: doc.draft,
+        // In collab mode the content is driven by the shared Y.Doc, so we start
+        // empty; otherwise seed from the live buffer (not on-disk content) so
+        // round-tripping through source mode preserves unsaved edits.
+        initialValue: collabActive ? '' : doc.draft,
         spellcheck,
+        collab: collabActive,
         onChange: (md) => {
           if (!disposed) setDraft(md);
         },
@@ -192,6 +200,39 @@ export function MarkdownEditor() {
         setActiveView(viewRef.current);
       } catch {
         viewRef.current = null;
+      }
+
+      // Wire the collaboration service to the active session's Y.Doc + awareness.
+      // The host seeds the room from the local document once, and only if the
+      // server copy is still empty (applyTemplate's guard) — this prevents
+      // duplicated content when reconnecting to a persisted room. Guests never
+      // seed; their content arrives over the wire.
+      if (collabActive) {
+        const session = getActiveSession();
+        if (session?.awareness) {
+          const seed = doc.draft;
+          const isHost = collabRole === 'host';
+          created.action((ctx) => {
+            const collabService = ctx.get(collabServiceCtx);
+            collabService
+              .bindDoc(session.doc)
+              .setAwareness(session.awareness!)
+              .setOptions({ yCursorOpts: { cursorBuilder, selectionBuilder } });
+          });
+          void session.whenSynced().then(() => {
+            if (disposed) return;
+            created.action((ctx) => {
+              const collabService = ctx.get(collabServiceCtx);
+              // applyTemplate's default guard seeds only when the shared doc is
+              // empty (textContent.length === 0), so a host reconnecting to a
+              // persisted room won't duplicate content. Guests never seed.
+              if (isHost) collabService.applyTemplate(seed);
+              collabService.connect();
+            });
+          }).catch((err) => {
+            console.error('[collab] failed to bind editor to session', err);
+          });
+        }
       }
       mo = new MutationObserver(() => rewrite());
       mo.observe(root, {
@@ -249,7 +290,7 @@ export function MarkdownEditor() {
       })();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc?.path, sourceMode]);
+  }, [doc?.path, sourceMode, collabActive, roomCode]);
 
   // Keep the typewriter plugin's module flag in sync with UI state.
   useEffect(() => {
