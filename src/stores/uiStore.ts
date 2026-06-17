@@ -27,6 +27,10 @@ interface UIState {
   startTour: () => void;
   endTour: () => void;
 
+  // Software Update settings dialog
+  updateSettingsOpen: boolean;
+  setUpdateSettingsOpen: (open: boolean) => void;
+
   // "What's New" release-notes popup
   whatsNewOpen: boolean;
   whatsNewReleases: Release[];
@@ -60,6 +64,9 @@ export const useUIStore = create<UIState>((set) => ({
   tourOpen: false,
   startTour: () => set({ tourOpen: true }),
   endTour: () => set({ tourOpen: false }),
+
+  updateSettingsOpen: false,
+  setUpdateSettingsOpen: (open) => set({ updateSettingsOpen: open }),
 
   whatsNewOpen: false,
   whatsNewReleases: [],
