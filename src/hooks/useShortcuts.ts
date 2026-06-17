@@ -9,6 +9,7 @@ import { getActiveView } from '../components/Editor/activeView';
 import { navigate } from '../components/Editor/searchPlugin';
 import { fsService } from '../services/fsService';
 import { buildExportHtml } from '../lib/exportHtml';
+import { openWhatsNewForCurrent } from '../lib/whatsNew';
 import { invoke } from '@tauri-apps/api/core';
 
 // Inside a workspace, open the in-app file selector (which also creates new
@@ -199,6 +200,9 @@ export async function handleMenuAction(id: string) {
       break;
     case 'show-tour':
       useUIStore.getState().startTour();
+      break;
+    case 'show-whats-new':
+      void openWhatsNewForCurrent();
       break;
   }
 }

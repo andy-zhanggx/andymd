@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { Release } from '../lib/changelog';
 
 export type SidebarTab = 'files' | 'outline';
 
@@ -25,6 +26,12 @@ interface UIState {
   tourOpen: boolean;
   startTour: () => void;
   endTour: () => void;
+
+  // "What's New" release-notes popup
+  whatsNewOpen: boolean;
+  whatsNewReleases: Release[];
+  openWhatsNew: (releases: Release[]) => void;
+  closeWhatsNew: () => void;
 
   // Editor view modes
   sourceMode: boolean;
@@ -53,6 +60,11 @@ export const useUIStore = create<UIState>((set) => ({
   tourOpen: false,
   startTour: () => set({ tourOpen: true }),
   endTour: () => set({ tourOpen: false }),
+
+  whatsNewOpen: false,
+  whatsNewReleases: [],
+  openWhatsNew: (releases) => set({ whatsNewOpen: true, whatsNewReleases: releases }),
+  closeWhatsNew: () => set({ whatsNewOpen: false }),
 
   sourceMode: false,
   toggleSourceMode: () => set((s) => ({ sourceMode: !s.sourceMode })),

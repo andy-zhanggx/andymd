@@ -203,6 +203,7 @@ pub fn build_menu<R: Runtime>(
 
     let help_menu = SubmenuBuilder::new(app, "Help")
         .item(&MenuItemBuilder::with_id("show-tour", "Welcome Tour").build(app)?)
+        .item(&MenuItemBuilder::with_id("show-whats-new", "What's New in AndyMD").build(app)?)
         .build()?;
 
     MenuBuilder::new(app)

@@ -14,6 +14,8 @@ import { MarkdownEditor } from './components/Editor/MarkdownEditor';
 import { OpenFileDialog } from './components/OpenFileDialog';
 import { VersionHistory } from './components/VersionHistory';
 import { Tour } from './components/Tour';
+import { WhatsNew } from './components/WhatsNew';
+import { runWhatsNewCheck } from './lib/whatsNew';
 
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 420;
@@ -35,6 +37,11 @@ export default function App() {
   useEffect(() => {
     if (configLoaded && !hasSeenTour) useUIStore.getState().startTour();
   }, [configLoaded, hasSeenTour]);
+
+  // After config loads, show "What's New" if the app version advanced.
+  useEffect(() => {
+    if (configLoaded) void runWhatsNewCheck();
+  }, [configLoaded]);
 
   const startResize = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -116,6 +123,7 @@ export default function App() {
       <OpenFileDialog />
       <VersionHistory />
       <Tour />
+      <WhatsNew />
     </div>
   );
 }
