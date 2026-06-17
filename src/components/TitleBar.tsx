@@ -1,5 +1,6 @@
 import { useConfigStore } from '../stores/configStore';
 import { useDocumentStore } from '../stores/documentStore';
+import { UpdateButton } from './UpdateButton';
 import { useUIStore } from '../stores/uiStore';
 import { useCollabStore } from '../collab/collabStore';
 import { PresenceBar } from './Collab/PresenceBar';
@@ -54,6 +55,7 @@ export function TitleBar() {
         {name}
       </div>
       <div className="titlebar-right">
+        <UpdateButton />
         {ONLINE_COLLAB && <PresenceBar />}
         {ONLINE_COLLAB && doc && (
           <button

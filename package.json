@@ -20,7 +20,8 @@
     "test:watch": "vitest",
     "tauri": "tauri",
     "version:set": "node scripts/set-version.mjs",
-    "release:dmg": "node scripts/release-dmg.mjs"
+    "release:dmg": "node scripts/release-dmg.mjs",
+    "release:update": "node scripts/release-update.mjs"
   },
   "dependencies": {
     "@hocuspocus/provider": "^4.2.0",
@@ -45,6 +46,8 @@
     "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-dialog": "^2.7.0",
     "@tauri-apps/plugin-opener": "^2.5.3",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.10.1",
     "katex": "^0.16.45",
     "prismjs": "^1.30.0",
     "react": "^18.3.1",

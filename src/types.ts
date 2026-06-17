@@ -53,6 +53,7 @@ export interface AppConfig {
   collabServerUrl: string;         // WebSocket URL of the collaboration relay
   displayName: string;             // name shown to collaborators (blank = auto)
   lastSeenVersion: string | null;  // app version last shown in "What's New" (null = never)
+  updateToken: string;             // GitLab PAT for authenticated auto-update (blank = disabled)
   sessions: Record<string, DocumentSession>;  // key = file absolute path
 }
 
@@ -76,6 +77,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   collabServerUrl: 'ws://localhost:1234',
   displayName: '',
   lastSeenVersion: null,
+  updateToken: '',
   sessions: {},
 };
 
