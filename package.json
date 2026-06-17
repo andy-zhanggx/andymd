@@ -25,7 +25,9 @@
   "dependencies": {
     "@hocuspocus/provider": "^4.2.0",
     "@milkdown/core": "^7.20.0",
+    "@milkdown/ctx": "7.20.0",
     "@milkdown/plugin-clipboard": "^7.20.0",
+    "@milkdown/transformer": "7.20.0",
     "@milkdown/plugin-collab": "^7.20.0",
     "@milkdown/plugin-cursor": "^7.20.0",
     "@milkdown/plugin-diagram": "7.7.0",
