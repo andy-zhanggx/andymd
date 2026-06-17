@@ -34,6 +34,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -54,6 +55,14 @@
     "macOS": {
       "minimumSystemVersion": "11.0",
       "signingIdentity": "-"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVGNzc3M0IwRUI5RjlCRkIKUldUN201L3JzSE4zNzl3SHdXeDV2dEhGc05QSFMzRGdBSDAyKzBtQ3B2WXNST3FFNHdXc3UwYjUK",
+      "endpoints": [
+        "https://git.garena.com/api/v4/projects/134118/packages/generic/andymd/latest/latest.json"
+      ]
     }
   }
 }
