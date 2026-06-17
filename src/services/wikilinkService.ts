@@ -15,7 +15,7 @@ export async function openWikilink(target: string, fromPath: string | null): Pro
 
   const tree =
     ws && ws.root === rootDir ? ws.tree : await fsService.listWorkspace(rootDir, false);
-  const resolved = resolveWikilinkInTree(target, tree);
+  const resolved = resolveWikilinkInTree(target, tree, fromPath);
   if (!resolved) {
     window.alert(`未找到笔记: ${target}`);
     return;
