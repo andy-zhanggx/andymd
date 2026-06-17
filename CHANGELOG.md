@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _Nothing yet._
 
+## [0.1.1] — 2026-06-17
+
+### Fixed
+
+- Onboarding tour: keep the spotlight and tooltip card inside the viewport.
+  A step targeting a near-fullscreen element (the editor pane) drew the
+  spotlight ring against the screen edges and pushed the card off-screen; such
+  targets now use a centered card over a plain dimmed backdrop, and the ring and
+  card are clamped to the viewport.
+
 ## [0.1.0] — 2026-06-17
 
 First tagged release. A macOS WYSIWYG Markdown editor in the spirit of Typora,
@@ -29,5 +39,6 @@ built with Tauri 2 + React 18 + Milkdown.
 - Light / dark / system theme; `.md` / `.markdown` Finder file association; external-modification detection on save.
 - First-run **onboarding tour** (bilingual EN / 中文) with spotlight steps; replay from the status-bar `?` button or **Help → Welcome Tour**.
 
-[Unreleased]: https://github.com/OldBao/andymd/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/OldBao/andymd/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/OldBao/andymd/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/OldBao/andymd/releases/tag/v0.1.0
