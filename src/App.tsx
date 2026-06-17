@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './styles/global.css';
 import { useTheme } from './hooks/useTheme';
 import { useShortcuts } from './hooks/useShortcuts';
 import { useOpenFileRequest } from './hooks/useOpenFileRequest';
 import { useWorkspaceWatcher } from './hooks/useWorkspaceWatcher';
 import { useConfigStore } from './stores/configStore';
+import { useUIStore } from './stores/uiStore';
 import { DEFAULT_CONFIG } from './types';
 import { TitleBar } from './components/TitleBar';
 import { StatusBar } from './components/StatusBar';
@@ -12,6 +13,7 @@ import { Sidebar } from './components/Sidebar/Sidebar';
 import { MarkdownEditor } from './components/Editor/MarkdownEditor';
 import { OpenFileDialog } from './components/OpenFileDialog';
 import { VersionHistory } from './components/VersionHistory';
+import { Tour } from './components/Tour';
 
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 420;
@@ -26,6 +28,13 @@ export default function App() {
   const update = useConfigStore((s) => s.update);
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const width = dragWidth ?? sidebarWidth;
+
+  // First-run: launch the onboarding tour once the config has loaded.
+  const configLoaded = useConfigStore((s) => s.loaded);
+  const hasSeenTour = useConfigStore((s) => s.config.hasSeenTour);
+  useEffect(() => {
+    if (configLoaded && !hasSeenTour) useUIStore.getState().startTour();
+  }, [configLoaded, hasSeenTour]);
 
   const startResize = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -106,6 +115,7 @@ export default function App() {
       <div style={{ gridArea: 'statusbar' }}><StatusBar /></div>
       <OpenFileDialog />
       <VersionHistory />
+      <Tour />
     </div>
   );
 }

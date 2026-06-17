@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
+import { useDocumentStore } from '../../stores/documentStore';
 import { fsService } from '../../services/fsService';
+import { findNode, uniqueChildName } from '../../lib/workspacePath';
 
 export interface Props {
   x: number;
@@ -15,6 +17,8 @@ export function ContextMenu({ x, y, path, kind, onClose }: Props) {
   const createFolder = useWorkspaceStore((s) => s.createFolder);
   const rename = useWorkspaceStore((s) => s.rename);
   const deleteEntry = useWorkspaceStore((s) => s.deleteEntry);
+  const tree = useWorkspaceStore((s) => s.workspace?.tree ?? null);
+  const openDoc = useDocumentStore((s) => s.open);
 
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ x, y });
@@ -51,15 +55,30 @@ export function ContextMenu({ x, y, path, kind, onClose }: Props) {
     {
       label: 'New File',
       action: async () => {
-        const name = window.prompt('File name (include .md)', 'Untitled.md');
-        if (name) await createFile(parent, name);
+        const parentNode = findNode(tree, parent);
+        const suggestion = uniqueChildName(parentNode?.children, 'Untitled', 'md');
+        const name = window.prompt('File name (include .md)', suggestion);
+        if (!name) return;
+        try {
+          const node = await createFile(parent, name);
+          // Open it right away so the user can start editing — the whole point
+          // of "New File" is to land in an editable document.
+          await openDoc(node.path);
+        } catch (e) {
+          window.alert(`Could not create file: ${(e as Error)?.message ?? e}`);
+        }
       },
     },
     {
       label: 'New Folder',
       action: async () => {
         const name = window.prompt('Folder name');
-        if (name) await createFolder(parent, name);
+        if (!name) return;
+        try {
+          await createFolder(parent, name);
+        } catch (e) {
+          window.alert(`Could not create folder: ${(e as Error)?.message ?? e}`);
+        }
       },
     },
     'sep',

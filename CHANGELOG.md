@@ -1,0 +1,33 @@
+# Changelog
+
+All notable changes to AndyMD are documented here.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
+(see [Versioning](README.md#versioning)).
+
+## [Unreleased]
+
+_Nothing yet._
+
+## [0.1.0] — 2026-06-17
+
+First tagged release. A macOS WYSIWYG Markdown editor in the spirit of Typora,
+built with Tauri 2 + React 18 + Milkdown.
+
+### Added
+
+- WYSIWYG Markdown editing: CommonMark + GFM (tables, task lists, strikethrough).
+- Code block syntax highlighting (Prism) and KaTeX math (`$inline$`, `$$block$$`).
+- Extended marks: `==highlight==`, `^superscript^`, `~subscript~`; Mermaid diagrams; emoji shortcodes.
+- Auto-pair brackets/quotes, optional smart punctuation, native spell-check, optional auto-save, per-file version history.
+- Workspace sidebar with file tree, document outline (TOC), and a **New File** button.
+- New files (⌘N / File → New / sidebar / context menu) are created in the workspace, appear in the sidebar, and open ready to edit.
+- Find & Replace (⌘F / ⌘G / ⌘⌥F), Source-code mode (⌘/), Focus mode (F8), Typewriter mode (F9).
+- Export to HTML / Word / ePub / LaTeX / RTF (pandoc); Print / Save-as-PDF; Copy as Markdown / HTML.
+- Document statistics, Open Recent files & folders, Full Screen, per-file scroll memory.
+- Light / dark / system theme; `.md` / `.markdown` Finder file association; external-modification detection on save.
+- First-run **onboarding tour** (bilingual EN / 中文) with spotlight steps; replay from the status-bar `?` button or **Help → Welcome Tour**.
+
+[Unreleased]: https://github.com/OldBao/andymd/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/OldBao/andymd/releases/tag/v0.1.0

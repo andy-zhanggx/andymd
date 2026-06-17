@@ -201,8 +201,12 @@ pub fn build_menu<R: Runtime>(
         )
         .build()?;
 
+    let help_menu = SubmenuBuilder::new(app, "Help")
+        .item(&MenuItemBuilder::with_id("show-tour", "Welcome Tour").build(app)?)
+        .build()?;
+
     MenuBuilder::new(app)
-        .items(&[&app_menu, &file_menu, &edit_menu, &view_menu])
+        .items(&[&app_menu, &file_menu, &edit_menu, &view_menu, &help_menu])
         .build()
 }
 

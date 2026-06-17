@@ -35,6 +35,12 @@ export const fsService = {
   takePendingOpens: () => invoke<string[]>('take_pending_opens'),
 };
 
+// Dev-only handle so browser-based QA can stub filesystem commands without a
+// running Tauri backend.
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  (window as unknown as Record<string, unknown>).__fsService = fsService;
+}
+
 export type FsEvent =
   | { kind: 'created'; path: string }
   | { kind: 'modified'; path: string }

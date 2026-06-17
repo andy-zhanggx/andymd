@@ -6,3 +6,6 @@ src-tauri/Cargo.lock
 *.log
 .worktrees/
 .pnpm-store/
+
+# TypeScript incremental build cache
+*.tsbuildinfo

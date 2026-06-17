@@ -36,7 +36,7 @@ const EDITOR_MAX_WIDTH: Record<string, number | 'none'> = {
 export function MarkdownEditor() {
   const doc = useDocumentStore((s) => s.doc);
   const openDoc = useDocumentStore((s) => s.open);
-  const newDraft = useDocumentStore((s) => s.newDraft);
+  const newFile = useDocumentStore((s) => s.newFile);
   const setDraft = useDocumentStore((s) => s.setDraft);
   const openWs = useWorkspaceStore((s) => s.open);
   const getSession = useConfigStore((s) => s.getSession);
@@ -296,7 +296,7 @@ export function MarkdownEditor() {
       <div className="empty-state">
         <div className="empty-mark">andy.md</div>
         <div className="empty-actions">
-          <button className="empty-action" onClick={() => newDraft()}>
+          <button className="empty-action" onClick={() => void newFile()}>
             <span>New Document</span>
             <kbd>⌘N</kbd>
           </button>

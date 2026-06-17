@@ -102,3 +102,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set({ workspace: null });
   },
 }));
+
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  (window as unknown as Record<string, unknown>).__wsStore = useWorkspaceStore;
+}

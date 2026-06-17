@@ -11,6 +11,19 @@ function ChevronDown() {
   );
 }
 
+function NewFileIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M4 1.5h5.5L13 5v8.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1Z"
+        stroke="currentColor"
+      />
+      <path d="M9.5 1.5V5H13" stroke="currentColor" />
+      <path d="M8 7.5v4M6 9.5h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function DocumentIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -85,6 +98,14 @@ export function WorkspaceSwitcher() {
           <ChevronDown />
         </span>
       </div>
+      <button
+        className="ws-action"
+        onClick={() => void useDocumentStore.getState().newFile()}
+        aria-label="New file"
+        title="New File"
+      >
+        <NewFileIcon />
+      </button>
       <button className="ws-action" onClick={pickAndOpenFile} aria-label="Open file" title="Open File…">
         <DocumentIcon />
       </button>

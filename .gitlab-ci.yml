@@ -1,0 +1,106 @@
+# GitLab CI/CD for AndyMD
+#
+# AndyMD is a native macOS app — the .app/.dmg can only be built on a macOS
+# runner, which this project does not currently have. So this pipeline:
+#   • every push / MR : typecheck + run the Vitest suite (Linux runner)
+#   • on a v* tag      : build the web/front-end bundle, zip it, upload it to the
+#                        Generic Package Registry, and create a GitLab Release
+#                        with the zip attached as a downloadable asset.
+#
+# When a macOS runner is available, uncomment `package:macos` at the bottom to
+# attach the real AndyMD.app zip to the release instead of (or alongside) the
+# web bundle, and add its job to the `release` job's `needs:`.
+
+stages: [test, package, release]
+
+default:
+  image: node:22
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@latest --activate
+    - pnpm install --frozen-lockfile
+
+variables:
+  # Coordinates of the release zip in this project's Generic Package Registry.
+  PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/andymd"
+
+# ── Gate: typecheck + tests ──────────────────────────────────────────────────
+test:
+  stage: test
+  script:
+    - pnpm exec tsc -b          # real typecheck (root tsconfig uses project refs)
+    - pnpm test                 # Vitest
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+# ── Build + zip the web bundle, push to the package registry (tags only) ──────
+package:web:
+  stage: package
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+  script:
+    - apt-get update -qq && apt-get install -y -qq zip
+    - pnpm build                                    # tsc && vite build → dist/
+    - ASSET="andymd-${CI_COMMIT_TAG}-web.zip"
+    - (cd dist && zip -r "../${ASSET}" .)
+    - |
+      echo "Uploading ${ASSET} → ${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/"
+      curl --fail --silent --show-error \
+        --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+        --upload-file "${ASSET}" \
+        "${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/${ASSET}"
+    - echo "ASSET_NAME=${ASSET}" >> package.env
+    - echo "ASSET_URL=${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/${ASSET}" >> package.env
+  artifacts:
+    paths:
+      - "andymd-*-web.zip"
+    reports:
+      dotenv: package.env
+    expire_in: never
+
+# ── Create the GitLab Release and link the asset (tags only) ──────────────────
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: package:web
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+  before_script: []   # release-cli image has no node/pnpm; skip the default
+  script:
+    - echo "Creating release ${CI_COMMIT_TAG} with asset ${ASSET_NAME}"
+    - |
+      release-cli create \
+        --name "AndyMD ${CI_COMMIT_TAG}" \
+        --tag-name "${CI_COMMIT_TAG}" \
+        --description "AndyMD ${CI_COMMIT_TAG}. See CHANGELOG.md for release notes." \
+        --assets-link "{\"name\":\"${ASSET_NAME}\",\"url\":\"${ASSET_URL}\",\"link_type\":\"package\"}"
+
+# ── Optional: native macOS .app zip (enable once a macOS runner exists) ────────
+# package:macos:
+#   stage: package
+#   tags: [macos]                 # the tag your macOS runner is registered with
+#   rules:
+#     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+#   before_script:
+#     - corepack enable && corepack prepare pnpm@latest --activate
+#     - pnpm install --frozen-lockfile
+#   script:
+#     - pnpm tauri build          # → src-tauri/target/release/bundle/macos/AndyMD.app
+#     - ASSET="AndyMD-${CI_COMMIT_TAG}-macos.zip"
+#     - ditto -c -k --keepParent "src-tauri/target/release/bundle/macos/AndyMD.app" "${ASSET}"
+#     - |
+#       curl --fail --silent --show-error \
+#         --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+#         --upload-file "${ASSET}" \
+#         "${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/${ASSET}"
+#     - echo "MACOS_ASSET_NAME=${ASSET}" >> macos.env
+#     - echo "MACOS_ASSET_URL=${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/${ASSET}" >> macos.env
+#   artifacts:
+#     paths: ["AndyMD-*-macos.zip"]
+#     reports:
+#       dotenv: macos.env
+#     expire_in: never

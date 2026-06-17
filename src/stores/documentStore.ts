@@ -4,12 +4,14 @@ import { fsService } from '../services/fsService';
 import { dialogService } from '../services/dialogService';
 import { useWorkspaceStore } from './workspaceStore';
 import { lenifyHeadings } from '../lib/markdown';
+import { uniqueChildName } from '../lib/workspacePath';
 import { useConfigStore } from './configStore';
 import { versionService } from '../services/versionService';
 
 interface DocumentState {
   doc: Document | null;
   open: (path: string) => Promise<void>;
+  newFile: () => Promise<void>;
   newDraft: () => void;
   setDraft: (draft: string) => void;
   save: () => Promise<void>;
@@ -48,6 +50,27 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     }
     // Best-effort: recording recents persists config; never let it surface.
     void useConfigStore.getState().addRecentFile(path).catch(() => {});
+  },
+
+  // Create a real, editable file. Inside a workspace this writes an
+  // `Untitled.md` (deduped) into the workspace root and opens it, so it shows
+  // up in the sidebar immediately — mirroring how Obsidian's ⌘N works. With no
+  // workspace open, fall back to an in-memory draft.
+  async newFile() {
+    const ws = useWorkspaceStore.getState();
+    if (!ws.workspace) {
+      get().newDraft();
+      return;
+    }
+    const root = ws.workspace.root;
+    const name = uniqueChildName(ws.workspace.tree.children, 'Untitled', 'md');
+    try {
+      const node = await ws.createFile(root, name);
+      await get().open(node.path);
+    } catch (e) {
+      console.error('newFile failed; falling back to draft', e);
+      get().newDraft();
+    }
   },
 
   newDraft() {
@@ -116,3 +139,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     return true;
   },
 }));
+
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  (window as unknown as Record<string, unknown>).__docStore = useDocumentStore;
+}

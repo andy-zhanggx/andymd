@@ -103,7 +103,7 @@ export async function handleMenuAction(id: string) {
       await cfg.clearRecent();
       break;
     case 'new':
-      doc.newDraft();
+      await doc.newFile();
       break;
     case 'open': {
       await chooseFileToOpen();
@@ -197,6 +197,9 @@ export async function handleMenuAction(id: string) {
     case 'find-prev':
       findNext(-1);
       break;
+    case 'show-tour':
+      useUIStore.getState().startTour();
+      break;
   }
 }
 
@@ -218,7 +221,7 @@ export function useShortcuts() {
           break;
         case 'n':
           e.preventDefault();
-          docStore.newDraft();
+          await docStore.newFile();
           break;
         case 'o':
           e.preventDefault();

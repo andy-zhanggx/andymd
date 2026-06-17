@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDocumentStore } from '../stores/documentStore';
+import { useUIStore } from '../stores/uiStore';
 import { docStats } from '../lib/docStats';
 
 export function StatusBar() {
   const doc = useDocumentStore((s) => s.doc);
+  const startTour = useUIStore((s) => s.startTour);
   const text = doc?.draft ?? '';
   const stats = docStats(text);
   const [open, setOpen] = useState(false);
@@ -41,7 +43,17 @@ export function StatusBar() {
           </div>
         )}
       </div>
-      <span>UTF-8</span>
+      <div className="statusbar-right">
+        <span>UTF-8</span>
+        <button
+          className="statusbar-help"
+          onClick={startTour}
+          aria-label="Show welcome tour"
+          title="Welcome tour / 使用教程"
+        >
+          ?
+        </button>
+      </div>
     </div>
   );
 }

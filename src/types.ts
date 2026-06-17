@@ -49,6 +49,7 @@ export interface AppConfig {
   spellcheck: boolean;             // native OS spell-checking in the editor
   autoSave: boolean;               // debounced auto-save of files with a path
   smartPunctuation: boolean;       // -- → en dash, ... → ellipsis, etc.
+  hasSeenTour: boolean;            // first-run onboarding tour shown once
   sessions: Record<string, DocumentSession>;  // key = file absolute path
 }
 
@@ -68,6 +69,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   spellcheck: true,
   autoSave: false,
   smartPunctuation: false,
+  hasSeenTour: false,
   sessions: {},
 };
 
