@@ -51,6 +51,7 @@ export interface AppConfig {
   smartPunctuation: boolean;       // -- → en dash, ... → ellipsis, etc.
   hasSeenTour: boolean;            // first-run onboarding tour shown once
   lastSeenVersion: string | null;  // app version last shown in "What's New" (null = never)
+  updateToken: string;             // GitLab PAT for authenticated auto-update (blank = disabled)
   sessions: Record<string, DocumentSession>;  // key = file absolute path
 }
 
@@ -72,6 +73,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   smartPunctuation: false,
   hasSeenTour: false,
   lastSeenVersion: null,
+  updateToken: '',
   sessions: {},
 };
 
