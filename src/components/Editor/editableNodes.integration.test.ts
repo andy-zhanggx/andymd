@@ -108,6 +108,29 @@ describe('editable atom nodes (inline math, block math, image)', () => {
     await e.destroy();
   });
 
+  it('block math: shows an expand affordance whose click opens the source editor', async () => {
+    const e = await mount('```math\nE = mc^2\n```');
+    const view = e.ctx.get(editorViewCtx);
+    const block = view.dom.querySelector('div[data-type="math_block"]')!;
+    const btn = block.querySelector<HTMLButtonElement>('button.math-edit-affordance');
+    expect(btn, 'block math has an expand-to-edit button').not.toBeNull();
+
+    expect(view.dom.querySelector('.math-source')).toBeNull();
+    btn!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    const field = view.dom.querySelector<HTMLTextAreaElement>('.math-source');
+    expect(field, 'clicking the affordance opens the source editor').not.toBeNull();
+    expect(field!.value).toBe('E = mc^2');
+    await e.destroy();
+  });
+
+  it('inline math has no block expand affordance', async () => {
+    const e = await mount('Inline $y = mx + b$ here');
+    const view = e.ctx.get(editorViewCtx);
+    expect(view.dom.querySelector('.math-inline .math-edit-affordance')).toBeNull();
+    expect(view.dom.querySelector('button.math-edit-affordance')).toBeNull();
+    await e.destroy();
+  });
+
   it('inline math still renders KaTeX when not being edited', async () => {
     const e = await mount('Inline $y = mx + b$ here');
     const view = e.ctx.get(editorViewCtx);

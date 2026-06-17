@@ -1,5 +1,6 @@
 import katex from 'katex';
 import type { Node as ProseNode } from '@milkdown/prose/model';
+import { NodeSelection } from '@milkdown/prose/state';
 import type { EditorView, NodeView, NodeViewConstructor } from '@milkdown/prose/view';
 import { katexOptionsCtx, mathInlineSchema, mathBlockSchema } from '@milkdown/plugin-math';
 import { imageSchema } from '@milkdown/preset-commonmark';
@@ -27,9 +28,18 @@ function mathSource(node: ProseNode, inline: boolean): string {
   return inline ? node.textContent : ((node.attrs.value as string) ?? '');
 }
 
+// "Expand"-style corner-bracket icon for the block-math edit affordance — a
+// clearer, larger click target than clicking the formula itself (which was easy
+// to miss and read like a scrollbar).
+const EXPAND_ICON =
+  '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">' +
+  '<path d="M6 2.5H3.5a1 1 0 0 0-1 1V6M10 2.5h2.5a1 1 0 0 1 1 1V6M6 13.5H3.5a1 1 0 0 1-1-1V10M10 13.5h2.5a1 1 0 0 0 1-1V10" ' +
+  'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
+
 class MathNodeView implements NodeView {
   dom: HTMLElement;
   private rendered: HTMLElement;
+  private editBtn: HTMLButtonElement | null = null;
   private field: HTMLTextAreaElement | null = null;
   private editing = false;
   private node: ProseNode;
@@ -49,8 +59,42 @@ class MathNodeView implements NodeView {
     this.rendered = document.createElement(tag);
     this.rendered.className = 'math-rendered';
     this.dom.appendChild(this.rendered);
+    // Block math gets an explicit hover "expand to edit" button (top-right). The
+    // whole block is also a click target (see CSS), but the icon makes the
+    // edit affordance obvious instead of relying on clicking the formula.
+    if (!inline) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'math-edit-affordance';
+      btn.setAttribute('contenteditable', 'false');
+      btn.setAttribute('aria-label', 'Edit formula');
+      btn.title = 'Edit formula';
+      btn.innerHTML = EXPAND_ICON;
+      btn.addEventListener('mousedown', this.onAffordanceDown);
+      this.editBtn = btn;
+      this.dom.appendChild(btn);
+    }
     this.renderMath();
   }
+
+  // Enter edit mode by selecting the node (ProseMirror then calls selectNode,
+  // which swaps in the source textarea). mousedown + preventDefault keeps focus
+  // off the button and stops ProseMirror's own selection handling.
+  private onAffordanceDown = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (this.editing) return;
+    const pos = this.getPos();
+    if (pos == null) {
+      this.selectNode();
+      return;
+    }
+    // Focus first: ProseMirror only fires selectNode on block atoms once the
+    // view has focus, and that is what opens the source editor.
+    this.view.focus();
+    const { state } = this.view;
+    this.view.dispatch(state.tr.setSelection(NodeSelection.create(state.doc, pos)));
+  };
 
   private renderMath() {
     const src = mathSource(this.node, this.inline);
@@ -160,6 +204,7 @@ class MathNodeView implements NodeView {
   }
 
   stopEvent(e: Event) {
+    if (this.editBtn && e.target instanceof Node && this.editBtn.contains(e.target)) return true;
     return this.editing && e.target === this.field;
   }
 
@@ -168,6 +213,7 @@ class MathNodeView implements NodeView {
   }
 
   destroy() {
+    this.editBtn?.removeEventListener('mousedown', this.onAffordanceDown);
     this.teardownField();
   }
 }

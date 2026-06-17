@@ -199,6 +199,59 @@
 .editor-container .milkdown .math-empty {
   color: var(--fg-muted);
 }
+
+/*
+ * Block math: make the whole block a comfortable click target (not just the
+ * centred formula, which was a narrow, scrollbar-like hit area) and reveal an
+ * explicit "expand to edit" button on hover. The padding-right leaves room for
+ * the button so it never overlaps the formula.
+ */
+.editor-container .milkdown .math-block {
+  position: relative;
+  display: block;
+  margin: 0.5em 0;
+  padding: 6px 40px 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.editor-container .milkdown .math-block:hover {
+  background: var(--bg-secondary, rgba(127, 127, 127, 0.08));
+}
+/* The block already owns the vertical rhythm via its own margin. */
+.editor-container .milkdown .math-block .katex-display {
+  margin: 0;
+}
+.editor-container .milkdown .math-edit-affordance {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-primary, var(--bg-secondary, rgba(127, 127, 127, 0.12)));
+  color: var(--fg-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.editor-container .milkdown .math-block:hover .math-edit-affordance,
+.editor-container .milkdown .math-edit-affordance:focus-visible {
+  opacity: 1;
+}
+.editor-container .milkdown .math-edit-affordance:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.editor-container .milkdown .math-block.editing .math-edit-affordance {
+  display: none;
+}
+
 .editor-container .milkdown .image-node.editing img {
   outline: 2px solid var(--accent);
   border-radius: 4px;
