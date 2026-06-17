@@ -22,6 +22,10 @@ interface UIState {
   versionHistoryOpen: boolean;
   setVersionHistoryOpen: (open: boolean) => void;
 
+  // Collaboration (share / join) dialog
+  collabDialogOpen: boolean;
+  setCollabDialogOpen: (open: boolean) => void;
+
   // First-run onboarding tour
   tourOpen: boolean;
   startTour: () => void;
@@ -60,6 +64,9 @@ export const useUIStore = create<UIState>((set) => ({
 
   versionHistoryOpen: false,
   setVersionHistoryOpen: (open) => set({ versionHistoryOpen: open }),
+
+  collabDialogOpen: false,
+  setCollabDialogOpen: (open) => set({ collabDialogOpen: open }),
 
   tourOpen: false,
   startTour: () => set({ tourOpen: true }),
