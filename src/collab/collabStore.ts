@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { CollabSession, type CollabStatus, type Peer } from './collabSession';
 import { generateRoomCode, normalizeRoomCode, isValidRoomCode } from './roomCode';
 import { resolveUser } from './identity';
+import { ONLINE_COLLAB } from '../featureFlags';
 
 export type CollabRole = 'host' | 'guest';
 export type CollabConnState = 'idle' | CollabStatus;
@@ -29,6 +30,10 @@ interface CollabState {
 
 export const useCollabStore = create<CollabState>((set, get) => {
   const start = (role: CollabRole, serverUrl: string, code: string, displayName: string) => {
+    // Defense in depth: online collaboration is feature-flagged. With it off the
+    // UI entry points are gone, but never open a socket even if host()/join() is
+    // reached programmatically.
+    if (!ONLINE_COLLAB) return;
     activeSession?.destroy();
     const user = resolveUser(displayName, `${code}:${Date.now()}`);
     const session = new CollabSession({

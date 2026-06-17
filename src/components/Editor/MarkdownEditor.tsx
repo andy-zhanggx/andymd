@@ -5,6 +5,7 @@ import type { EditorView } from '@milkdown/prose/view';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { buildEditor } from './milkdownConfig';
 import { useCollabStore, getActiveSession } from '../../collab/collabStore';
+import { ONLINE_COLLAB } from '../../featureFlags';
 import { cursorBuilder, selectionBuilder } from '../../collab/cursor';
 import { insertImageNode } from './insertImage';
 import { Toolbar } from './Toolbar';
@@ -51,7 +52,10 @@ export function MarkdownEditor() {
   const typewriterMode = useUIStore((s) => s.typewriterMode);
   const roomCode = useCollabStore((s) => s.roomCode);
   const collabRole = useCollabStore((s) => s.role);
-  const collabActive = roomCode !== null;
+  // Online collaboration is feature-flagged off by default. When disabled the
+  // editor never enters collab mode, so no Y.Doc is bound and no WebSocket is
+  // opened — it stays a plain offline editor driven by the local draft.
+  const collabActive = ONLINE_COLLAB && roomCode !== null;
   const ref = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Editor | null>(null);
   const viewRef = useRef<EditorView | null>(null);

@@ -3,6 +3,7 @@ import { useDocumentStore } from '../stores/documentStore';
 import { useUIStore } from '../stores/uiStore';
 import { useCollabStore } from '../collab/collabStore';
 import { PresenceBar } from './Collab/PresenceBar';
+import { ONLINE_COLLAB } from '../featureFlags';
 
 function SidebarIcon() {
   return (
@@ -53,8 +54,8 @@ export function TitleBar() {
         {name}
       </div>
       <div className="titlebar-right">
-        <PresenceBar />
-        {doc && (
+        {ONLINE_COLLAB && <PresenceBar />}
+        {ONLINE_COLLAB && doc && (
           <button
             className={`titlebar-toggle${collabActive ? ' active' : ''}`}
             onClick={() => setCollabDialogOpen(true)}
