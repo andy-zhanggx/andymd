@@ -42,6 +42,7 @@ async function mount(
     root,
     initialValue: md,
     onChange: () => {},
+    listener: false,
   }).create();
   await new Promise((r) => setTimeout(r, 0));
   return {

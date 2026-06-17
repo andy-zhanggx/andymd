@@ -46,7 +46,7 @@ async function mount(md = '\n'): Promise<{
   const { buildEditor } = await import('./milkdownConfig');
   const root = document.createElement('div');
   document.body.appendChild(root);
-  const editor = await buildEditor({ root, initialValue: md, onChange: () => {} }).create();
+  const editor = await buildEditor({ root, initialValue: md, onChange: () => {}, listener: false }).create();
   await new Promise((r) => setTimeout(r, 0));
   // Place the cursor inside the (empty) first paragraph.
   editor.action((ctx) => {

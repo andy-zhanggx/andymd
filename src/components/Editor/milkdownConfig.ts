@@ -30,10 +30,18 @@ export interface BuildOpts {
   initialValue: string;
   onChange: (markdown: string) => void;
   spellcheck?: boolean;
+  /**
+   * Wire the change listener (default true). Tests disable it: the listener
+   * serializes the doc on a 200ms lodash debounce, and that deferred
+   * serialization throws "Context editorView not found" if it fires after the
+   * editor is destroyed — a teardown race that makes the suite flaky in CI.
+   */
+  listener?: boolean;
 }
 
 export function buildEditor(opts: BuildOpts) {
-  return Editor.make()
+  const useListener = opts.listener ?? true;
+  const editor = Editor.make()
     .config((ctx) => {
       ctx.set(rootCtx, opts.root);
       ctx.set(defaultValueCtx, opts.initialValue);
@@ -41,9 +49,11 @@ export function buildEditor(opts: BuildOpts) {
         editable: () => true,
         attributes: { spellcheck: String(opts.spellcheck ?? true) },
       });
-      ctx.get(listenerCtx).markdownUpdated((_ctx, markdown) => {
-        opts.onChange(markdown);
-      });
+      if (useListener) {
+        ctx.get(listenerCtx).markdownUpdated((_ctx, markdown) => {
+          opts.onChange(markdown);
+        });
+      }
       ctx.set(katexOptionsCtx.key, { throwOnError: false });
       // Disable GFM single-tilde strikethrough so `~x~` is free for subscript;
       // `~~x~~` remains strikethrough.
@@ -100,10 +110,13 @@ export function buildEditor(opts: BuildOpts) {
     .use(viewModePlugin)
     .use(autoPairPlugin)
     .use(smartPunctuation)
-    .use(listener)
     .use(history)
     .use(clipboard)
     .use(cursor)
     .use(prism)
     .use(math);
+  // Config callbacks run after all plugins register, so appending the listener
+  // here (rather than mid-chain) keeps `ctx.get(listenerCtx)` above valid.
+  if (useListener) editor.use(listener);
+  return editor;
 }

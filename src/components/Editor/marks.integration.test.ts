@@ -21,7 +21,7 @@ async function mount(md: string): Promise<{ editor: Editor; cleanup: () => Promi
   const { buildEditor } = await import('./milkdownConfig');
   const root = document.createElement('div');
   document.body.appendChild(root);
-  const editor: Editor = await buildEditor({ root, initialValue: md, onChange: () => {} }).create();
+  const editor: Editor = await buildEditor({ root, initialValue: md, onChange: () => {}, listener: false }).create();
   await new Promise((r) => setTimeout(r, 0));
   return {
     editor,
