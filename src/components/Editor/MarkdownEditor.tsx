@@ -1,9 +1,14 @@
 import { useEffect, useRef } from 'react';
-import type { Editor } from '@milkdown/core';
+import { Editor, editorViewCtx } from '@milkdown/core';
+import type { EditorView } from '@milkdown/prose/view';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { buildEditor } from './milkdownConfig';
 import { insertImageNode } from './insertImage';
 import { Toolbar } from './Toolbar';
+import { FindReplace } from './FindReplace';
+import { setActiveView } from './activeView';
+import { setTypewriter } from './viewModePlugin';
+import { setSmartPunctuation } from './smartPunctuation';
 import { useDocumentStore } from '../../stores/documentStore';
 import { useConfigStore } from '../../stores/configStore';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
@@ -36,9 +41,14 @@ export function MarkdownEditor() {
   const openWs = useWorkspaceStore((s) => s.open);
   const getSession = useConfigStore((s) => s.getSession);
   const recordSession = useConfigStore((s) => s.recordSession);
-  const { fontSize, lineHeight, fontFamily, editorWidth } = useConfigStore((s) => s.config);
+  const { fontSize, lineHeight, fontFamily, editorWidth, spellcheck, autoSave, smartPunctuation } =
+    useConfigStore((s) => s.config);
+  const sourceMode = useUIStore((s) => s.sourceMode);
+  const focusMode = useUIStore((s) => s.focusMode);
+  const typewriterMode = useUIStore((s) => s.typewriterMode);
   const ref = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Editor | null>(null);
+  const viewRef = useRef<EditorView | null>(null);
 
   // Handle image drops at the DOM level. Tauri's native drag interception is
   // disabled (dragDropEnabled: false), so the webview receives the HTML5 drop
@@ -164,7 +174,10 @@ export function MarkdownEditor() {
     const setup = async () => {
       createPromise = buildEditor({
         root,
-        initialValue: doc.content,
+        // Seed from the live buffer (not on-disk content) so round-tripping
+        // through source mode preserves unsaved edits.
+        initialValue: doc.draft,
+        spellcheck,
         onChange: (md) => {
           if (!disposed) setDraft(md);
         },
@@ -174,6 +187,12 @@ export function MarkdownEditor() {
 
       editor = created;
       editorRef.current = created;
+      try {
+        viewRef.current = created.ctx.get(editorViewCtx);
+        setActiveView(viewRef.current);
+      } catch {
+        viewRef.current = null;
+      }
       mo = new MutationObserver(() => rewrite());
       mo.observe(root, {
         subtree: true,
@@ -208,6 +227,8 @@ export function MarkdownEditor() {
     return () => {
       disposed = true;
       editorRef.current = null;
+      viewRef.current = null;
+      setActiveView(null);
       mo?.disconnect();
       root.removeEventListener('click', wikilinkClickHandler);
       root.removeEventListener('click', clickHandler);
@@ -228,7 +249,33 @@ export function MarkdownEditor() {
       })();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc?.path]);
+  }, [doc?.path, sourceMode]);
+
+  // Keep the typewriter plugin's module flag in sync with UI state.
+  useEffect(() => {
+    setTypewriter(typewriterMode);
+  }, [typewriterMode]);
+
+  // Keep smart-punctuation in sync with config.
+  useEffect(() => {
+    setSmartPunctuation(smartPunctuation);
+  }, [smartPunctuation]);
+
+  // Toggle native spell-checking live (without rebuilding the editor).
+  useEffect(() => {
+    viewRef.current?.dom.setAttribute('spellcheck', String(spellcheck));
+  }, [spellcheck]);
+
+  // Debounced auto-save for files on disk.
+  useEffect(() => {
+    if (!autoSave || !doc?.path || !doc.isDirty) return;
+    const t = window.setTimeout(() => {
+      void useDocumentStore.getState().save().catch(() => {
+        /* external-modification or IO error — leave it to manual save */
+      });
+    }, 1200);
+    return () => window.clearTimeout(t);
+  }, [autoSave, doc?.draft, doc?.path, doc?.isDirty]);
 
   if (!doc) {
     const pickAndOpenFile = async () => {
@@ -266,11 +313,27 @@ export function MarkdownEditor() {
     );
   }
 
+  if (sourceMode) {
+    return (
+      <textarea
+        className="source-editor"
+        value={doc.draft}
+        spellCheck={false}
+        onChange={(e) => setDraft(e.target.value)}
+        style={{ fontSize, lineHeight }}
+        aria-label="Markdown source"
+      />
+    );
+  }
+
   return (
     <>
       <Toolbar getEditor={() => editorRef.current} />
+      <FindReplace getView={() => viewRef.current} />
       <div
-        className="editor-container"
+        className={`editor-container${focusMode ? ' focus-mode' : ''}${
+          typewriterMode ? ' typewriter-mode' : ''
+        }`}
         style={{
           maxWidth: EDITOR_MAX_WIDTH[editorWidth] ?? 740,
           margin: '0 auto',

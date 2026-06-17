@@ -12,9 +12,16 @@ import { math, mathBlockSchema, katexOptionsCtx } from '@milkdown/plugin-math';
 import katex from 'katex';
 import { prism } from '@milkdown/plugin-prism';
 import { commonmark } from '@milkdown/preset-commonmark';
-import { gfm } from '@milkdown/preset-gfm';
+import { gfm, remarkGFMPlugin } from '@milkdown/preset-gfm';
 import { frontmatter } from './frontmatter';
 import { wikilink } from './wikilink';
+import { searchPlugin } from './searchPlugin';
+import { viewModePlugin } from './viewModePlugin';
+import { autoPairPlugin } from './autoPairPlugin';
+import { smartPunctuation } from './smartPunctuation';
+import { highlight, superscript, subscript } from './marks';
+import { emoji } from '@milkdown/plugin-emoji';
+import { diagram } from '@milkdown/plugin-diagram';
 import 'katex/dist/katex.min.css';
 import './prosemirror.css';
 
@@ -22,6 +29,7 @@ export interface BuildOpts {
   root: HTMLElement;
   initialValue: string;
   onChange: (markdown: string) => void;
+  spellcheck?: boolean;
 }
 
 export function buildEditor(opts: BuildOpts) {
@@ -29,11 +37,17 @@ export function buildEditor(opts: BuildOpts) {
     .config((ctx) => {
       ctx.set(rootCtx, opts.root);
       ctx.set(defaultValueCtx, opts.initialValue);
-      ctx.set(editorViewOptionsCtx, { editable: () => true });
+      ctx.set(editorViewOptionsCtx, {
+        editable: () => true,
+        attributes: { spellcheck: String(opts.spellcheck ?? true) },
+      });
       ctx.get(listenerCtx).markdownUpdated((_ctx, markdown) => {
         opts.onChange(markdown);
       });
       ctx.set(katexOptionsCtx.key, { throwOnError: false });
+      // Disable GFM single-tilde strikethrough so `~x~` is free for subscript;
+      // `~~x~~` remains strikethrough.
+      ctx.set(remarkGFMPlugin.options.key, { singleTilde: false });
       // plugin-math renders $$ blocks with the same options as inline math,
       // so they come out textstyle and left-aligned; force displayMode here.
       ctx.set(mathBlockSchema.ctx.key, () => ({
@@ -77,6 +91,15 @@ export function buildEditor(opts: BuildOpts) {
     .use(gfm)
     .use(frontmatter)
     .use(wikilink)
+    .use(highlight)
+    .use(superscript)
+    .use(subscript)
+    .use(emoji)
+    .use(diagram)
+    .use(searchPlugin)
+    .use(viewModePlugin)
+    .use(autoPairPlugin)
+    .use(smartPunctuation)
     .use(listener)
     .use(history)
     .use(clipboard)

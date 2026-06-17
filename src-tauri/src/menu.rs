@@ -3,7 +3,53 @@ use tauri::{
     AppHandle, Emitter, Runtime,
 };
 
-pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<tauri::menu::Menu<R>> {
+fn base_name(path: &str) -> String {
+    path.rsplit(['/', '\\'])
+        .next()
+        .filter(|s| !s.is_empty())
+        .unwrap_or(path)
+        .to_string()
+}
+
+fn build_recent_submenu<R: Runtime>(
+    app: &AppHandle<R>,
+    recent_files: &[String],
+    recent_workspaces: &[String],
+) -> tauri::Result<tauri::menu::Submenu<R>> {
+    let mut builder = SubmenuBuilder::new(app, "Open Recent");
+    if recent_files.is_empty() && recent_workspaces.is_empty() {
+        builder = builder.item(
+            &MenuItemBuilder::with_id("recent-none", "No Recent Items")
+                .enabled(false)
+                .build(app)?,
+        );
+        return builder.build();
+    }
+    for path in recent_files {
+        builder = builder.item(
+            &MenuItemBuilder::with_id(format!("recent-file:{path}"), base_name(path)).build(app)?,
+        );
+    }
+    if !recent_workspaces.is_empty() {
+        builder = builder.separator();
+        for path in recent_workspaces {
+            builder = builder.item(
+                &MenuItemBuilder::with_id(format!("recent-ws:{path}"), format!("📁 {}", base_name(path)))
+                    .build(app)?,
+            );
+        }
+    }
+    builder = builder.separator().item(
+        &MenuItemBuilder::with_id("clear-recent", "Clear Menu").build(app)?,
+    );
+    builder.build()
+}
+
+pub fn build_menu<R: Runtime>(
+    app: &AppHandle<R>,
+    recent_files: &[String],
+    recent_workspaces: &[String],
+) -> tauri::Result<tauri::menu::Menu<R>> {
     let app_menu = SubmenuBuilder::new(app, "AndyMD")
         .item(&PredefinedMenuItem::about(app, None, None)?)
         .separator()
@@ -32,6 +78,7 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<tauri::menu::
                 .accelerator("CmdOrCtrl+Shift+O")
                 .build(app)?,
         )
+        .item(&build_recent_submenu(app, recent_files, recent_workspaces)?)
         .separator()
         .item(
             &MenuItemBuilder::with_id("save", "Save")
@@ -41,6 +88,25 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<tauri::menu::
         .item(
             &MenuItemBuilder::with_id("save-as", "Save As…")
                 .accelerator("CmdOrCtrl+Shift+S")
+                .build(app)?,
+        )
+        .item(&MenuItemBuilder::with_id("autosave-toggle", "Auto Save").build(app)?)
+        .item(&MenuItemBuilder::with_id("version-history", "Version History…").build(app)?)
+        .separator()
+        .item(
+            &MenuItemBuilder::with_id("export-html", "Export to HTML…")
+                .accelerator("CmdOrCtrl+Shift+E")
+                .build(app)?,
+        )
+        .item(&SubmenuBuilder::new(app, "Export to")
+            .item(&MenuItemBuilder::with_id("export-docx", "Word (.docx)…").build(app)?)
+            .item(&MenuItemBuilder::with_id("export-epub", "ePub…").build(app)?)
+            .item(&MenuItemBuilder::with_id("export-latex", "LaTeX (.tex)…").build(app)?)
+            .item(&MenuItemBuilder::with_id("export-rtf", "Rich Text (.rtf)…").build(app)?)
+            .build()?)
+        .item(
+            &MenuItemBuilder::with_id("print", "Print…")
+                .accelerator("CmdOrCtrl+P")
                 .build(app)?,
         )
         .separator()
@@ -59,12 +125,78 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<tauri::menu::
         .item(&PredefinedMenuItem::copy(app, None)?)
         .item(&PredefinedMenuItem::paste(app, None)?)
         .item(&PredefinedMenuItem::select_all(app, None)?)
+        .separator()
+        .item(
+            &MenuItemBuilder::with_id("find", "Find…")
+                .accelerator("CmdOrCtrl+F")
+                .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("find-next", "Find Next")
+                .accelerator("CmdOrCtrl+G")
+                .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("find-prev", "Find Previous")
+                .accelerator("CmdOrCtrl+Shift+G")
+                .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("replace", "Replace…")
+                .accelerator("CmdOrCtrl+Alt+F")
+                .build(app)?,
+        )
+        .separator()
+        .item(
+            &MenuItemBuilder::with_id("copy-as-markdown", "Copy as Markdown")
+                .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("copy-as-html", "Copy as HTML")
+                .build(app)?,
+        )
+        .separator()
+        .item(
+            &MenuItemBuilder::with_id("spell-toggle", "Check Spelling While Typing")
+                .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("smart-punctuation", "Smart Punctuation")
+                .build(app)?,
+        )
         .build()?;
 
     let view_menu = SubmenuBuilder::new(app, "View")
         .item(
             &MenuItemBuilder::with_id("toggle-sidebar", "Toggle Sidebar")
                 .accelerator("CmdOrCtrl+B")
+                .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("toggle-outline", "Outline")
+                .accelerator("CmdOrCtrl+Shift+1")
+                .build(app)?,
+        )
+        .separator()
+        .item(
+            &MenuItemBuilder::with_id("toggle-source", "Source Code Mode")
+                .accelerator("CmdOrCtrl+/")
+                .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("toggle-focus", "Focus Mode")
+                .accelerator("F8")
+                .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("toggle-typewriter", "Typewriter Mode")
+                .accelerator("F9")
+                .build(app)?,
+        )
+        .separator()
+        .item(
+            &MenuItemBuilder::with_id("toggle-fullscreen", "Toggle Full Screen")
+                .accelerator("F11")
                 .build(app)?,
         )
         .build()?;
@@ -76,4 +208,17 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<tauri::menu::
 
 pub fn on_menu_event<R: Runtime>(app: &AppHandle<R>, event: MenuEvent) {
     let _ = app.emit("menu", event.id().as_ref());
+}
+
+/// Rebuild the application menu so the "Open Recent" submenu reflects the
+/// latest recents. Called from the frontend whenever recents change.
+#[tauri::command]
+pub fn rebuild_recent_menu(
+    app: AppHandle,
+    recent_files: Vec<String>,
+    recent_workspaces: Vec<String>,
+) -> Result<(), String> {
+    let menu = build_menu(&app, &recent_files, &recent_workspaces).map_err(|e| e.to_string())?;
+    app.set_menu(menu).map_err(|e| e.to_string())?;
+    Ok(())
 }
