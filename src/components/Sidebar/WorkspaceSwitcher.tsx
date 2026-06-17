@@ -39,9 +39,23 @@ export function WorkspaceSwitcher() {
   const openWs = useWorkspaceStore((s) => s.open);
   const recent = useConfigStore((s) => s.config.recentWorkspaces);
 
+  async function switchWorkspace(path: string) {
+    try {
+      await openWs(path);
+    } catch (err) {
+      if (String((err as Error).message).startsWith('WORKSPACE_UNAVAILABLE')) {
+        window.alert(
+          `That folder is no longer available:\n${path}\n\nIt has been removed from recent workspaces.`,
+        );
+      } else {
+        console.error(err);
+      }
+    }
+  }
+
   async function pickAndOpen() {
     const path = await dialogService.pickWorkspaceDir();
-    if (path) await openWs(path);
+    if (path) await switchWorkspace(path);
   }
 
   async function pickAndOpenFile() {
@@ -55,7 +69,7 @@ export function WorkspaceSwitcher() {
         <select
           className="ws-select"
           value={workspace?.root ?? ''}
-          onChange={(e) => { if (e.target.value) openWs(e.target.value); }}
+          onChange={(e) => { if (e.target.value) void switchWorkspace(e.target.value); }}
           aria-label="Switch workspace"
         >
           <option value="" disabled>

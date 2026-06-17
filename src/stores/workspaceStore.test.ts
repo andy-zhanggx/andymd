@@ -13,13 +13,24 @@ vi.mock('../services/fsService', () => ({
     openWorkspace: (...a: unknown[]) => fsMock.openWorkspace(...a),
   },
 }));
-vi.mock('./configStore', () => ({
-  useConfigStore: {
-    getState: () => ({
-      config: { showHiddenFiles: false },
-      addRecentWorkspace: vi.fn().mockResolvedValue(undefined),
+const cfgMock = vi.hoisted(() => {
+  const config = {
+    showHiddenFiles: false,
+    recentWorkspaces: [] as string[],
+    recentFiles: [] as string[],
+    lastWorkspace: null as string | null,
+  };
+  return {
+    config,
+    addRecentWorkspace: vi.fn().mockResolvedValue(undefined),
+    update: vi.fn(async (patch: Record<string, unknown>) => {
+      Object.assign(config, patch);
     }),
-  },
+  };
+});
+vi.mock('./configStore', () => ({ useConfigStore: { getState: () => cfgMock } }));
+vi.mock('../services/menuService', () => ({
+  menuService: { syncRecentMenu: vi.fn().mockResolvedValue(undefined) },
 }));
 
 import { useWorkspaceStore } from './workspaceStore';
@@ -41,7 +52,38 @@ beforeEach(() => {
   fsMock.findVaultRoot.mockReset();
   fsMock.listWorkspace.mockReset();
   fsMock.openWorkspace.mockReset();
+  cfgMock.update.mockClear();
+  cfgMock.config.recentWorkspaces = [];
+  cfgMock.config.lastWorkspace = null;
   useWorkspaceStore.setState({ workspace: null });
+});
+
+describe('open with a missing folder', () => {
+  it('prunes the stale recent entry and throws WORKSPACE_UNAVAILABLE', async () => {
+    cfgMock.config.recentWorkspaces = ['/gone', '/keep'];
+    cfgMock.config.lastWorkspace = '/gone';
+    fsMock.listWorkspace.mockRejectedValue(new Error('ENOENT'));
+
+    await expect(useWorkspaceStore.getState().open('/gone')).rejects.toThrow(/WORKSPACE_UNAVAILABLE/);
+
+    expect(cfgMock.update).toHaveBeenCalledWith({
+      recentWorkspaces: ['/keep'],
+      lastWorkspace: null,
+    });
+    expect(useWorkspaceStore.getState().workspace).toBeNull();
+  });
+
+  it('keeps lastWorkspace when a different recent is missing', async () => {
+    cfgMock.config.recentWorkspaces = ['/gone', '/current'];
+    cfgMock.config.lastWorkspace = '/current';
+    fsMock.listWorkspace.mockRejectedValue(new Error('ENOENT'));
+
+    await expect(useWorkspaceStore.getState().open('/gone')).rejects.toThrow(/WORKSPACE_UNAVAILABLE/);
+    expect(cfgMock.update).toHaveBeenCalledWith({
+      recentWorkspaces: ['/current'],
+      lastWorkspace: '/current',
+    });
+  });
 });
 
 describe('followFile', () => {
