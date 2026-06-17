@@ -17,8 +17,12 @@ export function TitleBar() {
 
   const name = doc?.path?.split('/').pop() ?? (doc ? 'Untitled' : '');
 
+  // Window dragging goes through Tauri's `data-tauri-drag-region` attribute,
+  // NOT the Electron-only `-webkit-app-region: drag` CSS (a no-op in WKWebView).
+  // The attribute lives on the bar and the centered title; interactive children
+  // like the toggle button deliberately omit it so they stay clickable.
   return (
-    <div className="titlebar">
+    <div className="titlebar" data-tauri-drag-region>
       <button
         className="titlebar-toggle"
         onClick={() => update({ showSidebar: !showSidebar })}
@@ -27,7 +31,7 @@ export function TitleBar() {
       >
         <SidebarIcon />
       </button>
-      <div className="titlebar-title">
+      <div className="titlebar-title" data-tauri-drag-region>
         {doc?.isDirty && <span className="titlebar-dirty" />}
         {name}
       </div>
