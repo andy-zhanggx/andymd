@@ -38,8 +38,8 @@ export const remarkHighlightParse = $remark(
 );
 
 export const remarkHighlightStringify = $remark('remarkHighlightStringify', () => {
-  return function (this: { data: () => Record<string, unknown> }) {
-    const data = this.data();
+  return function (this: unknown) {
+    const data = (this as { data: () => Record<string, unknown> }).data();
     const extensions = (data.toMarkdownExtensions ||= []) as Array<{
       handlers: Record<string, unknown>;
     }>;
@@ -140,8 +140,8 @@ export const remarkSuperscriptParse = $remark('remarkSuperscriptParse', () => {
 });
 
 export const remarkSuperscriptStringify = $remark('remarkSuperscriptStringify', () => {
-  return function (this: { data: () => Record<string, unknown> }) {
-    const data = this.data();
+  return function (this: unknown) {
+    const data = (this as { data: () => Record<string, unknown> }).data();
     const extensions = (data.toMarkdownExtensions ||= []) as Array<{
       handlers: Record<string, unknown>;
     }>;
@@ -233,8 +233,8 @@ export const remarkSubscriptParse = $remark('remarkSubscriptParse', () => {
 });
 
 export const remarkSubscriptStringify = $remark('remarkSubscriptStringify', () => {
-  return function (this: { data: () => Record<string, unknown> }) {
-    const data = this.data();
+  return function (this: unknown) {
+    const data = (this as { data: () => Record<string, unknown> }).data();
     const extensions = (data.toMarkdownExtensions ||= []) as Array<{
       handlers: Record<string, unknown>;
     }>;
