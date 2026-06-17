@@ -22,12 +22,50 @@ import { autoPairPlugin } from './autoPairPlugin';
 import { smartPunctuation } from './smartPunctuation';
 import { highlight, superscript, subscript } from './marks';
 import { htmlComment } from './htmlComment';
+import { htmlMerge } from './htmlMerge';
 import { editableNodeViews } from './editableNodes';
 import { emoji } from '@milkdown/plugin-emoji';
 import { diagram } from '@milkdown/plugin-diagram';
 import { collab } from '@milkdown/plugin-collab';
 import 'katex/dist/katex.min.css';
 import './prosemirror.css';
+
+/** Void/self-closing elements that render on their own (no closing tag). */
+const RENDERABLE_VOID =
+  /^<(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)(\s[^>]*)?\/?>$/i;
+
+/**
+ * True when `value` is a self-contained HTML element worth rendering as real
+ * DOM: a balanced `<tag …>…</tag>` (the htmlMerge transformer only ever emits
+ * these) or a single void/self-closing element. A lone unbalanced fragment
+ * (`<b>` with no close) returns false and keeps its literal rendering.
+ */
+function isRenderableHtml(value: string): boolean {
+  const s = value.trim();
+  if (/^<([a-zA-Z][\w-]*)(\s[^>]*)?>[\s\S]*<\/\s*\1\s*>$/.test(s)) return true;
+  if (RENDERABLE_VOID.test(s)) return true;
+  if (/^<[a-zA-Z][\w-]*(\s[^>]*)?\/>$/.test(s)) return true;
+  return false;
+}
+
+/**
+ * Render `value` into `el` as DOM, stripped of script-bearing surface area.
+ * `innerHTML` never executes scripts, but we still drop `<script>`/embeds and
+ * event-handler / `javascript:` attributes so authored markup can't smuggle in
+ * active content. The original markup lives on in `data-value` for round-trip.
+ */
+function renderHtmlInto(el: HTMLElement, value: string): void {
+  el.innerHTML = value;
+  el.querySelectorAll('script, iframe, object, embed').forEach((n) => n.remove());
+  el.querySelectorAll('*').forEach((node) => {
+    for (const attr of [...node.attributes]) {
+      const name = attr.name.toLowerCase();
+      if (name.startsWith('on') || /^\s*javascript:/i.test(attr.value)) {
+        node.removeAttribute(attr.name);
+      }
+    }
+  });
+}
 
 export interface BuildOpts {
   root: HTMLElement;
@@ -68,9 +106,12 @@ export function buildEditor(opts: BuildOpts) {
       }
       ctx.set(katexOptionsCtx.key, { throwOnError: false });
       // Render HTML comments (`<!-- … -->`) as their inner text, muted, rather
-      // than showing the raw `<!--`/`-->` delimiters as literal content. The
-      // full markup is preserved in data-value so serialization round-trips
-      // losslessly. Non-comment inline HTML keeps its literal rendering.
+      // than showing the raw `<!--`/`-->` delimiters as literal content, and
+      // render balanced inline HTML (a `<b>…</b>`, a `<table>…</table>` stitched
+      // back together by the htmlMerge transformer) as actual DOM, the way
+      // Typora does. The full markup is preserved in data-value so serialization
+      // round-trips losslessly. Unbalanced/standalone fragments keep their
+      // literal rendering so malformed markup stays visible.
       ctx.set(htmlSchema.ctx.key, () => ({
         atom: true,
         group: 'inline',
@@ -88,6 +129,9 @@ export function buildEditor(opts: BuildOpts) {
           if (comment) {
             span.classList.add('html-comment');
             span.textContent = comment[1].trim();
+          } else if (isRenderableHtml(value)) {
+            span.classList.add('html-render');
+            renderHtmlInto(span, value);
           } else {
             span.textContent = value;
           }
@@ -179,6 +223,9 @@ export function buildEditor(opts: BuildOpts) {
     // After emoji (and other inline splitters) so it can stitch fragmented
     // HTML comments back into a single node.
     .use(htmlComment)
+    // After htmlComment so comments are already merged; stitches fragmented
+    // inline HTML (tables, `<b>…</b>`) back into single renderable nodes.
+    .use(htmlMerge)
     .use(diagram)
     .use(searchPlugin)
     .use(viewModePlugin)

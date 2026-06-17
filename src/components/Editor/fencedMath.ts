@@ -27,7 +27,6 @@ interface MdastNode {
   lang?: unknown;
   value?: unknown;
   children?: MdastNode[];
-  [key: string]: unknown;
 }
 
 function walk(node: MdastNode): void {
@@ -39,7 +38,7 @@ function walk(node: MdastNode): void {
       MATH_LANGS.has(child.lang.toLowerCase())
     ) {
       child.type = 'math';
-      child.fenced = true;
+      (child as { fenced?: boolean }).fenced = true;
       delete child.lang;
     } else {
       walk(child);
@@ -47,6 +46,6 @@ function walk(node: MdastNode): void {
   }
 }
 
-export const fencedMath = $remark('fencedMath', () => () => (tree: MdastNode) => {
-  walk(tree);
+export const fencedMath = $remark('fencedMath', () => () => (tree) => {
+  walk(tree as unknown as MdastNode);
 });

@@ -33,6 +33,9 @@ function posOf(e: Editor, nodeName: string): number {
 
 function select(e: Editor, pos: number) {
   const view = e.ctx.get(editorViewCtx);
+  // A real click focuses the editor; ProseMirror only fires selectNode on
+  // block atoms when the view has focus.
+  view.focus();
   view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, pos)));
 }
 function deselect(e: Editor) {

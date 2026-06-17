@@ -46,14 +46,17 @@ describe('html comment rendering', () => {
     await e.destroy();
   });
 
-  it('leaves non-comment inline HTML showing its literal markup', async () => {
+  it('renders balanced non-comment inline HTML as real DOM (not literal markup)', async () => {
     const e = await mount('a <kbd>Esc</kbd> b');
     const view = e.ctx.get(editorViewCtx);
-    const spans = [...view.dom.querySelectorAll('span[data-type="html"]')];
-    const kbd = spans.find((s) => (s.getAttribute('data-value') || '').includes('kbd'));
-    expect(kbd).toBeTruthy();
-    expect(kbd!.textContent).toContain('<kbd>');
-    expect(kbd!.classList.contains('html-comment')).toBe(false);
+    const span = view.dom.querySelector('span[data-type="html"]')!;
+    expect(span).toBeTruthy();
+    // The merged element renders as a real <kbd>, not the literal `<kbd>` text.
+    expect(span.querySelector('kbd')).not.toBeNull();
+    expect(span.textContent).toBe('Esc');
+    expect(span.classList.contains('html-comment')).toBe(false);
+    // The original markup is still preserved for lossless round-trip.
+    expect(span.getAttribute('data-value')).toBe('<kbd>Esc</kbd>');
     await e.destroy();
   });
 });

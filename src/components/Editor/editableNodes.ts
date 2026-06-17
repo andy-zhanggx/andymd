@@ -1,10 +1,14 @@
 import katex from 'katex';
-import type { Ctx } from '@milkdown/ctx';
 import type { Node as ProseNode } from '@milkdown/prose/model';
-import type { EditorView, NodeView } from '@milkdown/prose/view';
+import type { EditorView, NodeView, NodeViewConstructor } from '@milkdown/prose/view';
 import { katexOptionsCtx, mathInlineSchema, mathBlockSchema } from '@milkdown/plugin-math';
 import { imageSchema } from '@milkdown/preset-commonmark';
 import { $view } from '@milkdown/utils';
+import type { $Node } from '@milkdown/utils';
+
+// The Milkdown context object, derived from $view's factory signature so we
+// don't depend on `@milkdown/ctx` directly (it's only a pnpm override here).
+type Ctx = Parameters<Parameters<typeof $view>[1]>[0];
 
 /**
  * Click-to-edit NodeViews for the editor's "atom" nodes.
@@ -308,19 +312,27 @@ class ImageNodeView implements NodeView {
   }
 }
 
+// `@milkdown/plugin-math@7.5.9` bundles `@milkdown/utils@7.5.9`, whose `$Node`
+// type is structurally identical to the 7.20.0 one we import `$view` from but
+// nominally distinct (duplicate package). Bridge the schema nodes through the
+// local `$Node` so `$view` accepts them; the runtime objects are the same.
+const asNode = (n: unknown) => n as unknown as $Node;
+
 export const mathInlineView = $view(
-  mathInlineSchema.node,
-  (ctx) => (node, view, getPos) => new MathNodeView(node, view, getPos, true, ctx),
+  asNode(mathInlineSchema.node),
+  (ctx): NodeViewConstructor =>
+    (node, view, getPos) => new MathNodeView(node, view, getPos, true, ctx),
 );
 
 export const mathBlockView = $view(
-  mathBlockSchema.node,
-  (ctx) => (node, view, getPos) => new MathNodeView(node, view, getPos, false, ctx),
+  asNode(mathBlockSchema.node),
+  (ctx): NodeViewConstructor =>
+    (node, view, getPos) => new MathNodeView(node, view, getPos, false, ctx),
 );
 
 export const imageView = $view(
-  imageSchema.node,
-  () => (node, view, getPos) => new ImageNodeView(node, view, getPos),
+  asNode(imageSchema.node),
+  (): NodeViewConstructor => (node, view, getPos) => new ImageNodeView(node, view, getPos),
 );
 
 export const editableNodeViews = [mathInlineView, mathBlockView, imageView];

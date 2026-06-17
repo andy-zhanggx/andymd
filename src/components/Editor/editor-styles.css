@@ -147,16 +147,75 @@
 }
 
 /*
- * HTML comments (`<!-- … -->`). Milkdown renders raw inline HTML as a
- * span whose data-value is the literal markup; for comments we de-emphasize
+ * HTML comments (`<!-- … -->`). We render only the inner content (the `<!--`
+ * and `-->` delimiters are stripped in the html node's toDOM) and de-emphasize
  * it so template scaffolding reads as muted meta-text instead of looking like
- * broken visible content. Non-comment inline HTML keeps its default styling.
+ * broken visible content. Non-comment inline HTML keeps its literal rendering.
  */
-.editor-container .milkdown span[data-type='html'][data-value^='<!--'] {
+.editor-container .milkdown span.html-comment {
   color: var(--fg-muted);
   opacity: 0.65;
   font-size: 0.85em;
+  font-style: italic;
+}
+
+/*
+ * Rendered inline HTML (a `<b>`, a stitched-together `<table>`, …). The wrapper
+ * span is only a ProseMirror atom host — make it layout-transparent so its
+ * child renders with its own display (inline for `<b>`/`<kbd>`, block for a
+ * `<table>`) instead of being squeezed into an inline flow line.
+ */
+.editor-container .milkdown span.html-render {
+  display: contents;
+}
+
+/*
+ * Click-to-edit affordances for atom nodes (inline/block math, image). When a
+ * node is selected the rendered output is joined by a small source editor.
+ */
+.editor-container .milkdown .math-node.editing .math-rendered {
+  opacity: 0.45;
+}
+.editor-container .milkdown .math-source {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary, rgba(127, 127, 127, 0.08));
+  color: var(--fg);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  line-height: 1.5;
+  resize: vertical;
+}
+.editor-container .milkdown .math-inline .math-source {
+  display: inline-block;
+  width: auto;
+  min-width: 8ch;
+  margin: 0 2px;
+}
+.editor-container .milkdown .math-empty {
+  color: var(--fg-muted);
+}
+.editor-container .milkdown .image-node.editing img {
+  outline: 2px solid var(--accent);
+  border-radius: 4px;
+}
+.editor-container .milkdown .image-edit {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.editor-container .milkdown .image-edit input {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary, rgba(127, 127, 127, 0.08));
+  color: var(--fg);
+  font-size: 0.85em;
 }
 
 .editor-container .milkdown a.wikilink {
