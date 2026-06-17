@@ -17,7 +17,8 @@
     "test:watch": "vitest",
     "tauri": "tauri",
     "version:set": "node scripts/set-version.mjs",
-    "release:dmg": "node scripts/release-dmg.mjs"
+    "release:dmg": "node scripts/release-dmg.mjs",
+    "release:update": "node scripts/release-update.mjs"
   },
   "dependencies": {
     "@milkdown/core": "^7.20.0",
