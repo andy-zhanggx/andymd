@@ -201,6 +201,9 @@ export async function handleMenuAction(id: string) {
     case 'show-tour':
       useUIStore.getState().startTour();
       break;
+    case 'software-update':
+      useUIStore.getState().setUpdateSettingsOpen(true);
+      break;
     case 'show-whats-new':
       void openWhatsNewForCurrent();
       break;

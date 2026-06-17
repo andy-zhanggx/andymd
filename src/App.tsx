@@ -16,6 +16,8 @@ import { VersionHistory } from './components/VersionHistory';
 import { Tour } from './components/Tour';
 import { WhatsNew } from './components/WhatsNew';
 import { runWhatsNewCheck } from './lib/whatsNew';
+import { UpdateSettings } from './components/UpdateSettings';
+import { runUpdateCheck, UPDATE_CHECK_INTERVAL_MS } from './lib/updater';
 
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 420;
@@ -41,6 +43,14 @@ export default function App() {
   // After config loads, show "What's New" if the app version advanced.
   useEffect(() => {
     if (configLoaded) void runWhatsNewCheck();
+  }, [configLoaded]);
+
+  // Auto-update: check on launch + on an interval while the app runs.
+  useEffect(() => {
+    if (!configLoaded) return;
+    void runUpdateCheck();
+    const id = window.setInterval(() => void runUpdateCheck(), UPDATE_CHECK_INTERVAL_MS);
+    return () => window.clearInterval(id);
   }, [configLoaded]);
 
   const startResize = (e: React.MouseEvent) => {
@@ -124,6 +134,7 @@ export default function App() {
       <VersionHistory />
       <Tour />
       <WhatsNew />
+      <UpdateSettings />
     </div>
   );
 }

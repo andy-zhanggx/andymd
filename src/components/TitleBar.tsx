@@ -1,5 +1,6 @@
 import { useConfigStore } from '../stores/configStore';
 import { useDocumentStore } from '../stores/documentStore';
+import { UpdateButton } from './UpdateButton';
 
 function SidebarIcon() {
   return (
@@ -35,6 +36,7 @@ export function TitleBar() {
         {doc?.isDirty && <span className="titlebar-dirty" />}
         {name}
       </div>
+      <UpdateButton />
     </div>
   );
 }
