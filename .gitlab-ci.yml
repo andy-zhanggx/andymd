@@ -16,8 +16,8 @@ stages: [test, package, release]
 default:
   image: node:22
   before_script:
+    # corepack uses the pnpm version pinned in package.json's "packageManager".
     - corepack enable
-    - corepack prepare pnpm@latest --activate
     - pnpm install --frozen-lockfile
 
 variables:
@@ -86,7 +86,7 @@ release:
 #   rules:
 #     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
 #   before_script:
-#     - corepack enable && corepack prepare pnpm@latest --activate
+#     - corepack enable
 #     - pnpm install --frozen-lockfile
 #   script:
 #     - pnpm tauri build          # → src-tauri/target/release/bundle/macos/AndyMD.app
