@@ -16,6 +16,7 @@ import { gfm, remarkGFMPlugin } from '@milkdown/preset-gfm';
 import { frontmatter } from './frontmatter';
 import { fencedMath } from './fencedMath';
 import { wikilink } from './wikilink';
+import { wikilinkDeadLinkPlugin } from './wikilinkDeadLink';
 import { searchPlugin } from './searchPlugin';
 import { viewModePlugin } from './viewModePlugin';
 import { autoPairPlugin } from './autoPairPlugin';
@@ -216,6 +217,7 @@ export function buildEditor(opts: BuildOpts) {
     .use(frontmatter)
     .use(fencedMath)
     .use(wikilink)
+    .use(wikilinkDeadLinkPlugin)
     .use(highlight)
     .use(superscript)
     .use(subscript)

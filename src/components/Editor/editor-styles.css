@@ -229,6 +229,18 @@
   border-bottom-style: solid;
 }
 
+/*
+ * Dead wikilinks — targets that don't resolve to a note in the current vault.
+ * Desaturate the accent toward muted grey so they read as a lighter grey-blue,
+ * and switch the underline to dotted, signalling "unreachable" without hiding
+ * the link entirely (it can still be clicked to surface the not-found notice).
+ */
+.editor-container .milkdown a.wikilink.wikilink-dead {
+  color: color-mix(in srgb, var(--accent) 38%, var(--fg-muted) 62%);
+  border-bottom-color: color-mix(in srgb, var(--accent) 38%, var(--fg-muted) 62%);
+  border-bottom-style: dotted;
+}
+
 .editor-container .milkdown blockquote {
   margin: 0 0 1em;
   padding-left: 12px;

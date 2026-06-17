@@ -77,4 +77,35 @@ describe('resolveWikilinkInTree', () => {
       '/vault/03-resources/ads/organic-vs-ads-pcoc-label-semantics.md',
     );
   });
+
+  it('resolves a ./-relative target against the current file directory', () => {
+    expect(
+      resolveWikilinkInTree(
+        './organic-vs-ads-pcoc-label-semantics',
+        vault,
+        '/vault/03-resources/ads/current-note.md',
+      ),
+    ).toBe('/vault/03-resources/ads/organic-vs-ads-pcoc-label-semantics.md');
+  });
+
+  it('resolves a ../-relative target against the parent directory', () => {
+    expect(
+      resolveWikilinkInTree(
+        '../sql-recipes/organic-pcoc-by-category/index',
+        vault,
+        '/vault/03-resources/ads/current-note.md',
+      ),
+    ).toBe('/vault/03-resources/sql-recipes/organic-pcoc-by-category/index.md');
+  });
+
+  it('returns null for a ./-relative target with no real file (dead link)', () => {
+    expect(resolveWikilinkInTree('./', vault, '/vault/03-resources/ads/current-note.md')).toBeNull();
+    expect(
+      resolveWikilinkInTree('./nope', vault, '/vault/03-resources/ads/current-note.md'),
+    ).toBeNull();
+  });
+
+  it('treats a ./-relative target as dead when there is no current file', () => {
+    expect(resolveWikilinkInTree('./organic-vs-ads-pcoc-label-semantics', vault, null)).toBeNull();
+  });
 });
