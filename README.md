@@ -83,25 +83,25 @@ branches focused and short-lived.
 1. Ensure `main` is green: `pnpm test` and `cd src-tauri && cargo test`.
 2. Bump the version: `pnpm version:set <x.y.z>`.
 3. Move the `CHANGELOG.md` `[Unreleased]` notes into a new dated version section.
-4. Commit (`release: vX.Y.Z`) and tag:
+4. Commit (`release: vX.Y.Z`) and tag, then push:
    ```bash
+   git commit -am "release: vX.Y.Z"
    git tag -a vX.Y.Z -m "AndyMD vX.Y.Z"
    git push && git push --tags
    ```
+   Pushing the tag triggers [`.gitlab-ci.yml`](.gitlab-ci.yml): it runs the
+   tests and creates the **GitLab Release** (no binary yet).
+5. Build the macOS installer locally and attach it to the release:
+   ```bash
+   pnpm tauri build          # → src-tauri/target/release/bundle/dmg/AndyMD_<ver>_<arch>.dmg
+   pnpm release:dmg          # uploads the .dmg and links it on the release
+   ```
 
-Pushing a `vX.Y.Z` tag to GitLab triggers [`.gitlab-ci.yml`](.gitlab-ci.yml),
-which runs the tests, builds the web bundle, zips it, and creates a **GitLab
-Release** with the zip attached (via the Generic Package Registry).
-
-The native macOS `.app`/`.dmg` cannot be built in CI (no macOS runner), so build
-it locally and, if desired, attach it to the same release:
-
-```bash
-pnpm tauri build          # → src-tauri/target/release/bundle/{macos,dmg}/
-```
-
-When a macOS runner becomes available, enable the `package:macos` job in
-`.gitlab-ci.yml` to produce and attach the `.app` zip automatically.
+The `.dmg` is the release's download — there is no macOS CI runner, so it's
+built locally ([`scripts/release-dmg.mjs`](scripts/release-dmg.mjs) handles the
+upload + asset link, deriving the project from the `origin` remote and using
+`$GITLAB_TOKEN`). The bundle is ad-hoc signed, so first launch needs
+right-click → Open.
 
 ## Docs
 
