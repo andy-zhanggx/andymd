@@ -19,7 +19,7 @@ export function Sidebar() {
   const hasDoc = useDocumentStore((s) => s.doc !== null);
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: sidebarWidth, h: 500 });
-  const [menu, setMenu] = useState<{ x: number; y: number; path: string; kind: 'file' | 'dir' } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; path: string; kind: 'file' | 'dir' | 'workspace' } | null>(null);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -57,7 +57,13 @@ export function Sidebar() {
         <Outline />
       ) : (
         <>
-          <WorkspaceSwitcher />
+          <WorkspaceSwitcher
+            onContextMenu={
+              workspace
+                ? (x, y) => setMenu({ x, y, path: workspace.root, kind: 'workspace' })
+                : undefined
+            }
+          />
           {workspace ? (
             <FileTree
               root={workspace.tree}

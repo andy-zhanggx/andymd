@@ -20,8 +20,10 @@ import { viewModePlugin } from './viewModePlugin';
 import { autoPairPlugin } from './autoPairPlugin';
 import { smartPunctuation } from './smartPunctuation';
 import { highlight, superscript, subscript } from './marks';
+import { htmlComment } from './htmlComment';
 import { emoji } from '@milkdown/plugin-emoji';
 import { diagram } from '@milkdown/plugin-diagram';
+import { collab } from '@milkdown/plugin-collab';
 import 'katex/dist/katex.min.css';
 import './prosemirror.css';
 
@@ -37,10 +39,18 @@ export interface BuildOpts {
    * editor is destroyed — a teardown race that makes the suite flaky in CI.
    */
   listener?: boolean;
+  /**
+   * Enable real-time collaboration. Adds the Yjs-backed `collab` plugin and
+   * drops the local `history` plugin (collab provides shared undo via y-undo).
+   * The editor's content is then driven by the Y.Doc bound in MarkdownEditor,
+   * not by `initialValue`.
+   */
+  collab?: boolean;
 }
 
 export function buildEditor(opts: BuildOpts) {
   const useListener = opts.listener ?? true;
+  const useCollab = opts.collab ?? false;
   const editor = Editor.make()
     .config((ctx) => {
       ctx.set(rootCtx, opts.root);
@@ -105,16 +115,22 @@ export function buildEditor(opts: BuildOpts) {
     .use(superscript)
     .use(subscript)
     .use(emoji)
+    // After emoji (and other inline splitters) so it can stitch fragmented
+    // HTML comments back into a single node.
+    .use(htmlComment)
     .use(diagram)
     .use(searchPlugin)
     .use(viewModePlugin)
     .use(autoPairPlugin)
     .use(smartPunctuation)
-    .use(history)
     .use(clipboard)
     .use(cursor)
     .use(prism)
     .use(math);
+  // Shared (Yjs) undo replaces the local history stack in collab mode; using
+  // both fights over the same transactions.
+  if (useCollab) editor.use(collab);
+  else editor.use(history);
   // Config callbacks run after all plugins register, so appending the listener
   // here (rather than mid-chain) keeps `ctx.get(listenerCtx)` above valid.
   if (useListener) editor.use(listener);

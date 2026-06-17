@@ -47,7 +47,12 @@ function FolderIcon() {
   );
 }
 
-export function WorkspaceSwitcher() {
+interface WorkspaceSwitcherProps {
+  /** Right-click handler for the header; absent when no workspace is open. */
+  onContextMenu?: (x: number, y: number) => void;
+}
+
+export function WorkspaceSwitcher({ onContextMenu }: WorkspaceSwitcherProps = {}) {
   const workspace = useWorkspaceStore((s) => s.workspace);
   const openWs = useWorkspaceStore((s) => s.open);
   const recent = useConfigStore((s) => s.config.recentWorkspaces);
@@ -77,7 +82,17 @@ export function WorkspaceSwitcher() {
   }
 
   return (
-    <div className="ws-header">
+    <div
+      className="ws-header"
+      onContextMenu={
+        onContextMenu
+          ? (e) => {
+              e.preventDefault();
+              onContextMenu(e.clientX, e.clientY);
+            }
+          : undefined
+      }
+    >
       <div className="ws-select-wrap">
         <select
           className="ws-select"

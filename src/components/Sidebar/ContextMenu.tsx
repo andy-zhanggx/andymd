@@ -8,7 +8,7 @@ export interface Props {
   x: number;
   y: number;
   path: string;
-  kind: 'file' | 'dir';
+  kind: 'file' | 'dir' | 'workspace';
   onClose: () => void;
 }
 
@@ -49,65 +49,80 @@ export function ContextMenu({ x, y, path, kind, onClose }: Props) {
     });
   }, [x, y]);
 
-  const parent = kind === 'dir' ? path : path.split('/').slice(0, -1).join('/');
+  // For a file the new-child target is its containing folder; for a folder or
+  // the workspace root it is the path itself.
+  const parent = kind === 'file' ? path.split('/').slice(0, -1).join('/') : path;
 
-  const items: Array<{ label: string; action: () => Promise<void> | void; danger?: boolean } | 'sep'> = [
-    {
-      label: 'New File',
-      action: async () => {
-        const parentNode = findNode(tree, parent);
-        const suggestion = uniqueChildName(parentNode?.children, 'Untitled', 'md');
-        const name = window.prompt('File name (include .md)', suggestion);
-        if (!name) return;
-        try {
-          const node = await createFile(parent, name);
-          // Open it right away so the user can start editing — the whole point
-          // of "New File" is to land in an editable document.
-          await openDoc(node.path);
-        } catch (e) {
-          window.alert(`Could not create file: ${(e as Error)?.message ?? e}`);
-        }
-      },
+  type Item = { label: string; action: () => Promise<void> | void; danger?: boolean } | 'sep';
+
+  const newFile: Item = {
+    label: 'New File',
+    action: async () => {
+      const parentNode = findNode(tree, parent);
+      const suggestion = uniqueChildName(parentNode?.children, 'Untitled', 'md');
+      const name = window.prompt('File name (include .md)', suggestion);
+      if (!name) return;
+      try {
+        const node = await createFile(parent, name);
+        // Open it right away so the user can start editing — the whole point
+        // of "New File" is to land in an editable document.
+        await openDoc(node.path);
+      } catch (e) {
+        window.alert(`Could not create file: ${(e as Error)?.message ?? e}`);
+      }
     },
-    {
-      label: 'New Folder',
-      action: async () => {
-        const name = window.prompt('Folder name');
-        if (!name) return;
-        try {
-          await createFolder(parent, name);
-        } catch (e) {
-          window.alert(`Could not create folder: ${(e as Error)?.message ?? e}`);
-        }
-      },
+  };
+
+  const newFolder: Item = {
+    label: 'New Folder',
+    action: async () => {
+      const name = window.prompt('Folder name');
+      if (!name) return;
+      try {
+        await createFolder(parent, name);
+      } catch (e) {
+        window.alert(`Could not create folder: ${(e as Error)?.message ?? e}`);
+      }
     },
-    'sep',
-    {
-      label: 'Rename…',
-      action: async () => {
-        const current = path.split('/').pop() ?? '';
-        const next = window.prompt('New name', current);
-        if (next && next !== current) {
-          const to = path.split('/').slice(0, -1).concat(next).join('/');
-          await rename(path, to);
-        }
-      },
-    },
-    {
-      label: 'Reveal in Finder',
-      action: () => fsService.revealInFinder(path),
-    },
-    'sep',
-    {
-      label: 'Move to Trash',
-      danger: true,
-      action: async () => {
-        if (window.confirm(`Move "${path.split('/').pop()}" to Trash?`)) {
-          await deleteEntry(path);
-        }
-      },
-    },
-  ];
+  };
+
+  const revealInFinder: Item = {
+    label: 'Reveal in Finder',
+    action: () => fsService.revealInFinder(path),
+  };
+
+  // The workspace root gets only safe actions — renaming or trashing the entire
+  // vault root from a stray right-click would be a footgun.
+  const items: Item[] =
+    kind === 'workspace'
+      ? [newFile, newFolder, 'sep', revealInFinder]
+      : [
+          newFile,
+          newFolder,
+          'sep',
+          {
+            label: 'Rename…',
+            action: async () => {
+              const current = path.split('/').pop() ?? '';
+              const next = window.prompt('New name', current);
+              if (next && next !== current) {
+                const to = path.split('/').slice(0, -1).concat(next).join('/');
+                await rename(path, to);
+              }
+            },
+          },
+          revealInFinder,
+          'sep',
+          {
+            label: 'Move to Trash',
+            danger: true,
+            action: async () => {
+              if (window.confirm(`Move "${path.split('/').pop()}" to Trash?`)) {
+                await deleteEntry(path);
+              }
+            },
+          },
+        ];
 
   return (
     <div
