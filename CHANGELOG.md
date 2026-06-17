@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- New app icon: black squircle with an `andy.md` wordmark (white `andy`, accent
+  `.md`) in Avenir Next. Source is `src-tauri/icons/icon-source.svg`; regenerate
+  all sizes with `pnpm tauri icon src-tauri/icons/icon-source.png`.
+
 ### Fixed
 
 - macOS build: ad-hoc sign the app bundle (`bundle.macOS.signingIdentity: "-"`)

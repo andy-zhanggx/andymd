@@ -1,0 +1,18 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#141417"/>
+      <stop offset="0.55" stop-color="#0a0a0b"/>
+      <stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+  </defs>
+  <!-- black squircle background -->
+  <rect x="72" y="72" width="880" height="880" rx="206"
+        fill="url(#bg)" stroke="#2b2b30" stroke-width="2"/>
+  <!-- wordmark: white "andy" + accent-blue ".md" -->
+  <text x="512" y="576" text-anchor="middle"
+        font-family="Avenir Next Heavy, Avenir Next, Helvetica Neue, sans-serif"
+        font-weight="800" font-size="168" letter-spacing="-3">
+    <tspan fill="#ffffff">andy</tspan><tspan fill="#2d8cff">.md</tspan>
+  </text>
+</svg>
