@@ -3,6 +3,7 @@ import { FileNode, Workspace } from '../types';
 import { fsService } from '../services/fsService';
 import { isPathInside } from '../lib/workspacePath';
 import { useConfigStore } from './configStore';
+import { menuService } from '../services/menuService';
 
 interface WorkspaceState {
   workspace: Workspace | null;
@@ -22,7 +23,21 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   async open(root) {
     const showHidden = useConfigStore.getState().config.showHiddenFiles;
-    const tree = await fsService.listWorkspace(root, showHidden);
+    let tree: FileNode;
+    try {
+      tree = await fsService.listWorkspace(root, showHidden);
+    } catch {
+      // The folder is gone or unreadable. Drop the stale recent entry so the
+      // switcher self-heals (via the existing config update — no new store
+      // method, to stay out of files other sessions are editing), then signal
+      // callers to surface a message.
+      const cfg = useConfigStore.getState();
+      const recentWorkspaces = cfg.config.recentWorkspaces.filter((r) => r !== root);
+      const lastWorkspace = cfg.config.lastWorkspace === root ? null : cfg.config.lastWorkspace;
+      await cfg.update({ recentWorkspaces, lastWorkspace });
+      void menuService.syncRecentMenu(cfg.config.recentFiles, recentWorkspaces);
+      throw new Error(`WORKSPACE_UNAVAILABLE:${root}`);
+    }
     await fsService.openWorkspace(root);
     const name = tree.name;
     set({ workspace: { root, name, tree, expandedPaths: new Set([root]) } });

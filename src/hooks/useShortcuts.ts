@@ -85,7 +85,16 @@ export async function handleMenuAction(id: string) {
     return;
   }
   if (id.startsWith('recent-ws:')) {
-    await ws.open(id.slice('recent-ws:'.length));
+    const path = id.slice('recent-ws:'.length);
+    try {
+      await ws.open(path);
+    } catch (err) {
+      if (String((err as Error).message).startsWith('WORKSPACE_UNAVAILABLE')) {
+        window.alert(`That folder is no longer available:\n${path}\n\nIt has been removed from recent workspaces.`);
+      } else {
+        console.error(err);
+      }
+    }
     return;
   }
 
