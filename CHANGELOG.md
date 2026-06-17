@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [0.1.2] — 2026-06-17
+
 ### Changed
 
 - New app icon: black squircle with an `andy.md` wordmark (white `andy`, accent
@@ -19,9 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - macOS build: ad-hoc sign the app bundle (`bundle.macOS.signingIdentity: "-"`)
   so the `.app` has a valid, resource-sealed signature. Without it the bundle's
   signature was invalid (no sealed resources) and macOS refused to launch the
-  downloaded app as "damaged". The v0.1.1 `.dmg` asset was re-uploaded with the
-  fix. (First launch still needs right-click → Open — the app is ad-hoc signed,
-  not notarized.)
+  downloaded app as "damaged". (First launch still needs right-click → Open —
+  the app is ad-hoc signed, not notarized.)
 
 ## [0.1.1] — 2026-06-17
 
@@ -52,6 +55,7 @@ built with Tauri 2 + React 18 + Milkdown.
 - Light / dark / system theme; `.md` / `.markdown` Finder file association; external-modification detection on save.
 - First-run **onboarding tour** (bilingual EN / 中文) with spotlight steps; replay from the status-bar `?` button or **Help → Welcome Tour**.
 
-[Unreleased]: https://github.com/OldBao/andymd/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/OldBao/andymd/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/OldBao/andymd/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/OldBao/andymd/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/OldBao/andymd/releases/tag/v0.1.0
