@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Editor, editorViewCtx } from '@milkdown/core';
 import { collabServiceCtx } from '@milkdown/plugin-collab';
 import type { EditorView } from '@milkdown/prose/view';
@@ -10,6 +10,7 @@ import { cursorBuilder, selectionBuilder } from '../../collab/cursor';
 import { insertImageNode } from './insertImage';
 import { Toolbar } from './Toolbar';
 import { FindReplace } from './FindReplace';
+import { EditorBuildError } from './EditorBuildError';
 import { setActiveView } from './activeView';
 import { setTypewriter } from './viewModePlugin';
 import { setSmartPunctuation } from './smartPunctuation';
@@ -56,9 +57,13 @@ export function MarkdownEditor() {
   // editor never enters collab mode, so no Y.Doc is bound and no WebSocket is
   // opened — it stays a plain offline editor driven by the local draft.
   const collabActive = ONLINE_COLLAB && roomCode !== null;
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<Editor | null>(null);
   const viewRef = useRef<EditorView | null>(null);
+  // When the async editor build rejects we surface this instead of silently
+  // leaving a blank pane; bumping `reloadKey` re-runs the build effect.
+  const [buildError, setBuildError] = useState<Error | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   // Handle image drops at the DOM level. Tauri's native drag interception is
   // disabled (dragDropEnabled: false), so the webview receives the HTML5 drop
@@ -66,56 +71,65 @@ export function MarkdownEditor() {
   // ProseMirror inserts its own broken placeholder — read the bytes, write them
   // into assets/ next to the document, and insert a proper image node at the
   // drop point.
-  useEffect(() => {
-    const root = ref.current;
-    if (!root) return;
-
-    const hasFiles = (e: DragEvent) =>
-      Array.from(e.dataTransfer?.types ?? []).includes('Files');
-
-    const onDragOver = (e: DragEvent) => {
-      if (hasFiles(e)) e.preventDefault();
-    };
-
-    const onDrop = async (e: DragEvent) => {
-      const images = Array.from(e.dataTransfer?.files ?? []).filter(isImageFile);
-      if (images.length === 0) return; // let ProseMirror handle non-image drops
-      e.preventDefault();
-      e.stopPropagation();
-
-      const editor = editorRef.current;
-      const current = useDocumentStore.getState().doc;
-      if (!editor || !current) {
-        window.alert('Open a document before dropping images.');
-        return;
-      }
-      const coords = { left: e.clientX, top: e.clientY };
-      for (const file of images) {
-        try {
-          const bytes = Array.from(new Uint8Array(await file.arrayBuffer()));
-          const { relPath } = await fsService.importImageBytes(file.name, bytes, current.path);
-          insertImageNode(editor, relPath, altFromPath(file.name), coords);
-        } catch (err) {
-          window.alert(
-            (err as Error)?.message ?? 'Failed to import image. Save the document first.'
-          );
-          break;
-        }
-      }
-    };
-
-    root.addEventListener('dragover', onDragOver, true);
-    root.addEventListener('drop', onDrop, true);
-    return () => {
-      root.removeEventListener('dragover', onDragOver, true);
-      root.removeEventListener('drop', onDrop, true);
-    };
+  //
+  // The listeners are wired via a callback ref rather than a mount-time effect:
+  // the editor container is conditionally rendered (it's absent on the empty
+  // state and in source mode), so a `useEffect(…, [])` would attach to a null
+  // root and never re-run when the real container later mounts — leaving drop
+  // dead in the normal "launch → open file" flow. The callback ref fires
+  // exactly when the node mounts/unmounts, independent of the doc churn (a new
+  // `doc` object is created on every keystroke).
+  const onDragOver = useCallback((e: DragEvent) => {
+    if (Array.from(e.dataTransfer?.types ?? []).includes('Files')) e.preventDefault();
   }, []);
+
+  const onDrop = useCallback(async (e: DragEvent) => {
+    const images = Array.from(e.dataTransfer?.files ?? []).filter(isImageFile);
+    if (images.length === 0) return; // let ProseMirror handle non-image drops
+    e.preventDefault();
+    e.stopPropagation();
+
+    const editor = editorRef.current;
+    const current = useDocumentStore.getState().doc;
+    if (!editor || !current) {
+      window.alert('Open a document before dropping images.');
+      return;
+    }
+    const coords = { left: e.clientX, top: e.clientY };
+    for (const file of images) {
+      try {
+        const bytes = Array.from(new Uint8Array(await file.arrayBuffer()));
+        const { relPath } = await fsService.importImageBytes(file.name, bytes, current.path);
+        insertImageNode(editor, relPath, altFromPath(file.name), coords);
+      } catch (err) {
+        window.alert(
+          (err as Error)?.message ?? 'Failed to import image. Save the document first.'
+        );
+        break;
+      }
+    }
+  }, []);
+
+  const setEditorRoot = useCallback((node: HTMLDivElement | null) => {
+    const prev = ref.current;
+    if (prev) {
+      prev.removeEventListener('dragover', onDragOver, true);
+      prev.removeEventListener('drop', onDrop, true);
+    }
+    ref.current = node;
+    if (node) {
+      node.addEventListener('dragover', onDragOver, true);
+      node.addEventListener('drop', onDrop, true);
+    }
+  }, [onDragOver, onDrop]);
 
   useEffect(() => {
     if (!ref.current || !doc) return;
     const root = ref.current;
     root.innerHTML = '';
+    // Clear any prior failure: we're (re)building, so the fallback must go and
+    // the mount point must be visible for the new editor to attach to.
+    setBuildError(null);
     let disposed = false;
     let editor: Editor | undefined;
     let createPromise: Promise<Editor> | undefined;
@@ -259,10 +273,13 @@ export function MarkdownEditor() {
       root.addEventListener('click', wikilinkClickHandler);
     };
 
-    void setup().catch(() => {
-      if (!disposed) {
-        root.innerHTML = '';
-      }
+    void setup().catch((err) => {
+      if (disposed) return;
+      // Don't swallow it: log for diagnosis and show a recoverable fallback
+      // instead of a blank, uneditable pane with no indication of what failed.
+      console.error('[editor] failed to build the Milkdown editor', err);
+      root.innerHTML = '';
+      setBuildError(err instanceof Error ? err : new Error(String(err)));
     });
 
     return () => {
@@ -290,7 +307,7 @@ export function MarkdownEditor() {
       })();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc?.path, sourceMode, collabActive, roomCode]);
+  }, [doc?.path, sourceMode, collabActive, roomCode, reloadKey]);
 
   // Keep the typewriter plugin's module flag in sync with UI state.
   useEffect(() => {
@@ -371,6 +388,14 @@ export function MarkdownEditor() {
     <>
       <Toolbar getEditor={() => editorRef.current} />
       <FindReplace getView={() => viewRef.current} />
+      {buildError && (
+        <EditorBuildError
+          message={buildError.message}
+          onReload={() => setReloadKey((k) => k + 1)}
+        />
+      )}
+      {/* Keep the mount point in the tree even while the fallback shows, so a
+          reload can rebuild the editor into it. Hidden under the fallback. */}
       <div
         className={`editor-container${focusMode ? ' focus-mode' : ''}${
           typewriterMode ? ' typewriter-mode' : ''
@@ -382,8 +407,9 @@ export function MarkdownEditor() {
           fontSize,
           lineHeight,
           fontFamily,
+          display: buildError ? 'none' : undefined,
         }}
-        ref={ref}
+        ref={setEditorRoot}
       />
     </>
   );

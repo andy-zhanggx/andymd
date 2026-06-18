@@ -532,3 +532,53 @@
 .link-tooltip-save:hover {
   filter: brightness(1.05);
 }
+
+/* Shown in place of the editor when the Milkdown build fails, instead of a
+   silent blank pane. See EditorBuildError.tsx / MarkdownEditor build effect. */
+.editor-build-error {
+  max-width: 620px;
+  margin: 48px auto;
+  padding: 24px 28px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--fg-primary);
+}
+
+.editor-build-error__title {
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.editor-build-error__hint {
+  margin: 0 0 14px;
+  color: var(--fg-secondary);
+  font-size: 0.9em;
+}
+
+.editor-build-error__detail {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--code-bg);
+  color: var(--fg-muted);
+  font-size: 0.82em;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 30vh;
+  overflow: auto;
+}
+
+.editor-build-error__reload {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.editor-build-error__reload:hover {
+  opacity: 0.9;
+}

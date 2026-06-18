@@ -108,6 +108,27 @@ describe('editable atom nodes (inline math, block math, image)', () => {
     await e.destroy();
   });
 
+  it('image: a plain click on the rendered <img> opens the src/alt editor', async () => {
+    // Regression: an image is an inline atom, so a bare click does not reliably
+    // make ProseMirror create a NodeSelection (and thus never fires selectNode).
+    // The NodeView wires its own mousedown → focus → NodeSelection so clicking
+    // the image opens the editor, the way clicking math does.
+    const e = await mount('![cat](cat.png)');
+    const view = e.ctx.get(editorViewCtx);
+    const img = view.dom.querySelector<HTMLImageElement>('.image-node img');
+    expect(img, 'image renders').not.toBeNull();
+    expect(view.dom.querySelector('.image-src')).toBeNull();
+
+    img!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(
+      view.dom.querySelector('.image-src'),
+      'clicking the image opens the source editor',
+    ).not.toBeNull();
+    await e.destroy();
+  });
+
   it('block math: shows an expand affordance whose click opens the source editor', async () => {
     const e = await mount('```math\nE = mc^2\n```');
     const view = e.ctx.get(editorViewCtx);
@@ -151,16 +172,6 @@ describe('editable atom nodes (inline math, block math, image)', () => {
     const f2 = view.dom.querySelector<HTMLTextAreaElement>('.math-source');
     expect(f2, 'second click reopens the editor').not.toBeNull();
     expect(f2!.value).toBe('a + b');
-    await e.destroy();
-  });
-
-  it('image: a plain mousedown opens the alt/src editor', async () => {
-    const e = await mount('![cat](cat.png)');
-    const view = e.ctx.get(editorViewCtx);
-    const img = view.dom.querySelector('.image-node img')!;
-    expect(view.dom.querySelector('.image-src')).toBeNull();
-    img.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-    expect(view.dom.querySelector('.image-src'), 'clicking the image opens its editor').not.toBeNull();
     await e.destroy();
   });
 
