@@ -10,6 +10,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _Nothing yet._
 
+## [0.2.0] — 2026-06-18
+
+### Added
+
+- **Automatic updates.** AndyMD checks for new versions on launch and offers a
+  one-click restart-to-update from the title bar, plus a Software Update settings
+  dialog. Updates are fetched from the public GitHub Releases channel.
+- **"What's New" popup.** After upgrading, the release notes for the new version
+  appear once automatically; reopen them any time from the Help menu.
+- **Real-time collaboration (preview).** Edit a document together over a share
+  code, with live presence. Off by default — opt in via the `ONLINE_COLLAB` flag.
+- **Inline HTML rendering**, plus math and image blocks that expand to an
+  editable view in place.
+- **Cmd-aware links.** Hold ⌘ to turn links into clickable targets, navigate with
+  ⌘-click, and step through a back/forward **jump history**.
+- **Directory & relative link resolution.** Markdown `[x](folder/)` and `./`,
+  `../` links resolve against the vault; dead links are shown in muted grey-blue.
+- **Build label** pill in the title bar so you can tell which build is running.
+
+### Changed
+
+- Releases and in-app updates now run through a **public GitHub Releases**
+  channel — per-architecture macOS `.dmg` builds, no access token required.
+
+### Fixed
+
+- Block math now has a clearer expand-to-edit affordance.
+- Wikilinks resolve `./` and `../` relative paths correctly.
+
 ## [0.1.3] — 2026-06-17
 
 ### Added
