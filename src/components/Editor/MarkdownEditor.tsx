@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Editor, editorViewCtx } from '@milkdown/core';
 import { collabServiceCtx } from '@milkdown/plugin-collab';
 import type { EditorView } from '@milkdown/prose/view';
@@ -10,6 +10,7 @@ import { cursorBuilder, selectionBuilder } from '../../collab/cursor';
 import { insertImageNode } from './insertImage';
 import { Toolbar } from './Toolbar';
 import { FindReplace } from './FindReplace';
+import { EditorBuildError } from './EditorBuildError';
 import { setActiveView } from './activeView';
 import { setTypewriter } from './viewModePlugin';
 import { setSmartPunctuation } from './smartPunctuation';
@@ -59,6 +60,10 @@ export function MarkdownEditor() {
   const ref = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<Editor | null>(null);
   const viewRef = useRef<EditorView | null>(null);
+  // When the async editor build rejects we surface this instead of silently
+  // leaving a blank pane; bumping `reloadKey` re-runs the build effect.
+  const [buildError, setBuildError] = useState<Error | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   // Handle image drops at the DOM level. Tauri's native drag interception is
   // disabled (dragDropEnabled: false), so the webview receives the HTML5 drop
@@ -141,6 +146,9 @@ export function MarkdownEditor() {
     if (!ref.current || !doc) return;
     const root = ref.current;
     root.innerHTML = '';
+    // Clear any prior failure: we're (re)building, so the fallback must go and
+    // the mount point must be visible for the new editor to attach to.
+    setBuildError(null);
     let disposed = false;
     let editor: Editor | undefined;
     let createPromise: Promise<Editor> | undefined;
@@ -284,10 +292,13 @@ export function MarkdownEditor() {
       root.addEventListener('click', wikilinkClickHandler);
     };
 
-    void setup().catch(() => {
-      if (!disposed) {
-        root.innerHTML = '';
-      }
+    void setup().catch((err) => {
+      if (disposed) return;
+      // Don't swallow it: log for diagnosis and show a recoverable fallback
+      // instead of a blank, uneditable pane with no indication of what failed.
+      console.error('[editor] failed to build the Milkdown editor', err);
+      root.innerHTML = '';
+      setBuildError(err instanceof Error ? err : new Error(String(err)));
     });
 
     return () => {
@@ -315,7 +326,7 @@ export function MarkdownEditor() {
       })();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc?.path, sourceMode, collabActive, roomCode]);
+  }, [doc?.path, sourceMode, collabActive, roomCode, reloadKey]);
 
   // Keep the typewriter plugin's module flag in sync with UI state.
   useEffect(() => {
@@ -396,6 +407,14 @@ export function MarkdownEditor() {
     <>
       <Toolbar getEditor={() => editorRef.current} />
       <FindReplace getView={() => viewRef.current} />
+      {buildError && (
+        <EditorBuildError
+          message={buildError.message}
+          onReload={() => setReloadKey((k) => k + 1)}
+        />
+      )}
+      {/* Keep the mount point in the tree even while the fallback shows, so a
+          reload can rebuild the editor into it. Hidden under the fallback. */}
       <div
         className={`editor-container${focusMode ? ' focus-mode' : ''}${
           typewriterMode ? ' typewriter-mode' : ''
@@ -407,6 +426,7 @@ export function MarkdownEditor() {
           fontSize,
           lineHeight,
           fontFamily,
+          display: buildError ? 'none' : undefined,
         }}
         ref={setEditorRoot}
       />

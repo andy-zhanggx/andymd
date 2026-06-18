@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useUIStore } from '../stores/uiStore';
 import type { Release } from '../lib/changelog';
+import { renderInline } from '../lib/inlineMarkdown';
 
 /** Pure presentational popup. Render-tested in isolation. */
 export function WhatsNewView({
@@ -37,7 +38,7 @@ export function WhatsNewView({
                   <h4>{s.label}</h4>
                   <ul>
                     {s.items.map((item, i) => (
-                      <li key={i}>{item}</li>
+                      <li key={i}>{renderInline(item, `${r.version}-${s.label}-${i}`)}</li>
                     ))}
                   </ul>
                 </div>
