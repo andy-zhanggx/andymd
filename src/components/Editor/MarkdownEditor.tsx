@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Editor, editorViewCtx } from '@milkdown/core';
+import { getMarkdown } from '@milkdown/utils';
 import { collabServiceCtx } from '@milkdown/plugin-collab';
 import type { EditorView } from '@milkdown/prose/view';
 import { buildEditor } from './milkdownConfig';
@@ -274,6 +275,22 @@ export function MarkdownEditor() {
       scroller?.removeEventListener('scroll', scrollHandler);
       if (scrollTimer) window.clearTimeout(scrollTimer);
       flushSession();
+      // Flush the editor's latest markdown before it's torn down. The change
+      // listener is debounced, so the most recent edit (e.g. an image resize)
+      // may not have reached the store yet. Stash it in memory keyed by path so
+      // switching files/views never loses unsaved work; and if we're staying on
+      // the same document (a view/mode toggle), sync the live draft too so
+      // source view reflects the latest edit.
+      if (editor && !collabActive && doc) {
+        try {
+          const md = editor.action(getMarkdown());
+          if (doc.path) useDocumentStore.getState().stashDraft(doc.path, md);
+          const cur = useDocumentStore.getState().doc;
+          if (cur && cur.path === doc.path) setDraft(md);
+        } catch {
+          // editor already disposed — nothing to flush
+        }
+      }
       void (async () => {
         try {
           const instance = editor ?? await createPromise?.catch(() => undefined);

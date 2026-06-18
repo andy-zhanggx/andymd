@@ -21,10 +21,7 @@ export async function openWikilink(target: string, fromPath: string | null): Pro
     return;
   }
 
-  const docStore = useDocumentStore.getState();
-  if (docStore.doc?.isDirty) {
-    const ok = await docStore.closeWithConfirmation();
-    if (!ok) return;
-  }
-  await docStore.open(resolved);
+  // Unsaved edits aren't lost on navigation — they're kept in memory and
+  // restored when the file is reopened — so just open the target.
+  await useDocumentStore.getState().open(resolved);
 }

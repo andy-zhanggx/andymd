@@ -32,10 +32,8 @@ export async function openMarkdownLink(href: string, fromPath: string | null): P
       return;
     case 'mdfile': {
       const docStore = useDocumentStore.getState();
-      if (docStore.doc?.isDirty) {
-        const ok = await docStore.closeWithConfirmation();
-        if (!ok) return;
-      }
+      // Unsaved edits aren't lost on navigation — they're kept in memory and
+      // restored when the file is reopened — so just open the target.
       try {
         await docStore.open(target.absPath);
       } catch {
