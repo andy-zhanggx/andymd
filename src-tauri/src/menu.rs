@@ -161,6 +161,7 @@ pub fn build_menu<R: Runtime>(
         .separator()
         .item(
             &MenuItemBuilder::with_id("copy-as-markdown", "Copy as Markdown")
+                .accelerator("CmdOrCtrl+Shift+C")
                 .build(app)?,
         )
         .item(
@@ -181,7 +182,7 @@ pub fn build_menu<R: Runtime>(
     let mut view_builder = SubmenuBuilder::new(app, "View")
         .item(
             &MenuItemBuilder::with_id("toggle-sidebar", "Toggle Sidebar")
-                .accelerator("CmdOrCtrl+B")
+                .accelerator("CmdOrCtrl+Shift+L")
                 .build(app)?,
         )
         .item(

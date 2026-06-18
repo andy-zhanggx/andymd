@@ -23,6 +23,7 @@ import { viewModePlugin } from './viewModePlugin';
 import { autoPairPlugin } from './autoPairPlugin';
 import { smartPunctuation } from './smartPunctuation';
 import { highlight, superscript, subscript } from './marks';
+import { typoraKeymap } from './typoraKeymap';
 import { htmlComment } from './htmlComment';
 import { htmlMerge } from './htmlMerge';
 import { editableNodeViews } from './editableNodes';
@@ -231,6 +232,8 @@ export function buildEditor(opts: BuildOpts) {
     // inline HTML (tables, `<b>…</b>`) back into single renderable nodes.
     .use(htmlMerge)
     .use(diagram)
+    // Typora-style shortcuts; after the presets so it only fills gaps they leave.
+    .use(typoraKeymap)
     .use(searchPlugin)
     .use(viewModePlugin)
     .use(autoPairPlugin)
