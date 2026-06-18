@@ -11,22 +11,23 @@ function altFromPath(path: string): string {
 }
 
 /**
- * Open a native image picker, copy the chosen file into the document's
- * `assets/` folder, and insert an image node pointing at the relative path —
- * the same import path as drag-and-drop, but driven by the toolbar button.
- * Replaces the old placeholder-with-text-fields flow.
+ * Open a native image picker and copy the chosen file into the document's
+ * `assets/` folder. Returns the document-relative path + a default alt derived
+ * from the file name, or null if the user cancelled. Shared by the image
+ * placeholder's "Choose image" button and the "Change image" action.
  */
-export async function insertImageFromPicker(editor: Editor): Promise<void> {
+export async function pickAndImportImage(): Promise<{ relPath: string; alt: string } | null> {
   const srcPath = await dialogService.pickImageFile();
-  if (!srcPath) return; // user cancelled
+  if (!srcPath) return null; // user cancelled
   const docPath = useDocumentStore.getState().doc?.path ?? null;
   try {
     const { relPath } = await fsService.importImage(srcPath, docPath);
-    insertImageNode(editor, relPath, altFromPath(srcPath));
+    return { relPath, alt: altFromPath(srcPath) };
   } catch (err) {
     window.alert(
       (err as Error)?.message ?? 'Could not import image. Save the document first.',
     );
+    return null;
   }
 }
 

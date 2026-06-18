@@ -6,6 +6,29 @@ import { katexOptionsCtx, mathInlineSchema, mathBlockSchema } from '@milkdown/pl
 import { imageSchema } from '@milkdown/preset-commonmark';
 import { $view } from '@milkdown/utils';
 import type { $Node } from '@milkdown/utils';
+import { pickAndImportImage } from './insertImage';
+
+/**
+ * Image size rides in the alt text, Obsidian-style: `![alt|320](src)` (and
+ * `![alt|320x200]`). Standard markdown has no size syntax, so this round-trips
+ * losslessly as plain markdown (the width is just part of the alt string) and
+ * renders natively in Obsidian — no image-schema change needed.
+ */
+const IMAGE_SIZE_RE = /^(.*?)\|(\d+)(?:x\d+)?$/;
+export function parseImageAlt(raw: string | null | undefined): { alt: string; width: number | null } {
+  const m = IMAGE_SIZE_RE.exec(raw ?? '');
+  if (m) return { alt: m[1] ?? '', width: parseInt(m[2], 10) };
+  return { alt: raw ?? '', width: null };
+}
+export function combineImageAlt(alt: string, width: number | null): string {
+  return width && width > 0 ? `${alt}|${width}` : alt;
+}
+
+const IMAGE_ICON =
+  '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+  '<rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/>' +
+  '<circle cx="8.5" cy="9.5" r="1.6" fill="currentColor"/>' +
+  '<path d="M4 17l5-5 4 4 3-3 4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 // The Milkdown context object, derived from $view's factory signature so we
 // don't depend on `@milkdown/ctx` directly (it's only a pnpm override here).
@@ -255,14 +278,20 @@ class MathNodeView implements NodeView {
   }
 }
 
+/**
+ * Image NodeView. Three behaviours:
+ *  - empty `src` renders a "Choose image…" placeholder button (toolbar insert
+ *    drops one of these — it never pops a file dialog on its own);
+ *  - a rendered image gets a hover "Change" button (re-pick the file) and a
+ *    bottom-right drag handle to resize (width persisted into the alt, see
+ *    parseImageAlt/combineImageAlt);
+ *  - clicking the image itself just node-selects it (so it can be deleted) —
+ *    no more inline alt/src text fields.
+ */
 class ImageNodeView implements NodeView {
   dom: HTMLElement;
-  private img: HTMLImageElement;
-  private panel: HTMLElement | null = null;
-  private srcField: HTMLInputElement | null = null;
-  private altField: HTMLInputElement | null = null;
-  private editing = false;
   private node: ProseNode;
+  private cleanupResize: (() => void) | null = null;
 
   constructor(
     node: ProseNode,
@@ -273,138 +302,138 @@ class ImageNodeView implements NodeView {
     this.dom = document.createElement('span');
     this.dom.className = 'image-node';
     this.dom.setAttribute('data-type', 'image');
-    this.img = document.createElement('img');
-    this.dom.appendChild(this.img);
-    // Click the image to edit its alt/src — see MathNodeView.onMouseDown for why
-    // we open the panel directly instead of relying on ProseMirror's selectNode.
-    this.dom.addEventListener('mousedown', this.onMouseDown);
-    this.renderImage();
+    this.render();
   }
 
-  private onMouseDown = (e: MouseEvent) => {
-    if (this.editing) return; // clicks inside the open alt/src panel: let them through
+  private src(): string {
+    return (this.node.attrs.src as string) ?? '';
+  }
+
+  private render() {
+    this.teardownResize();
+    this.dom.replaceChildren();
+    if (!this.src()) {
+      this.dom.classList.add('empty');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'image-placeholder';
+      btn.setAttribute('contenteditable', 'false');
+      btn.innerHTML = `${IMAGE_ICON}<span>Choose image…</span>`;
+      btn.addEventListener('mousedown', this.onChoose);
+      this.dom.appendChild(btn);
+      return;
+    }
+    this.dom.classList.remove('empty');
+    const { alt, width } = parseImageAlt(this.node.attrs.alt as string);
+    const fig = document.createElement('span');
+    fig.className = 'image-figure';
+
+    const img = document.createElement('img');
+    img.setAttribute('src', this.src());
+    img.alt = alt;
+    const title = this.node.attrs.title as string;
+    if (title) img.title = title;
+    if (width) img.style.width = `${width}px`;
+    fig.appendChild(img);
+
+    const change = document.createElement('button');
+    change.type = 'button';
+    change.className = 'image-change';
+    change.setAttribute('contenteditable', 'false');
+    change.title = 'Change image';
+    change.textContent = 'Change';
+    change.addEventListener('mousedown', this.onChoose);
+    fig.appendChild(change);
+
+    const handle = document.createElement('span');
+    handle.className = 'image-resize-handle';
+    handle.setAttribute('contenteditable', 'false');
+    handle.title = 'Drag to resize';
+    handle.addEventListener('mousedown', this.onResizeDown);
+    fig.appendChild(handle);
+
+    this.dom.appendChild(fig);
+  }
+
+  // Open the native picker, import the file, and point this node at it. Used by
+  // both the empty placeholder and the "Change" button.
+  private onChoose = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    this.view.focus();
-    const pos = this.getPos();
-    if (pos != null) {
-      const { state } = this.view;
-      this.view.dispatch(state.tr.setSelection(NodeSelection.create(state.doc, pos)));
-    }
-    this.openEditor();
+    void this.choose();
   };
 
-  private renderImage() {
-    const { src, alt, title } = this.node.attrs as Record<string, string>;
-    if (this.img.getAttribute('src') !== src) this.img.setAttribute('src', src ?? '');
-    this.img.setAttribute('alt', alt ?? '');
-    if (title) this.img.setAttribute('title', title);
-    else this.img.removeAttribute('title');
-  }
-
-  // ProseMirror-driven entry (arrow-key onto the node); click entry is onMouseDown.
-  selectNode() {
-    this.openEditor();
-  }
-
-  private openEditor() {
-    if (this.editing) return;
-    this.editing = true;
-    this.dom.classList.add('editing');
-    const { src, alt } = this.node.attrs as Record<string, string>;
-    const panel = document.createElement('span');
-    panel.className = 'image-edit';
-    panel.setAttribute('contenteditable', 'false');
-
-    const altField = document.createElement('input');
-    altField.className = 'image-alt';
-    altField.placeholder = 'alt text';
-    altField.value = alt ?? '';
-
-    const srcField = document.createElement('input');
-    srcField.className = 'image-src';
-    srcField.placeholder = 'image path';
-    srcField.value = src ?? '';
-
-    panel.append(altField, srcField);
-    this.altField = altField;
-    this.srcField = srcField;
-    this.panel = panel;
-    this.dom.appendChild(panel);
-
-    altField.focus();
-    altField.addEventListener('keydown', this.onKeyDown);
-    srcField.addEventListener('keydown', this.onKeyDown);
-    altField.addEventListener('blur', this.onBlur);
-    srcField.addEventListener('blur', this.onBlur);
-  }
-
-  deselectNode() {
-    this.commit();
-  }
-
-  private onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      this.teardownPanel();
-      this.view.focus();
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      this.commit();
-      this.view.focus();
-    }
-  };
-
-  // Commit only once focus leaves the whole panel, not when moving between the
-  // two inputs.
-  private onBlur = () => {
-    setTimeout(() => {
-      if (!this.editing || !this.panel) return;
-      const active = this.dom.ownerDocument.activeElement;
-      if (active && this.panel.contains(active)) return;
-      this.commit();
-    }, 0);
-  };
-
-  private teardownPanel(): { src: string; alt: string } | null {
-    if (!this.panel) return null;
-    const result = { src: this.srcField?.value ?? '', alt: this.altField?.value ?? '' };
-    this.altField?.removeEventListener('keydown', this.onKeyDown);
-    this.srcField?.removeEventListener('keydown', this.onKeyDown);
-    this.altField?.removeEventListener('blur', this.onBlur);
-    this.srcField?.removeEventListener('blur', this.onBlur);
-    this.panel.remove();
-    this.panel = null;
-    this.srcField = null;
-    this.altField = null;
-    this.editing = false;
-    this.dom.classList.remove('editing');
-    return result;
-  }
-
-  private commit() {
-    if (!this.editing) return;
-    const next = this.teardownPanel();
-    if (!next) return;
-    const attrs = this.node.attrs as Record<string, string>;
-    if (next.src === attrs.src && next.alt === attrs.alt) return;
+  private async choose() {
+    const res = await pickAndImportImage();
+    if (!res) return;
     const pos = this.getPos();
     if (pos == null) return;
+    // Preserve any caption + size the user already set; only swap the file.
+    const { alt: curAlt, width } = parseImageAlt(this.node.attrs.alt as string);
+    const alt = combineImageAlt(curAlt || res.alt, width);
     const { state } = this.view;
     this.view.dispatch(
-      state.tr.setNodeMarkup(pos, undefined, { ...attrs, src: next.src, alt: next.alt }),
+      state.tr.setNodeMarkup(pos, undefined, { ...this.node.attrs, src: res.relPath, alt }),
     );
+    this.view.focus();
+  }
+
+  private onResizeDown = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const img = this.dom.querySelector('img');
+    if (!img) return;
+    this.dom.classList.add('resizing');
+    const startX = e.clientX;
+    const startW = img.getBoundingClientRect().width || img.naturalWidth || 200;
+    const maxW = this.view.dom.clientWidth || 2000;
+    const onMove = (ev: MouseEvent) => {
+      const w = Math.max(40, Math.min(Math.round(startW + (ev.clientX - startX)), maxW));
+      img.style.width = `${w}px`;
+    };
+    const onUp = () => {
+      this.teardownResize();
+      this.dom.classList.remove('resizing');
+      this.commitWidth(Math.round(img.getBoundingClientRect().width));
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    this.cleanupResize = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      this.cleanupResize = null;
+    };
+  };
+
+  private teardownResize() {
+    this.cleanupResize?.();
+  }
+
+  private commitWidth(width: number | null) {
+    const pos = this.getPos();
+    if (pos == null) return;
+    const { alt } = parseImageAlt(this.node.attrs.alt as string);
+    const newAlt = combineImageAlt(alt, width);
+    if (newAlt === this.node.attrs.alt) return;
+    const { state } = this.view;
+    this.view.dispatch(state.tr.setNodeMarkup(pos, undefined, { ...this.node.attrs, alt: newAlt }));
   }
 
   update(node: ProseNode) {
     if (node.type !== this.node.type) return false;
+    const sameImage = !!this.src() && node.attrs.src === this.node.attrs.src;
     this.node = node;
-    if (!this.editing) this.renderImage();
+    const img = this.dom.querySelector('img');
+    if (sameImage && img) {
+      // Only alt/width changed (e.g. a resize commit) — patch in place so the
+      // <img> doesn't reload and flash.
+      const { alt, width } = parseImageAlt(node.attrs.alt as string);
+      img.alt = alt;
+      img.style.width = width ? `${width}px` : '';
+      return true;
+    }
+    this.render();
     return true;
-  }
-
-  stopEvent(e: Event) {
-    return this.editing && this.panel != null && this.panel.contains(e.target as Node);
   }
 
   ignoreMutation() {
@@ -412,8 +441,7 @@ class ImageNodeView implements NodeView {
   }
 
   destroy() {
-    this.dom.removeEventListener('mousedown', this.onMouseDown);
-    this.teardownPanel();
+    this.teardownResize();
   }
 }
 

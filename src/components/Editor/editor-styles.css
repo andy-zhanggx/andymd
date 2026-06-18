@@ -271,23 +271,74 @@
   display: none;
 }
 
-.editor-container .milkdown .image-node.editing img {
-  outline: 2px solid var(--accent);
+/* Empty image node → a "Choose image…" placeholder button (toolbar insert). */
+.editor-container .milkdown .image-placeholder {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  color: var(--fg-muted);
+  background: var(--bg-secondary, rgba(127, 127, 127, 0.08));
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+.editor-container .milkdown .image-placeholder:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Rendered image: figure wraps the <img> so the Change button + resize handle
+   can be absolutely positioned over it, revealed on hover. */
+.editor-container .milkdown .image-figure {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+.editor-container .milkdown .image-figure img {
+  display: inline-block;
+  max-width: 100%;
   border-radius: 4px;
 }
-.editor-container .milkdown .image-edit {
-  display: inline-flex;
-  gap: 6px;
-  margin-left: 8px;
-  vertical-align: middle;
-}
-.editor-container .milkdown .image-edit input {
-  padding: 4px 8px;
-  border: 1px solid var(--border);
+.editor-container .milkdown .image-change {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 3px 8px;
+  font-size: 12px;
+  line-height: 1.2;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
   border-radius: 6px;
-  background: var(--bg-secondary, rgba(127, 127, 127, 0.08));
-  color: var(--fg);
-  font-size: 0.85em;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.editor-container .milkdown .image-figure:hover .image-change {
+  opacity: 1;
+}
+.editor-container .milkdown .image-change:hover {
+  background: var(--accent);
+}
+/* Bottom-right drag handle to resize. */
+.editor-container .milkdown .image-resize-handle {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 14px;
+  height: 14px;
+  border-right: 3px solid var(--accent);
+  border-bottom: 3px solid var(--accent);
+  border-bottom-right-radius: 4px;
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.editor-container .milkdown .image-figure:hover .image-resize-handle,
+.editor-container .milkdown .image-node.resizing .image-resize-handle {
+  opacity: 0.85;
 }
 
 .editor-container .milkdown a.wikilink {

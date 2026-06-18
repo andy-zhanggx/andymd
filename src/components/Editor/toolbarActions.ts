@@ -234,19 +234,22 @@ export function insertTable(editor: Editor): void {
   focusEditor(editor);
 }
 
-/** Insert an image node with placeholder alt/src and select it. */
+/**
+ * Insert an empty image node. With no `src` its NodeView renders a "Choose
+ * image" placeholder button (see ImageNodeView) — inserting never pops a file
+ * dialog; the user decides when to pick an image (or just deletes the
+ * placeholder).
+ */
 export function insertImagePlaceholder(editor: Editor): void {
   withView(editor, ({ state, dispatch, focus }) => {
     const imageType = state.schema.nodes.image;
     if (!imageType) return;
-    const node = imageType.create({ src: 'path/to/image', alt: 'image', title: null });
+    const node = imageType.create({ src: '', alt: '', title: '' });
     const { from } = state.selection;
-    // Focus before dispatch so the node-selection change opens the edit panel
-    // immediately (ProseMirror only fires selectNode while the view has focus).
-    focus();
     let tr = state.tr.replaceSelectionWith(node, false);
     tr = selectInsertedNode(tr, 'image', from);
     dispatch(tr.scrollIntoView());
+    focus();
   });
 }
 
