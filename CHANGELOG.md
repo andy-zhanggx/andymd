@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _Nothing yet._
 
+<!--
+Behind a build flag, not yet released: **multiple tabs** + **"Open in new tab /
+this window"** link context menu. Enable for development with
+`VITE_ENABLE_TABS=true` (frontend) and `ANDYMD_ENABLE_TABS=1` (native menu).
+See docs/features-multi-tabs/spec.md.
+-->
+
 ## [0.2.0] — 2026-06-18
 
 ### Added

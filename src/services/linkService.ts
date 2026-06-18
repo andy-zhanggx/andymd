@@ -10,7 +10,11 @@ import { useDocumentStore } from '../stores/documentStore';
  * other files/folders are handed to the OS, external URLs open in the browser,
  * and links that resolve to a missing vault path surface a not-found notice.
  */
-export async function openMarkdownLink(href: string, fromPath: string | null): Promise<void> {
+export async function openMarkdownLink(
+  href: string,
+  fromPath: string | null,
+  opts: { newTab?: boolean } = {},
+): Promise<void> {
   const tree = useWorkspaceStore.getState().workspace?.tree ?? null;
   const target = resolveLinkTarget(href, fromPath, tree);
 
@@ -31,13 +35,13 @@ export async function openMarkdownLink(href: string, fromPath: string | null): P
     case 'ignore':
       return;
     case 'mdfile': {
+      // open()/openInNewTab() each prompt before clobbering unsaved work, so we
+      // route straight through. New-tab navigation never replaces, so it can't
+      // lose edits.
       const docStore = useDocumentStore.getState();
-      if (docStore.doc?.isDirty) {
-        const ok = await docStore.closeWithConfirmation();
-        if (!ok) return;
-      }
       try {
-        await docStore.open(target.absPath);
+        if (opts.newTab) await docStore.openInNewTab(target.absPath);
+        else await docStore.open(target.absPath);
       } catch {
         // Out-of-vault link whose target doesn't actually exist.
         window.alert(`未找到: ${target.absPath}`);

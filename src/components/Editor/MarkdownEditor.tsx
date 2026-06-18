@@ -5,11 +5,12 @@ import type { EditorView } from '@milkdown/prose/view';
 import { openMarkdownLink } from '../../services/linkService';
 import { buildEditor } from './milkdownConfig';
 import { useCollabStore, getActiveSession } from '../../collab/collabStore';
-import { ONLINE_COLLAB } from '../../featureFlags';
+import { ONLINE_COLLAB, MULTI_TABS } from '../../featureFlags';
 import { cursorBuilder, selectionBuilder } from '../../collab/cursor';
 import { insertImageNode } from './insertImage';
 import { Toolbar } from './Toolbar';
 import { FindReplace } from './FindReplace';
+import { LinkContextMenu, LinkMenuTarget } from './LinkContextMenu';
 import { EditorBuildError } from './EditorBuildError';
 import { setActiveView } from './activeView';
 import { setTypewriter } from './viewModePlugin';
@@ -64,6 +65,8 @@ export function MarkdownEditor() {
   // leaving a blank pane; bumping `reloadKey` re-runs the build effect.
   const [buildError, setBuildError] = useState<Error | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  // Right-clicking a link opens a small menu offering this-window vs new-tab.
+  const [linkMenu, setLinkMenu] = useState<LinkMenuTarget | null>(null);
 
   // Handle image drops at the DOM level. Tauri's native drag interception is
   // disabled (dragDropEnabled: false), so the webview receives the HTML5 drop
@@ -173,13 +176,27 @@ export function MarkdownEditor() {
         });
       }
     };
+    // ⌘/Ctrl-click (and the configured default) open links in a new tab; a plain
+    // click with the default off replaces the current tab. With tabs gated off
+    // every link opens in place, exactly as the single-document editor did.
+    const wantsNewTab = (e: MouseEvent) =>
+      MULTI_TABS && (e.metaKey || e.ctrlKey || useConfigStore.getState().config.linkOpenInNewTab);
+    const linkFromEvent = (e: MouseEvent): HTMLAnchorElement | null => {
+      const start = e.target instanceof Element
+        ? e.target
+        : e.target instanceof Node
+          ? e.target.parentElement
+          : null;
+      const anchor = start?.closest<HTMLAnchorElement>('a');
+      return anchor && root.contains(anchor) ? anchor : null;
+    };
     const wikilinkClickHandler = (e: MouseEvent) => {
       const anchor = (e.target as HTMLElement).closest('a[data-type="wikilink"]');
       if (!anchor) return;
       e.preventDefault();
       e.stopPropagation();
       const target = anchor.getAttribute('data-target') || '';
-      if (target) void openWikilink(target, doc.path);
+      if (target) void openWikilink(target, doc.path, { newTab: wantsNewTab(e) });
     };
     const scrollHandler = () => {
       lastScrollTop = scroller?.scrollTop ?? 0;
@@ -189,13 +206,8 @@ export function MarkdownEditor() {
       }, 500);
     };
     const clickHandler = (e: MouseEvent) => {
-      const start = e.target instanceof Element
-        ? e.target
-        : e.target instanceof Node
-          ? e.target.parentElement
-          : null;
-      const anchor = start?.closest<HTMLAnchorElement>('a');
-      if (!anchor || !root.contains(anchor)) return;
+      const anchor = linkFromEvent(e);
+      if (!anchor) return;
       // Wikilinks have their own handler.
       if (anchor.getAttribute('data-type') === 'wikilink') return;
 
@@ -207,7 +219,44 @@ export function MarkdownEditor() {
       // stops the webview from trying to navigate to the raw href.
       e.preventDefault();
       e.stopPropagation();
-      void openMarkdownLink(rawHref, doc.path);
+      void openMarkdownLink(rawHref, doc.path, { newTab: wantsNewTab(e) });
+    };
+
+    // Middle-click always opens a link in a new tab, like a browser.
+    const auxClickHandler = (e: MouseEvent) => {
+      if (!MULTI_TABS || e.button !== 1) return;
+      const anchor = linkFromEvent(e);
+      if (!anchor) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (anchor.getAttribute('data-type') === 'wikilink') {
+        const target = anchor.getAttribute('data-target') || '';
+        if (target) void openWikilink(target, doc.path, { newTab: true });
+      } else {
+        const href = anchor.getAttribute('href');
+        if (href && href !== '#') void openMarkdownLink(href, doc.path, { newTab: true });
+      }
+    };
+
+    // Right-click a link → choose this-window vs new-tab vs copy.
+    const contextMenuHandler = (e: MouseEvent) => {
+      if (!MULTI_TABS) return;
+      const anchor = linkFromEvent(e);
+      if (!anchor) return;
+      const isWiki = anchor.getAttribute('data-type') === 'wikilink';
+      const value = isWiki
+        ? anchor.getAttribute('data-target') || ''
+        : anchor.getAttribute('href') || '';
+      if (!value || value === '#') return;
+      e.preventDefault();
+      e.stopPropagation();
+      setLinkMenu({
+        kind: isWiki ? 'wikilink' : 'markdown',
+        value,
+        fromPath: doc.path,
+        x: e.clientX,
+        y: e.clientY,
+      });
     };
 
     const setup = async () => {
@@ -290,6 +339,8 @@ export function MarkdownEditor() {
 
       scroller?.addEventListener('scroll', scrollHandler, { passive: true });
       root.addEventListener('click', wikilinkClickHandler);
+      root.addEventListener('auxclick', auxClickHandler);
+      root.addEventListener('contextmenu', contextMenuHandler);
     };
 
     void setup().catch((err) => {
@@ -309,6 +360,8 @@ export function MarkdownEditor() {
       mo?.disconnect();
       root.removeEventListener('click', wikilinkClickHandler);
       root.removeEventListener('click', clickHandler);
+      root.removeEventListener('auxclick', auxClickHandler);
+      root.removeEventListener('contextmenu', contextMenuHandler);
       scroller?.removeEventListener('scroll', scrollHandler);
       if (scrollTimer) window.clearTimeout(scrollTimer);
       flushSession();
@@ -407,6 +460,7 @@ export function MarkdownEditor() {
     <>
       <Toolbar getEditor={() => editorRef.current} />
       <FindReplace getView={() => viewRef.current} />
+      {linkMenu && <LinkContextMenu {...linkMenu} onClose={() => setLinkMenu(null)} />}
       {buildError && (
         <EditorBuildError
           message={buildError.message}

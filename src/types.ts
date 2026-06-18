@@ -54,6 +54,9 @@ export interface AppConfig {
   displayName: string;             // name shown to collaborators (blank = auto)
   lastSeenVersion: string | null;  // app version last shown in "What's New" (null = never)
   sessions: Record<string, DocumentSession>;  // key = file absolute path
+  linkOpenInNewTab: boolean;       // plain link-click opens a new tab vs replacing the current one
+  openTabs: string[];              // absolute paths of tabs to restore on launch (drafts excluded)
+  activeTabPath: string | null;    // which restored tab is active
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -77,6 +80,9 @@ export const DEFAULT_CONFIG: AppConfig = {
   displayName: '',
   lastSeenVersion: null,
   sessions: {},
+  linkOpenInNewTab: true,
+  openTabs: [],
+  activeTabPath: null,
 };
 
 export const SESSION_CAP = 200; // LRU limit for sessions map
