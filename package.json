@@ -20,6 +20,7 @@
     "test:watch": "vitest",
     "tauri": "tauri",
     "version:set": "node scripts/set-version.mjs",
+    "release:macos": "tauri build --target aarch64-apple-darwin && tauri build --target x86_64-apple-darwin",
     "release:dmg": "node scripts/release-dmg.mjs",
     "release:update": "node scripts/release-update.mjs"
   },

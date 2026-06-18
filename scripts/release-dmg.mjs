@@ -1,16 +1,14 @@
 #!/usr/bin/env node
-// Attach the locally-built macOS .dmg to this version's GitLab Release.
+// Attach the locally-built macOS .dmg installers to this version's GitHub Release
+// (the public download for users). One .dmg PER ARCHITECTURE:
+//   pnpm version:set <x.y.z>
+//   pnpm release:macos    # builds aarch64 + x64
+//   pnpm release:dmg      # this script: upload both .dmg to the GitHub release
 //
-// AndyMD's .dmg can't be built in CI (no macOS runner), so releases ship the
-// installer from a local build:
-//   pnpm version:set <x.y.z>   # then commit + tag + push  (CI tests + creates the release)
-//   pnpm tauri build           # → src-tauri/target/release/bundle/dmg/AndyMD_<ver>_<arch>.dmg
-//   pnpm release:dmg           # this script: upload the .dmg + attach it to the release
-//
-// Needs a GitLab token in $GITLAB_TOKEN (falls back to the token embedded in
-// the `origin` remote). Project + host are derived from the `origin` remote.
+// Requires the GitHub CLI authenticated with push access (`gh auth status`).
+// Repo via $GH_RELEASES_REPO (default andy-zhanggx/andymd) and MUST be public.
 import { readFileSync, readdirSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -19,62 +17,42 @@ const die = (msg) => { console.error(`✗ ${msg}`); process.exit(1); };
 
 const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
 const tag = `v${version}`;
+const repo = process.env.GH_RELEASES_REPO || 'andy-zhanggx/andymd';
+const verRe = version.replace(/\./g, '\\.');
 
-// Resolve the GitLab host + URL-encoded project path from `origin`.
-const origin = execSync('git config --get remote.origin.url', { cwd: root }).toString().trim();
-const m = origin.match(/^https?:\/\/(?:[^@]*@)?([^/]+)\/(.+?)(?:\.git)?$/);
-if (!m) die(`could not parse a GitLab https URL from origin: ${origin}`);
-const [, host, projectPath] = m;
-const api = `https://${host}/api/v4/projects/${encodeURIComponent(projectPath)}`;
+// One entry per architecture. `dmgArch` is the suffix Tauri puts in the .dmg
+// filename for that target (aarch64 → "aarch64", x86_64 → "x64").
+const ARCHES = [
+  { triple: 'aarch64-apple-darwin', dmgArch: 'aarch64', label: 'Apple Silicon' },
+  { triple: 'x86_64-apple-darwin',  dmgArch: 'x64',     label: 'Intel' },
+];
 
-const token = process.env.GITLAB_TOKEN || (origin.match(/\/\/[^:]*:([^@]+)@/) || [])[1];
-if (!token) die('no GitLab token — set $GITLAB_TOKEN (e.g. source ~/.zshrc)');
-const auth = { 'PRIVATE-TOKEN': token };
-
-// Find the built .dmg for this version (arch suffix varies: aarch64 / x64).
-const dmgDir = join(root, 'src-tauri/target/release/bundle/dmg');
-let file;
-try {
-  file = readdirSync(dmgDir).find((f) => new RegExp(`^AndyMD_${version.replace(/\./g, '\\.')}_.*\\.dmg$`).test(f));
-} catch {
-  die(`no bundle dir at ${dmgDir} — run \`pnpm tauri build\` first`);
+// Locate each arch's .dmg (target/<triple>/release/bundle/dmg/AndyMD_<ver>_<dmgArch>.dmg).
+const found = [];
+for (const a of ARCHES) {
+  const dir = join(root, `src-tauri/target/${a.triple}/release/bundle/dmg`);
+  const re = new RegExp(`^AndyMD_${verRe}_${a.dmgArch}\\.dmg$`);
+  let file;
+  try { file = readdirSync(dir).find((f) => re.test(f)); } catch { /* not built */ }
+  if (file) found.push({ ...a, path: join(dir, file), file });
+  else console.warn(`⚠ no ${a.label} .dmg (AndyMD_${version}_${a.dmgArch}.dmg) in ${dir} — skipping`);
 }
-if (!file) die(`no AndyMD_${version}_*.dmg in ${dmgDir} — run \`pnpm tauri build\` (is package.json at ${version}?)`);
+if (!found.length) die(`no per-arch .dmg found for ${version} — run \`pnpm release:macos\` first (is package.json at ${version}?)`);
 
-const pkgUrl = `${api}/packages/generic/andymd/${tag}/${file}`;
+const gh = (...args) => execFileSync('gh', args, { cwd: root, stdio: ['ignore', 'pipe', 'inherit'] }).toString().trim();
 
-async function gl(method, url, opts = {}) {
-  const res = await fetch(url, { method, headers: { ...auth, ...(opts.headers || {}) }, body: opts.body });
-  if (!res.ok) die(`${method} ${url.replace(/\/\/[^/]+/, '//…')} → ${res.status} ${await res.text()}`);
-  return res.status === 204 ? null : res.json();
+// Create the release if absent (release-update may also do this — idempotent).
+let exists = true;
+try { gh('release', 'view', tag, '--repo', repo); } catch { exists = false; }
+if (!exists) {
+  console.log(`↑ creating release ${tag} on ${repo}`);
+  gh('release', 'create', tag, '--repo', repo, '--title', tag, '--notes', tag);
 }
 
-// 0. The release must already exist (CI creates it on the tag push).
-await gl('GET', `${api}/releases/${tag}`).catch(() => die(`release ${tag} not found — push the ${tag} tag first (CI creates the release)`));
+console.log(`↑ uploading ${found.map((f) => f.file).join(', ')} → ${repo}@${tag}`);
+gh('release', 'upload', tag, ...found.map((f) => f.path), '--repo', repo, '--clobber');
 
-// 1. Upload the .dmg to the Generic Package Registry.
-console.log(`↑ uploading ${file} → packages/generic/andymd/${tag}/`);
-await gl('PUT', pkgUrl, { body: readFileSync(join(dmgDir, file)) });
-
-// 2. Replace any existing .dmg / web-zip asset links, then add the .dmg link.
-const links = await gl('GET', `${api}/releases/${tag}/assets/links`);
-for (const l of links) {
-  if (l.name.includes(file) || l.name.includes('web.zip')) {
-    await gl('DELETE', `${api}/releases/${tag}/assets/links/${l.id}`);
-    console.log(`  removed stale asset link: ${l.name}`);
-  }
+for (const { file, label } of found) {
+  console.log(`✓ ${file} (${label})`);
+  console.log(`  download: https://github.com/${repo}/releases/download/${tag}/${file}`);
 }
-const body = new URLSearchParams({
-  name: `${file} (macOS, Apple Silicon)`,
-  url: pkgUrl,
-  link_type: 'package',
-  direct_asset_path: `/${file}`,
-}).toString();
-const link = await gl('POST', `${api}/releases/${tag}/assets/links`, {
-  body,
-  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-});
-
-console.log(`✓ attached ${file} to ${tag}`);
-console.log(`  download: https://${host}/${projectPath}/-/releases/${tag}/downloads/${file}`);
-console.log(`  (link id ${link.id})`);

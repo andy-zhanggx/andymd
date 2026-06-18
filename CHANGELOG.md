@@ -72,7 +72,7 @@ built with Tauri 2 + React 18 + Milkdown.
 - Light / dark / system theme; `.md` / `.markdown` Finder file association; external-modification detection on save.
 - First-run **onboarding tour** (bilingual EN / 中文) with spotlight steps; replay from the status-bar `?` button or **Help → Welcome Tour**.
 
-[Unreleased]: https://github.com/OldBao/andymd/compare/v0.1.2...HEAD
-[0.1.2]: https://github.com/OldBao/andymd/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/OldBao/andymd/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/OldBao/andymd/releases/tag/v0.1.0
+[Unreleased]: https://github.com/andy-zhanggx/andymd/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/andy-zhanggx/andymd/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/andy-zhanggx/andymd/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/andy-zhanggx/andymd/releases/tag/v0.1.0
