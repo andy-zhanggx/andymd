@@ -132,33 +132,37 @@ describe('editable atom nodes (inline math, block math, image)', () => {
     await e.destroy();
   });
 
-  it('block math: a plain mousedown on the formula opens the source editor', async () => {
+  it('block math: a single click does NOT edit (so the caret can navigate); double-click opens', async () => {
     const e = await mount('```math\nE = mc^2\n```');
     const view = e.ctx.get(editorViewCtx);
     const rendered = view.dom.querySelector('.math-block .math-rendered')!;
     expect(view.dom.querySelector('.math-source')).toBeNull();
-    rendered.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    // Single click (detail 1) leaves it to ProseMirror to node-select → no editor.
+    rendered.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, detail: 1 }));
+    expect(view.dom.querySelector('.math-source'), 'single click does not open the editor').toBeNull();
+    // Double click (detail 2) opens the source editor.
+    rendered.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, detail: 2 }));
     const field = view.dom.querySelector<HTMLTextAreaElement>('.math-source');
-    expect(field, 'clicking the formula opens the editor').not.toBeNull();
+    expect(field, 'double-click opens the editor').not.toBeNull();
     expect(field!.value).toBe('E = mc^2');
     await e.destroy();
   });
 
-  it('block math: stays editable after committing and clicking again (regression)', async () => {
+  it('block math: stays editable after committing and double-clicking again (regression)', async () => {
     const e = await mount('```math\nE = mc^2\n```');
     const view = e.ctx.get(editorViewCtx);
-    // First edit: open via affordance, change, commit by deselecting.
+    // First edit via node-selection, change, commit by deselecting.
     select(e, posOf(e, 'math_block'));
     const f1 = view.dom.querySelector<HTMLTextAreaElement>('.math-source')!;
     f1.value = 'a + b';
     deselect(e);
     expect(view.dom.querySelector('.math-source')).toBeNull();
-    // Re-click the (now deselected) formula — must reopen the editor even though
-    // the node may be re-selected with no selection change.
+    // Double-click the (now deselected) formula — must reopen even though the
+    // node may be re-selected with no selection change.
     const rendered = view.dom.querySelector('.math-block .math-rendered')!;
-    rendered.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    rendered.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, detail: 2 }));
     const f2 = view.dom.querySelector<HTMLTextAreaElement>('.math-source');
-    expect(f2, 'second click reopens the editor').not.toBeNull();
+    expect(f2, 'second edit reopens the editor').not.toBeNull();
     expect(f2!.value).toBe('a + b');
     await e.destroy();
   });

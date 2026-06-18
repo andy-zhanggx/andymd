@@ -30,6 +30,13 @@ const IMAGE_ICON =
   '<circle cx="8.5" cy="9.5" r="1.6" fill="currentColor"/>' +
   '<path d="M4 17l5-5 4 4 3-3 4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+// Small "swap / replace" glyph for the floating change-image button.
+const CHANGE_ICON =
+  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+  '<path d="M4 9a7 7 0 0 1 11.7-3.2L18 8M20 15a7 7 0 0 1-11.7 3.2L6 16" ' +
+  'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+  '<path d="M18 4v4h-4M6 20v-4h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
 // The Milkdown context object, derived from $view's factory signature so we
 // don't depend on `@milkdown/ctx` directly (it's only a pnpm override here).
 type Ctx = Parameters<Parameters<typeof $view>[1]>[0];
@@ -106,11 +113,17 @@ class MathNodeView implements NodeView {
     this.renderMath();
   }
 
-  // Enter edit mode on a click anywhere on the node (formula or edit button).
-  // preventDefault keeps focus off a clicked button and stops ProseMirror's own
-  // selection handling; we set the NodeSelection and open the editor ourselves.
+  // Editing entry differs by kind:
+  //  - inline math (a small target): a single click opens the editor.
+  //  - block math: a single click is left to ProseMirror so it node-selects the
+  //    block and the cursor can navigate around/past it; editing is via a
+  //    double-click or the hover "edit" affordance button. (Opening on every
+  //    single click made it impossible to place the caret near a block formula.)
   private onMouseDown = (e: MouseEvent) => {
     if (this.editing) return; // clicks inside the open source field: let them through
+    const onAffordance =
+      !!this.editBtn && e.target instanceof Node && this.editBtn.contains(e.target);
+    if (!this.inline && !onAffordance && e.detail < 2) return; // let PM select the node
     e.preventDefault();
     e.stopPropagation();
     this.beginEdit();
@@ -341,7 +354,8 @@ class ImageNodeView implements NodeView {
     change.className = 'image-change';
     change.setAttribute('contenteditable', 'false');
     change.title = 'Change image';
-    change.textContent = 'Change';
+    change.setAttribute('aria-label', 'Change image');
+    change.innerHTML = CHANGE_ICON;
     change.addEventListener('mousedown', this.onChoose);
     fig.appendChild(change);
 
