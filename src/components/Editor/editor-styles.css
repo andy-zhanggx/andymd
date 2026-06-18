@@ -294,6 +294,18 @@
   border-bottom-style: dotted;
 }
 
+/*
+ * Dead markdown links — the link mark whose target is a missing vault path. The
+ * decoration wraps the link text in `.link-dead`; desaturate it to the same
+ * lighter grey-blue as dead wikilinks and dot the underline.
+ */
+.editor-container .milkdown a .link-dead,
+.editor-container .milkdown .link-dead {
+  color: color-mix(in srgb, var(--accent) 38%, var(--fg-muted) 62%);
+  text-decoration-color: color-mix(in srgb, var(--accent) 38%, var(--fg-muted) 62%);
+  text-decoration-style: dotted;
+}
+
 .editor-container .milkdown blockquote {
   margin: 0 0 1em;
   padding-left: 12px;

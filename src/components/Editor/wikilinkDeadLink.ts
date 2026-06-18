@@ -3,36 +3,59 @@ import { Plugin, PluginKey } from '@milkdown/prose/state';
 import { Decoration, DecorationSet } from '@milkdown/prose/view';
 import type { Node as PMNode } from '@milkdown/prose/model';
 import { resolveWikilinkInTree } from '../../lib/wikilink';
+import { resolveLinkTarget } from '../../lib/linkTarget';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useDocumentStore } from '../../stores/documentStore';
 
 /**
- * Paints a `wikilink-dead` class on any wikilink whose target does not resolve
- * to an existing note in the current vault, so unreachable links read as muted
- * grey-blue dead links instead of looking like working ones.
+ * Paints a muted grey-blue "dead link" class on links whose target can't be
+ * reached in the current vault, so unreachable links read differently from
+ * working ones:
+ *   - wikilinks (`[[x]]`, atom nodes)      -> `wikilink-dead`
+ *   - markdown links (`[x](y)`, link mark) -> `link-dead`
  *
- * Resolution reuses `resolveWikilinkInTree` (so `./` / `../` relative links and
- * the dead-link verdict stay consistent with click navigation) against the live
- * workspace tree and the current document's path. Decorations recompute on edits
- * and whenever the vault tree changes, so links flip dead/alive without needing
- * a manual reload.
+ * Resolution reuses the same logic as click navigation (`resolveWikilinkInTree`
+ * / `resolveLinkTarget`) against the live workspace tree and current file, so a
+ * link is only painted dead when clicking it would also fail. Out-of-vault and
+ * external links are never flagged. Decorations recompute on edits and whenever
+ * the vault tree changes, so links flip dead/alive without a manual reload.
  */
 
-const key = new PluginKey<DecorationSet>('andymd-wikilink-deadlink');
+const key = new PluginKey<DecorationSet>('andymd-dead-link');
 
-/** True when `target` does not resolve to an existing note in the current vault. */
-function isDeadLink(target: string): boolean {
-  const tree = useWorkspaceStore.getState().workspace?.tree;
-  if (!tree) return false; // no vault context loaded — don't flag anything
+function vaultContext() {
+  const tree = useWorkspaceStore.getState().workspace?.tree ?? null;
   const fromPath = useDocumentStore.getState().doc?.path ?? null;
+  return { tree, fromPath };
+}
+
+function isDeadWikilink(target: string): boolean {
+  const { tree, fromPath } = vaultContext();
+  if (!tree) return false; // no vault context — don't flag anything
   return resolveWikilinkInTree(target, tree, fromPath) === null;
+}
+
+function isDeadMarkdownLink(href: string): boolean {
+  const { tree, fromPath } = vaultContext();
+  if (!tree) return false;
+  return resolveLinkTarget(href, fromPath, tree).kind === 'dead';
 }
 
 function computeDecorations(doc: PMNode): DecorationSet {
   const decos: Decoration[] = [];
   doc.descendants((node, pos) => {
-    if (node.type.name === 'wikilink' && isDeadLink(node.attrs.target as string)) {
-      decos.push(Decoration.node(pos, pos + node.nodeSize, { class: 'wikilink-dead' }));
+    if (node.type.name === 'wikilink') {
+      if (isDeadWikilink(node.attrs.target as string)) {
+        decos.push(Decoration.node(pos, pos + node.nodeSize, { class: 'wikilink-dead' }));
+      }
+      return;
+    }
+    if (node.isText) {
+      const link = node.marks.find((m) => m.type.name === 'link');
+      const href = link?.attrs.href as string | undefined;
+      if (href && isDeadMarkdownLink(href)) {
+        decos.push(Decoration.inline(pos, pos + node.nodeSize, { class: 'link-dead' }));
+      }
     }
   });
   return DecorationSet.create(doc, decos);

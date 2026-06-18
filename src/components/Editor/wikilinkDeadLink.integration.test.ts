@@ -79,3 +79,21 @@ describe('wikilink dead-link decoration', () => {
     await e.destroy();
   });
 });
+
+function anchorFor(view: { dom: ParentNode }, href: string): HTMLElement {
+  return [...view.dom.querySelectorAll('a[href]')].find(
+    (a) => a.getAttribute('href') === href,
+  ) as HTMLElement;
+}
+
+describe('markdown link dead-link decoration', () => {
+  it('paints a dead markdown link grey-blue, leaves a resolvable one alone', async () => {
+    setVault('/v/current.md');
+    const e = await mount('[live](./real.md) and [dead](./missing.md)');
+    const view = e.ctx.get(editorViewCtx);
+    // The dead link's text is wrapped with the link-dead class; the live one isn't.
+    expect(anchorFor(view, './missing.md').querySelector('.link-dead')).not.toBeNull();
+    expect(anchorFor(view, './real.md').querySelector('.link-dead')).toBeNull();
+    await e.destroy();
+  });
+});

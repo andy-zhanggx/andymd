@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Editor, editorViewCtx } from '@milkdown/core';
 import { collabServiceCtx } from '@milkdown/plugin-collab';
 import type { EditorView } from '@milkdown/prose/view';
-import { openUrl } from '@tauri-apps/plugin-opener';
+import { openMarkdownLink } from '../../services/linkService';
 import { buildEditor } from './milkdownConfig';
 import { useCollabStore, getActiveSession } from '../../collab/collabStore';
 import { ONLINE_COLLAB } from '../../featureFlags';
@@ -20,7 +20,7 @@ import { useUIStore } from '../../stores/uiStore';
 import { dialogService } from '../../services/dialogService';
 import { fsService } from '../../services/fsService';
 import { openWikilink } from '../../services/wikilinkService';
-import { resolveImageSrc, resolveLinkHref } from '../../lib/asset';
+import { resolveImageSrc } from '../../lib/asset';
 import { isImageFile } from '../../lib/image';
 import './editor-styles.css';
 
@@ -175,8 +175,6 @@ export function MarkdownEditor() {
       }, 500);
     };
     const clickHandler = (e: MouseEvent) => {
-      if (!e.metaKey) return;
-
       const start = e.target instanceof Element
         ? e.target
         : e.target instanceof Node
@@ -184,20 +182,18 @@ export function MarkdownEditor() {
           : null;
       const anchor = start?.closest<HTMLAnchorElement>('a');
       if (!anchor || !root.contains(anchor)) return;
+      // Wikilinks have their own handler.
+      if (anchor.getAttribute('data-type') === 'wikilink') return;
 
       const rawHref = anchor.getAttribute('href');
-      if (!rawHref) return;
+      if (!rawHref || rawHref === '#') return;
 
-      const resolved = resolveLinkHref(rawHref, doc.path);
-      if (resolved.kind === 'external') {
-        e.preventDefault();
-        e.stopPropagation();
-        void openUrl(resolved.href);
-      } else if (resolved.kind === 'mdfile') {
-        e.preventDefault();
-        e.stopPropagation();
-        void openDoc(resolved.absPath);
-      }
+      // Plain click follows the link (directory links open their index note,
+      // non-md files open in the OS, external URLs in the browser). preventDefault
+      // stops the webview from trying to navigate to the raw href.
+      e.preventDefault();
+      e.stopPropagation();
+      void openMarkdownLink(rawHref, doc.path);
     };
 
     const setup = async () => {
