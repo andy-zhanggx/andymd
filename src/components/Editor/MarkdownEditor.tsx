@@ -243,6 +243,16 @@ export function MarkdownEditor() {
         }
       }
 
+      // A freshly created / empty document otherwise mounts as a blank pane with
+      // no caret, so it's not obvious where to type. Focus the editor so the
+      // cursor is visible and the user can start typing immediately. (Existing
+      // files are left unfocused to preserve their restored scroll position.)
+      if (!doc.path || doc.draft.trim() === '') {
+        requestAnimationFrame(() => {
+          if (!disposed) viewRef.current?.focus();
+        });
+      }
+
       scroller?.addEventListener('scroll', scrollHandler, { passive: true });
     };
 
