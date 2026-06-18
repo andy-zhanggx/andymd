@@ -4,7 +4,7 @@ export function toAssetUrl(fsPath: string): string {
   return convertFileSrc(fsPath);
 }
 
-function decodePath(path: string): string {
+export function decodePath(path: string): string {
   try {
     return decodeURIComponent(path);
   } catch {
@@ -12,14 +12,14 @@ function decodePath(path: string): string {
   }
 }
 
-function dirname(path: string): string {
+export function dirname(path: string): string {
   const index = path.lastIndexOf('/');
   if (index < 0) return '';
   if (index === 0) return '/';
   return path.slice(0, index);
 }
 
-function resolvePosixPath(path: string): string {
+export function resolvePosixPath(path: string): string {
   const absolute = path.startsWith('/');
   const parts: string[] = [];
 
