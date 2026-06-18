@@ -112,6 +112,25 @@ export function MarkdownEditor() {
     };
   }, []);
 
+  // Reflect ⌘ being held as a `cmd-held` class on <body> so links can show the
+  // hand ("jump") cursor only while a ⌘-click would actually navigate. Tracking
+  // it globally (not just keys typed in the editor) keeps the cursor in sync no
+  // matter where focus is; blur clears it so a ⌘-tab away can't leave it stuck.
+  useEffect(() => {
+    const sync = (held: boolean) => document.body.classList.toggle('cmd-held', held);
+    const onKey = (e: KeyboardEvent) => sync(e.metaKey);
+    const onBlur = () => sync(false);
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('keyup', onKey);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup', onKey);
+      window.removeEventListener('blur', onBlur);
+      document.body.classList.remove('cmd-held');
+    };
+  }, []);
+
   useEffect(() => {
     if (!ref.current || !doc) return;
     const root = ref.current;

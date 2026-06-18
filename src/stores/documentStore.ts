@@ -10,7 +10,16 @@ import { versionService } from '../services/versionService';
 
 interface DocumentState {
   doc: Document | null;
+  /**
+   * Browser-style navigation history of opened file paths. `historyIndex` is
+   * the current position; entries after it are the "forward" stack. Lets link
+   * jumps (and any open()) be retraced with back()/forward().
+   */
+  history: string[];
+  historyIndex: number;
   open: (path: string) => Promise<void>;
+  back: () => Promise<void>;
+  forward: () => Promise<void>;
   newFile: () => Promise<void>;
   newDraft: () => void;
   setDraft: (draft: string) => void;
@@ -32,24 +41,61 @@ function emptyDraft(): Document {
   };
 }
 
+// Read a file from disk and make it the open document. Shared by open() and the
+// history navigators (back/forward) so they load identically; only open() also
+// pushes onto the navigation history.
+async function loadDoc(
+  set: (partial: Partial<DocumentState>) => void,
+  path: string,
+): Promise<void> {
+  const { content: raw, mtime } = await fsService.readFile(path);
+  const content = lenifyHeadings(raw);
+  set({
+    doc: { path, content, draft: content, isDirty: false, mtime, encoding: 'utf-8' },
+  });
+  // Make the sidebar (namespace) follow the file's vault. Never let a
+  // workspace-follow failure prevent the document from opening.
+  try {
+    await useWorkspaceStore.getState().followFile(path);
+  } catch {
+    // ignore — the document is already open
+  }
+  // Best-effort: recording recents persists config; never let it surface.
+  void useConfigStore.getState().addRecentFile(path).catch(() => {});
+}
+
 export const useDocumentStore = create<DocumentState>((set, get) => ({
   doc: null,
+  history: [],
+  historyIndex: -1,
 
   async open(path) {
-    const { content: raw, mtime } = await fsService.readFile(path);
-    const content = lenifyHeadings(raw);
-    set({
-      doc: { path, content, draft: content, isDirty: false, mtime, encoding: 'utf-8' },
-    });
-    // Make the sidebar (namespace) follow the file's vault. Never let a
-    // workspace-follow failure prevent the document from opening.
-    try {
-      await useWorkspaceStore.getState().followFile(path);
-    } catch {
-      // ignore — the document is already open
+    // Record into history before loading. Re-opening the already-current path
+    // (e.g. clicking a link to the current note) reloads without a new entry.
+    // Opening anything else truncates the forward stack, like a browser.
+    const { history, historyIndex } = get();
+    if (history[historyIndex] !== path) {
+      const trimmed = history.slice(0, historyIndex + 1);
+      trimmed.push(path);
+      set({ history: trimmed, historyIndex: trimmed.length - 1 });
     }
-    // Best-effort: recording recents persists config; never let it surface.
-    void useConfigStore.getState().addRecentFile(path).catch(() => {});
+    await loadDoc(set, path);
+  },
+
+  async back() {
+    const { history, historyIndex } = get();
+    if (historyIndex <= 0) return;
+    const idx = historyIndex - 1;
+    set({ historyIndex: idx });
+    await loadDoc(set, history[idx]);
+  },
+
+  async forward() {
+    const { history, historyIndex } = get();
+    if (historyIndex >= history.length - 1) return;
+    const idx = historyIndex + 1;
+    set({ historyIndex: idx });
+    await loadDoc(set, history[idx]);
   },
 
   // Create a real, editable file. Inside a workspace this writes an

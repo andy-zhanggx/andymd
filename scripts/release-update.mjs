@@ -1,79 +1,96 @@
 #!/usr/bin/env node
-// Upload the locally-built, signed updater artifacts to GitLab and publish the
-// `latest.json` manifest the in-app updater reads.
+// Publish the signed updater artifacts to public GitHub Releases so the in-app
+// updater can fetch them anonymously (no token in the shipped app).
 //
-//   pnpm version:set <x.y.z>   # commit + tag + push (CI creates the release)
+// We ship ONE artifact PER ARCHITECTURE so an updating Mac downloads only the
+// slice it needs:
+//   pnpm version:set <x.y.z>
 //   TAURI_SIGNING_PRIVATE_KEY="$(cat andymd-updater.key)" \
 //   TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" \
-//     pnpm tauri build         # → bundle/macos/*.app.tar.gz + .sig
-//   pnpm release:update        # this script
+//     pnpm release:macos        # builds + signs aarch64 + x64
+//   pnpm release:update         # this script
 //
-// Needs $GITLAB_TOKEN (or the token embedded in `origin`).
-import { readFileSync, readdirSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+// Requires the GitHub CLI authenticated with push access to the releases repo
+// (`gh auth status` must be green). Repo is configured via $GH_RELEASES_REPO
+// (default andy-zhanggx/andymd) and MUST be public.
+import { readFileSync, readdirSync, writeFileSync, copyFileSync, mkdtempSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const die = (m) => { console.error(`✗ ${m}`); process.exit(1); };
 
 const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
 const tag = `v${version}`;
+const repo = process.env.GH_RELEASES_REPO || 'andy-zhanggx/andymd';
 
-const origin = execSync('git config --get remote.origin.url', { cwd: root }).toString().trim();
-const m = origin.match(/^https?:\/\/(?:[^@]*@)?([^/]+)\/(.+?)(?:\.git)?$/);
-if (!m) die(`could not parse a GitLab https URL from origin: ${origin}`);
-const [, host, projectPath] = m;
-const projectId = '134118';
-const api = `https://${host}/api/v4/projects/${encodeURIComponent(projectPath)}`;
-const idApi = `https://${host}/api/v4/projects/${projectId}`;
+// One entry per architecture. `key` is the Tauri updater platform key matched
+// against the running Mac's arch; `arch` is the artifact-name suffix.
+const ARCHES = [
+  { triple: 'aarch64-apple-darwin', key: 'darwin-aarch64', arch: 'aarch64', label: 'Apple Silicon' },
+  { triple: 'x86_64-apple-darwin',  key: 'darwin-x86_64',  arch: 'x64',     label: 'Intel' },
+];
 
-const token = process.env.GITLAB_TOKEN || (origin.match(/\/\/[^:]*:([^@]+)@/) || [])[1];
-if (!token) die('no GitLab token — set $GITLAB_TOKEN');
-const auth = { 'PRIVATE-TOKEN': token };
-
-async function gl(method, url, opts = {}) {
-  const res = await fetch(url, { method, headers: { ...auth, ...(opts.headers || {}) }, body: opts.body });
-  if (!res.ok && res.status !== 404) die(`${method} ${url.replace(/\/\/[^/]+/, '//…')} → ${res.status} ${await res.text()}`);
-  return res.status === 204 || res.status === 404 ? null : res.json().catch(() => null);
+// Locate each arch's signed updater tarball. Tauri names it AndyMD.app.tar.gz
+// inside each target's bundle/macos dir; we rename on upload to include the arch.
+const builds = [];
+for (const a of ARCHES) {
+  const dir = join(root, `src-tauri/target/${a.triple}/release/bundle/macos`);
+  let tar;
+  try { tar = readdirSync(dir).find((f) => /\.app\.tar\.gz$/.test(f)); } catch { /* not built */ }
+  if (!tar) { console.warn(`⚠ no ${a.label} updater tarball in ${dir} — skipping`); continue; }
+  let signature;
+  try { signature = readFileSync(join(dir, `${tar}.sig`), 'utf8').trim(); }
+  catch { die(`${a.label} tarball has no ${tar}.sig — build with TAURI_SIGNING_PRIVATE_KEY set`); }
+  builds.push({ ...a, dir, tar, signature, assetName: `AndyMD_${version}_${a.arch}.app.tar.gz` });
 }
+if (!builds.length) die('no signed updater tarballs found — run a signed `pnpm release:macos` first');
 
-// Locate the signed updater tarball + signature.
-const macDir = join(root, 'src-tauri/target/release/bundle/macos');
-let tar;
-try {
-  tar = readdirSync(macDir).find((f) => /\.app\.tar\.gz$/.test(f));
-} catch { die(`no bundle dir at ${macDir} — run a signed \`pnpm tauri build\` first`); }
-if (!tar) die(`no *.app.tar.gz in ${macDir} — ensure createUpdaterArtifacts + signing env are set`);
-const sig = `${tar}.sig`;
-const signature = readFileSync(join(macDir, sig), 'utf8').trim();
-
-const tarName = `AndyMD_${version}_aarch64.app.tar.gz`;
-const tarUrl = `${api}/packages/generic/andymd/${tag}/${tarName}`;
-const latestUrl = `${api}/packages/generic/andymd/latest/latest.json`;
-// The URL the app downloads is the numeric-id form (stable across renames).
-const downloadUrl = `${idApi}/packages/generic/andymd/${tag}/${tarName}`;
-
-// 1. Upload the tarball.
-console.log(`↑ ${tarName} → packages/generic/andymd/${tag}/`);
-await gl('PUT', tarUrl, { body: readFileSync(join(macDir, tar)) });
-
-// 2. Build + upload latest.json (overwrite the stable `latest` package).
-const notes = extractNotes(version);
+// latest.json maps each platform key to ITS OWN arch artifact. Asset URLs are
+// deterministic from the tag + filename, so we can bake them in before uploading.
+const platforms = {};
+for (const b of builds) {
+  platforms[b.key] = {
+    signature: b.signature,
+    url: `https://github.com/${repo}/releases/download/${tag}/${b.assetName}`,
+  };
+}
 const manifest = {
   version,
-  notes,
+  notes: extractNotes(version),
   pub_date: process.env.PUB_DATE || new Date().toISOString(),
-  platforms: { 'darwin-aarch64': { signature, url: downloadUrl } },
+  platforms,
 };
-console.log(`↑ latest.json (v${version}) → packages/generic/andymd/latest/`);
-await gl('PUT', latestUrl, {
-  body: JSON.stringify(manifest, null, 2),
-  headers: { 'Content-Type': 'application/json' },
-});
+const tmp = mkdtempSync(join(tmpdir(), 'andymd-'));
+const manifestPath = join(tmp, 'latest.json');
+writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
 
-console.log(`✓ published updater manifest for ${tag}`);
-console.log(`  endpoint: ${latestUrl.replace(api, idApi)}`);
+// Copy each tarball + sig to its per-arch asset name in tmp so the two arches'
+// identically-named AndyMD.app.tar.gz don't collide as release assets.
+const uploads = [manifestPath];
+for (const b of builds) {
+  const dst = join(tmp, b.assetName);
+  copyFileSync(join(b.dir, b.tar), dst);
+  copyFileSync(join(b.dir, `${b.tar}.sig`), `${dst}.sig`);
+  uploads.push(dst, `${dst}.sig`);
+}
+
+const gh = (...args) => execFileSync('gh', args, { cwd: root, stdio: ['ignore', 'pipe', 'inherit'] }).toString().trim();
+
+// Create the release if absent, then (re)upload all artifacts.
+let exists = true;
+try { gh('release', 'view', tag, '--repo', repo); } catch { exists = false; }
+if (!exists) {
+  console.log(`↑ creating release ${tag} on ${repo}`);
+  gh('release', 'create', tag, '--repo', repo, '--title', tag, '--notes', manifest.notes || tag);
+}
+console.log(`↑ uploading ${builds.map((b) => b.assetName).join(', ')} + latest.json → ${repo}@${tag}`);
+gh('release', 'upload', tag, ...uploads, '--repo', repo, '--clobber');
+
+console.log(`✓ published per-arch updater artifacts for ${tag} (${Object.keys(platforms).join(', ')})`);
+console.log(`  endpoint: https://github.com/${repo}/releases/latest/download/latest.json`);
 
 /** Pull this version's bullet lines out of CHANGELOG.md for the `notes` field. */
 function extractNotes(ver) {

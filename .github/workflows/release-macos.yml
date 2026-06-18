@@ -1,0 +1,54 @@
+# Build the macOS installers on GitHub's hosted macOS runner (a real Mac) and
+# publish them to this repo's GitHub Releases — the public, anonymous channel the
+# in-app updater reads (tauri.conf.json plugins.updater.endpoints).
+#
+# The repo is public, so macOS runner minutes are free. One artifact is shipped
+# PER ARCHITECTURE (Apple Silicon aarch64 + Intel x64; x86_64 cross-compiles on
+# the Apple-Silicon runner), and latest.json maps each arch to its own download.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   TAURI_SIGNING_PRIVATE_KEY           contents of andymd-updater.key
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  "" (the key has no password)
+# (GITHUB_TOKEN is provided automatically; no GitLab token needed.)
+
+name: Build & publish macOS release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch: {}
+
+permissions:
+  contents: write   # create the GitHub Release + upload assets
+
+jobs:
+  macos:
+    runs-on: macos-latest   # Apple Silicon; also cross-compiles the x86_64 slice
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4   # uses the pnpm version pinned in package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Add Rust targets (aarch64 + x86_64)
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Install JS deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build both arches (signed)
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: pnpm release:macos
+
+      - name: Publish .dmg + per-arch updater manifest to GitHub Releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node scripts/release-dmg.mjs
+          node scripts/release-update.mjs
