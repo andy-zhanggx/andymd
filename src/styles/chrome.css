@@ -24,9 +24,14 @@
   cursor: pointer;
 }
 
-.titlebar-toggle:hover {
+.titlebar-toggle:hover:not(:disabled) {
   background: var(--hover);
   color: var(--fg-primary);
+}
+
+.titlebar-toggle:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .titlebar-toggle.active {
@@ -39,6 +44,21 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+/* Which build is this? Branch name locally, release name on CI. Muted pill so
+ * it stays out of the way but is glanceable. */
+.titlebar-build {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 11px;
+  color: var(--fg-muted);
+  background: var(--bg-primary);
 }
 
 .titlebar-title {

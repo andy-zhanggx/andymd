@@ -5,12 +5,29 @@ import { useUIStore } from '../stores/uiStore';
 import { useCollabStore } from '../collab/collabStore';
 import { PresenceBar } from './Collab/PresenceBar';
 import { ONLINE_COLLAB } from '../featureFlags';
+import { BUILD_LABEL } from '../buildInfo';
 
 function SidebarIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <rect x="1.5" y="2.5" width="13" height="11" rx="2" stroke="currentColor" />
       <line x1="6" y1="2.5" x2="6" y2="13.5" stroke="currentColor" />
+    </svg>
+  );
+}
+
+function BackIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ForwardIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -31,6 +48,10 @@ export function TitleBar() {
   const showSidebar = useConfigStore((s) => s.config.showSidebar);
   const update = useConfigStore((s) => s.update);
   const doc = useDocumentStore((s) => s.doc);
+  const back = useDocumentStore((s) => s.back);
+  const forward = useDocumentStore((s) => s.forward);
+  const canGoBack = useDocumentStore((s) => s.historyIndex > 0);
+  const canGoForward = useDocumentStore((s) => s.historyIndex < s.history.length - 1);
   const setCollabDialogOpen = useUIStore((s) => s.setCollabDialogOpen);
   const collabActive = useCollabStore((s) => s.roomCode !== null);
 
@@ -50,11 +71,34 @@ export function TitleBar() {
       >
         <SidebarIcon />
       </button>
+      <button
+        className="titlebar-toggle"
+        onClick={() => void back()}
+        disabled={!canGoBack}
+        aria-label="Go back"
+        title="Back (⌘[)"
+      >
+        <BackIcon />
+      </button>
+      <button
+        className="titlebar-toggle"
+        onClick={() => void forward()}
+        disabled={!canGoForward}
+        aria-label="Go forward"
+        title="Forward (⌘])"
+      >
+        <ForwardIcon />
+      </button>
       <div className="titlebar-title" data-tauri-drag-region>
         {doc?.isDirty && <span className="titlebar-dirty" />}
         {name}
       </div>
       <div className="titlebar-right">
+        {BUILD_LABEL && (
+          <span className="titlebar-build" title={`Build: ${BUILD_LABEL}`}>
+            {BUILD_LABEL}
+          </span>
+        )}
         <UpdateButton />
         {ONLINE_COLLAB && <PresenceBar />}
         {ONLINE_COLLAB && doc && (

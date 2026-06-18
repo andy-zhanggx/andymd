@@ -373,6 +373,16 @@
   text-underline-offset: 2px;
 }
 
+/*
+ * Markdown links follow on ⌘-click (see MarkdownEditor's clickHandler), so the
+ * hand cursor only makes sense while ⌘ is held — that's when a click would jump.
+ * The `cmd-held` class is toggled on <body> from key state. Wikilinks follow on
+ * a plain click and keep their always-on pointer (rule above).
+ */
+body.cmd-held .editor-container .milkdown a {
+  cursor: pointer;
+}
+
 .editor-container .milkdown img {
   display: block;
   max-width: 100%;
