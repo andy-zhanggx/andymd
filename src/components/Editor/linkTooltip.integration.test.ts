@@ -87,15 +87,37 @@ describe('linkTooltip hover behaviour', () => {
     await e.destroy();
   });
 
-  it('does NOT show the tooltip for wikilinks', async () => {
-    const e = await mount('[[Some Note]]');
+  it('hovering a wikilink shows a tooltip with the target and edit fields', async () => {
+    const e = await mount('see [[Some Note|the note]] here');
     const view = e.ctx.get(editorViewCtx);
     const anchor = view.dom.querySelector('a[data-type="wikilink"]') as HTMLAnchorElement;
     expect(anchor).not.toBeNull();
+
     anchor.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
     const tip = document.querySelector('.link-tooltip') as HTMLElement;
-    // Tooltip element exists (created by the plugin view) but stays hidden.
-    expect(tip.style.display).toBe('none');
+    expect(tip.style.display).not.toBe('none');
+    expect(tip.querySelector('.link-tooltip-url')!.textContent).toBe('Some Note');
+
+    const inputs = tip.querySelectorAll('.link-tooltip-form input');
+    expect((inputs[0] as HTMLInputElement).value).toBe('the note'); // alias/text
+    expect((inputs[1] as HTMLInputElement).value).toBe('Some Note'); // target
+    await e.destroy();
+  });
+
+  it('editing a wikilink via the tooltip rewrites its target and alias', async () => {
+    const e = await mount('see [[Some Note|the note]] here');
+    const view = e.ctx.get(editorViewCtx);
+    const anchor = view.dom.querySelector('a[data-type="wikilink"]') as HTMLAnchorElement;
+    anchor.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    const tip = document.querySelector('.link-tooltip') as HTMLElement;
+    (tip.querySelector('.link-tooltip-btn') as HTMLButtonElement).click(); // pencil -> edit
+    const inputs = tip.querySelectorAll('.link-tooltip-form input');
+    (inputs[0] as HTMLInputElement).value = 'the guide';
+    (inputs[1] as HTMLInputElement).value = 'Other Note';
+    (tip.querySelector('.link-tooltip-save') as HTMLButtonElement).click();
+
+    const out = e.ctx.get(serializerCtx)(view.state.doc);
+    expect(out).toContain('[[Other Note|the guide]]');
     await e.destroy();
   });
 });

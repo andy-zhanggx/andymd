@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Editor, editorViewCtx } from '@milkdown/core';
 import { collabServiceCtx } from '@milkdown/plugin-collab';
 import type { EditorView } from '@milkdown/prose/view';
-import { openMarkdownLink } from '../../services/linkService';
 import { buildEditor } from './milkdownConfig';
 import { useCollabStore, getActiveSession } from '../../collab/collabStore';
 import { ONLINE_COLLAB } from '../../featureFlags';
@@ -20,7 +19,6 @@ import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useUIStore } from '../../stores/uiStore';
 import { dialogService } from '../../services/dialogService';
 import { fsService } from '../../services/fsService';
-import { openWikilink } from '../../services/wikilinkService';
 import { resolveImageSrc } from '../../lib/asset';
 import { isImageFile } from '../../lib/image';
 import './editor-styles.css';
@@ -154,41 +152,18 @@ export function MarkdownEditor() {
         });
       }
     };
-    const wikilinkClickHandler = (e: MouseEvent) => {
-      const anchor = (e.target as HTMLElement).closest('a[data-type="wikilink"]');
-      if (!anchor) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const target = anchor.getAttribute('data-target') || '';
-      if (target) void openWikilink(target, doc.path);
-    };
+    // NOTE: link navigation (markdown links + wikilinks) is handled inside the
+    // editor by the linkTooltip plugin's `handleClickOn`. A document-level
+    // `click` listener cannot be used: WKWebView does not dispatch `click` for a
+    // plain click on an editable `<a>` (only ⌘-click), which is exactly why
+    // links used to "need ⌘". ProseMirror's click handling is mousedown-based
+    // and fires on a plain click.
     const scrollHandler = () => {
       lastScrollTop = scroller?.scrollTop ?? 0;
       if (scrollTimer) window.clearTimeout(scrollTimer);
       scrollTimer = window.setTimeout(() => {
         flushSession();
       }, 500);
-    };
-    const clickHandler = (e: MouseEvent) => {
-      const start = e.target instanceof Element
-        ? e.target
-        : e.target instanceof Node
-          ? e.target.parentElement
-          : null;
-      const anchor = start?.closest<HTMLAnchorElement>('a');
-      if (!anchor || !root.contains(anchor)) return;
-      // Wikilinks have their own handler.
-      if (anchor.getAttribute('data-type') === 'wikilink') return;
-
-      const rawHref = anchor.getAttribute('href');
-      if (!rawHref || rawHref === '#') return;
-
-      // Plain click follows the link (directory links open their index note,
-      // non-md files open in the OS, external URLs in the browser). preventDefault
-      // stops the webview from trying to navigate to the raw href.
-      e.preventDefault();
-      e.stopPropagation();
-      void openMarkdownLink(rawHref, doc.path);
     };
 
     const setup = async () => {
@@ -256,7 +231,6 @@ export function MarkdownEditor() {
         attributeFilter: ['src'],
       });
       rewrite();
-      root.addEventListener('click', clickHandler);
 
       if (doc.path && scroller) {
         const saved = getSession(doc.path);
@@ -270,7 +244,6 @@ export function MarkdownEditor() {
       }
 
       scroller?.addEventListener('scroll', scrollHandler, { passive: true });
-      root.addEventListener('click', wikilinkClickHandler);
     };
 
     void setup().catch((err) => {
@@ -288,8 +261,6 @@ export function MarkdownEditor() {
       viewRef.current = null;
       setActiveView(null);
       mo?.disconnect();
-      root.removeEventListener('click', wikilinkClickHandler);
-      root.removeEventListener('click', clickHandler);
       scroller?.removeEventListener('scroll', scrollHandler);
       if (scrollTimer) window.clearTimeout(scrollTimer);
       flushSession();

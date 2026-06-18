@@ -196,6 +196,25 @@
   min-width: 8ch;
   margin: 0 2px;
 }
+.editor-container .milkdown .math-apply {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.editor-container .milkdown .math-inline .math-apply {
+  margin: 0 0 0 4px;
+  vertical-align: middle;
+}
+.editor-container .milkdown .math-apply:hover {
+  filter: brightness(1.05);
+}
 .editor-container .milkdown .math-empty {
   color: var(--fg-muted);
 }

@@ -131,9 +131,12 @@ export function setHeading(editor: Editor, level: number): void {
   withView(editor, ({ state, dispatch, focus }) => {
     const headingType = state.schema.nodes.heading;
     if (!headingType) return;
-    const { $from } = state.selection;
-    const isEmpty = $from.parent.content.size === 0;
-    let tr = state.tr.setBlockType($from.before(), $from.after(), headingType, {
+    const { $from, $to } = state.selection;
+    const isEmpty = $from.parent.content.size === 0 && $from.sameParent($to);
+    // Cover every block the selection touches (from the start of the first to
+    // the end of the last), not just $from's block — a partial multi-block
+    // selection would otherwise leave later blocks unchanged.
+    let tr = state.tr.setBlockType($from.before(), $to.after(), headingType, {
       level,
     });
     if (isEmpty) {

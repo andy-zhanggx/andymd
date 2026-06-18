@@ -2,19 +2,34 @@ import { $prose } from '@milkdown/utils';
 import { Plugin } from '@milkdown/prose/state';
 import type { EditorState, Transaction } from '@milkdown/prose/state';
 import type { EditorView } from '@milkdown/prose/view';
+import type { Node as PMNode } from '@milkdown/prose/model';
 import { openMarkdownLink } from '../../services/linkService';
+import { openWikilink } from '../../services/wikilinkService';
 import { useDocumentStore } from '../../stores/documentStore';
 
 /**
- * Hover tooltip for markdown links (the `link` mark, not wikilinks).
+ * Link clicking + a hover tooltip for editing links.
  *
- * Markdown links follow on a plain click (see MarkdownEditor's clickHandler), so
- * there is no way to click *into* one to change it. This tooltip fills that gap,
- * Typora/Obsidian-style: hovering a link pops a small card showing its URL with
- * Open / Edit / Remove actions. "Edit" reveals two fields — the link **text**
- * and the **URL** — so both can be changed (previously only the visible text was
- * editable by retyping). Committing rewrites the link in place.
+ * Two problems this solves:
+ *
+ * 1. **Plain-click follow.** WebKit (the Tauri WKWebView) does not dispatch a
+ *    `click` event for a plain click on an `<a>` inside `contenteditable` — only
+ *    ⌘-click navigates. A document-level click listener therefore never fires,
+ *    which is why links "needed ⌘". ProseMirror's own `handleClickOn` is driven
+ *    by mousedown/mouseup (not the suppressed `click`), so it fires on a plain
+ *    click; we follow the link there. Works for both wikilinks (atom nodes) and
+ *    markdown links (the `link` mark).
+ *
+ * 2. **Editing the destination.** Hovering a link pops a small card showing its
+ *    target with Open / Edit / Remove. "Edit" exposes the link **text** and the
+ *    **target/URL** so both can be changed in place — previously a markdown
+ *    link's text could only be retyped and its href could not be edited at all,
+ *    and wikilinks had no editing affordance.
  */
+
+function docPath(): string | null {
+  return useDocumentStore.getState().doc?.path ?? null;
+}
 
 /** The doc range a link mark spans around `pos`, plus its href, or null. */
 export function linkMarkRangeAt(
@@ -24,7 +39,6 @@ export function linkMarkRangeAt(
   const linkType = state.schema.marks.link;
   if (!linkType) return null;
   const $pos = state.doc.resolve(pos);
-  // The mark may sit on the node just before or just after the position.
   const mark =
     linkType.isInSet($pos.marks()) ||
     (($pos.nodeAfter && linkType.isInSet($pos.nodeAfter.marks)) || null) ||
@@ -33,8 +47,6 @@ export function linkMarkRangeAt(
 
   const parent = $pos.parent;
   const parentStart = $pos.start();
-  // Walk the parent's inline children to find the contiguous run carrying this
-  // exact mark (same href) that contains pos.
   let from = -1;
   let to = -1;
   let offset = 0;
@@ -44,10 +56,7 @@ export function linkMarkRangeAt(
     if (mark.isInSet(child.marks)) {
       if (from === -1) from = childFrom;
       to = childTo;
-    } else if (from !== -1 && childFrom > pos) {
-      // run already started and we've moved past pos into a non-link child
-    } else if (from !== -1) {
-      // a gap before reaching pos resets the run
+    } else if (from !== -1 && childFrom <= pos) {
       from = -1;
       to = -1;
     }
@@ -84,17 +93,43 @@ export function buildLinkEdit(
   return tr;
 }
 
-const HIDE_DELAY = 160;
+/** Find the wikilink atom node for a hovered/clicked `<a data-type=wikilink>`. */
+function wikilinkNodeAt(
+  view: EditorView,
+  anchor: HTMLElement,
+): { pos: number; node: PMNode } | null {
+  let pos: number;
+  try {
+    pos = view.posAtDOM(anchor, 0);
+  } catch {
+    return null;
+  }
+  const { doc } = view.state;
+  for (const p of [pos, pos - 1, pos + 1]) {
+    if (p < 0 || p > doc.content.size) continue;
+    const node = doc.nodeAt(p);
+    if (node?.type.name === 'wikilink') return { pos: p, node };
+  }
+  return null;
+}
+
+type LinkInfo =
+  | { kind: 'wikilink'; nodePos: number; nodeSize: number; target: string; alias: string }
+  | { kind: 'markdown'; from: number; to: number; href: string; text: string };
+
+const HIDE_DELAY = 200;
 
 class LinkTooltipView {
   private tip: HTMLElement;
+  private row: HTMLElement;
   private urlEl: HTMLAnchorElement;
   private form: HTMLElement;
+  private destLabel: HTMLElement;
   private textInput: HTMLInputElement;
-  private hrefInput: HTMLInputElement;
+  private destInput: HTMLInputElement;
   private hideTimer: number | null = null;
   private anchorRect: DOMRect | null = null;
-  private range: { from: number; to: number } | null = null;
+  private info: LinkInfo | null = null;
 
   constructor(private view: EditorView) {
     const tip = document.createElement('div');
@@ -102,46 +137,46 @@ class LinkTooltipView {
     tip.setAttribute('contenteditable', 'false');
     tip.style.display = 'none';
 
-    // --- display row: URL + actions ---
     const row = document.createElement('div');
     row.className = 'link-tooltip-row';
     const url = document.createElement('a');
     url.className = 'link-tooltip-url';
-    url.target = '_blank';
-    url.rel = 'noreferrer';
     const editBtn = iconButton('Edit link', PENCIL);
     const removeBtn = iconButton('Remove link', UNLINK);
     row.append(url, editBtn, removeBtn);
 
-    // --- edit form: text + href ---
     const form = document.createElement('div');
     form.className = 'link-tooltip-form';
     form.style.display = 'none';
     const textInput = field('Text');
-    const hrefInput = field('https://');
+    const destInput = field('https://');
+    const textLabel = labelled('Text', textInput);
+    const destWrap = labelled('Link', destInput);
+    const destLabel = destWrap.querySelector('span')!;
     const saveBtn = document.createElement('button');
     saveBtn.type = 'button';
     saveBtn.className = 'link-tooltip-save';
     saveBtn.textContent = 'Save';
-    form.append(labelled('Text', textInput), labelled('Link', hrefInput), saveBtn);
+    form.append(textLabel, destWrap, saveBtn);
 
     tip.append(row, form);
     document.body.appendChild(tip);
 
     this.tip = tip;
+    this.row = row;
     this.urlEl = url;
     this.form = form;
+    this.destLabel = destLabel;
     this.textInput = textInput;
-    this.hrefInput = hrefInput;
+    this.destInput = destInput;
 
-    // Keep open while pointer is over the tooltip; close shortly after it leaves.
     tip.addEventListener('mouseenter', this.cancelHide);
     tip.addEventListener('mouseleave', this.scheduleHide);
     url.addEventListener('click', this.onOpen);
     editBtn.addEventListener('click', this.onEnterEdit);
     removeBtn.addEventListener('click', this.onRemove);
     saveBtn.addEventListener('click', this.onSave);
-    this.hrefInput.addEventListener('keydown', this.onFormKey);
+    this.destInput.addEventListener('keydown', this.onFormKey);
     this.textInput.addEventListener('keydown', this.onFormKey);
 
     view.dom.addEventListener('mouseover', this.onMouseOver);
@@ -152,36 +187,62 @@ class LinkTooltipView {
     const target = e.target as HTMLElement | null;
     const anchor = target?.closest?.('a');
     if (!anchor || !this.view.dom.contains(anchor)) return;
-    // Wikilinks have their own behaviour and no editable href.
-    if (anchor.getAttribute('data-type') === 'wikilink') return;
-    const href = anchor.getAttribute('href');
-    if (!href || href === '#') return;
     this.cancelHide();
-    this.showFor(anchor as HTMLAnchorElement, href);
+    this.showFor(anchor as HTMLAnchorElement);
   };
 
   private onMouseOut = (e: MouseEvent) => {
-    const to = e.relatedTarget as Node | null;
-    if (to && (this.tip.contains(to) || this.view.dom.contains(to))) {
-      // Moving within the editor; only hide if we left the link entirely.
-      const stillOnLink = to instanceof HTMLElement && to.closest('a');
-      if (stillOnLink) return;
-    }
+    const to = e.relatedTarget;
+    if (to instanceof HTMLElement && to.closest('a')) return; // moved within a link
     this.scheduleHide();
   };
 
-  private showFor(anchor: HTMLAnchorElement, href: string) {
+  private showFor(anchor: HTMLAnchorElement) {
     if (this.form.style.display !== 'none') return; // don't disrupt an open edit
-    const pos = this.view.posAtDOM(anchor, 0);
-    const range = linkMarkRangeAt(this.view.state, pos);
-    this.range = range ? { from: range.from, to: range.to } : null;
+    const info = this.resolve(anchor);
+    if (!info) return;
+    this.info = info;
     this.anchorRect = anchor.getBoundingClientRect();
-    this.urlEl.textContent = href;
-    this.urlEl.href = href;
-    this.textInput.value = range?.text ?? anchor.textContent ?? '';
-    this.hrefInput.value = href;
+    if (info.kind === 'wikilink') {
+      this.urlEl.textContent = info.target;
+      this.urlEl.removeAttribute('href');
+      this.textInput.value = info.alias || info.target;
+      this.destInput.value = info.target;
+      this.destLabel.textContent = 'Target';
+    } else {
+      this.urlEl.textContent = info.href;
+      this.urlEl.href = info.href;
+      this.textInput.value = info.text;
+      this.destInput.value = info.href;
+      this.destLabel.textContent = 'Link';
+    }
     this.tip.style.display = '';
     this.position();
+  }
+
+  private resolve(anchor: HTMLAnchorElement): LinkInfo | null {
+    if (anchor.getAttribute('data-type') === 'wikilink') {
+      const found = wikilinkNodeAt(this.view, anchor);
+      if (!found) return null;
+      return {
+        kind: 'wikilink',
+        nodePos: found.pos,
+        nodeSize: found.node.nodeSize,
+        target: (found.node.attrs.target as string) ?? '',
+        alias: (found.node.attrs.alias as string) ?? '',
+      };
+    }
+    const href = anchor.getAttribute('href');
+    if (!href || href === '#') return null;
+    let pos: number;
+    try {
+      pos = this.view.posAtDOM(anchor, 0);
+    } catch {
+      return null;
+    }
+    const range = linkMarkRangeAt(this.view.state, pos);
+    if (!range) return null;
+    return { kind: 'markdown', ...range };
   }
 
   private position() {
@@ -191,12 +252,11 @@ class LinkTooltipView {
     this.tip.style.display = '';
     const tipRect = this.tip.getBoundingClientRect();
     const margin = 6;
-    let left = r.left;
-    left = Math.min(left, window.innerWidth - tipRect.width - margin);
+    let left = Math.min(r.left, window.innerWidth - tipRect.width - margin);
     left = Math.max(margin, left);
     let top = r.bottom + margin;
     if (top + tipRect.height > window.innerHeight - margin) {
-      top = r.top - tipRect.height - margin; // flip above when no room below
+      top = r.top - tipRect.height - margin;
     }
     this.tip.style.left = `${Math.round(left)}px`;
     this.tip.style.top = `${Math.round(top)}px`;
@@ -218,23 +278,25 @@ class LinkTooltipView {
   private hide() {
     this.tip.style.display = 'none';
     this.form.style.display = 'none';
-    this.tip.querySelector('.link-tooltip-row')!.removeAttribute('style');
+    this.row.style.display = '';
   }
 
   private onOpen = (e: MouseEvent) => {
     e.preventDefault();
-    const href = this.hrefInput.value || this.urlEl.href;
-    void openMarkdownLink(href, useDocumentStore.getState().doc?.path ?? null);
+    const info = this.info;
+    if (!info) return;
+    if (info.kind === 'wikilink') void openWikilink(info.target, docPath());
+    else void openMarkdownLink(info.href, docPath());
     this.hide();
   };
 
   private onEnterEdit = (e: MouseEvent) => {
     e.preventDefault();
-    (this.tip.querySelector('.link-tooltip-row') as HTMLElement).style.display = 'none';
+    this.row.style.display = 'none';
     this.form.style.display = '';
     this.position();
-    this.hrefInput.focus();
-    this.hrefInput.select();
+    this.destInput.focus();
+    this.destInput.select();
   };
 
   private onFormKey = (e: KeyboardEvent) => {
@@ -249,35 +311,57 @@ class LinkTooltipView {
   };
 
   private onSave = () => {
-    if (!this.range) {
+    const info = this.info;
+    if (!info) {
       this.hide();
       return;
     }
-    const { from, to } = this.range;
     const text = this.textInput.value;
-    const href = this.hrefInput.value;
-    const tr = buildLinkEdit(this.view.state, from, to, text, href);
-    this.view.dispatch(tr);
+    const dest = this.destInput.value;
+    const { state } = this.view;
+    if (info.kind === 'wikilink') {
+      const node = state.doc.nodeAt(info.nodePos);
+      if (node?.type.name === 'wikilink') {
+        this.view.dispatch(
+          state.tr.setNodeMarkup(info.nodePos, undefined, {
+            target: dest,
+            alias: text && text !== dest ? text : null,
+          }),
+        );
+      }
+    } else {
+      this.view.dispatch(buildLinkEdit(state, info.from, info.to, text, dest));
+    }
     this.hide();
     this.view.focus();
   };
 
   private onRemove = (e: MouseEvent) => {
     e.preventDefault();
-    if (!this.range) {
+    const info = this.info;
+    if (!info) {
       this.hide();
       return;
     }
-    const { from, to } = this.range;
-    const linkType = this.view.state.schema.marks.link;
-    if (linkType) this.view.dispatch(this.view.state.tr.removeMark(from, to, linkType));
+    const { state } = this.view;
+    if (info.kind === 'wikilink') {
+      const node = state.doc.nodeAt(info.nodePos);
+      if (node?.type.name === 'wikilink') {
+        const display = info.alias || info.target;
+        const tr = display
+          ? state.tr.replaceWith(info.nodePos, info.nodePos + node.nodeSize, state.schema.text(display))
+          : state.tr.delete(info.nodePos, info.nodePos + node.nodeSize);
+        this.view.dispatch(tr);
+      }
+    } else {
+      const linkType = state.schema.marks.link;
+      if (linkType) this.view.dispatch(state.tr.removeMark(info.from, info.to, linkType));
+    }
     this.hide();
     this.view.focus();
   };
 
-  update() {
-    // Reposition if open and the layout shifted (e.g. scroll handled by fixed).
-  }
+  update() {}
 
   destroy() {
     this.cancelHide();
@@ -322,9 +406,34 @@ const UNLINK =
   '<path d="M6.5 9.5 9.5 6.5M7 4.5 8.3 3.2a2.4 2.4 0 0 1 3.4 3.4L10.4 7.9M9 11.5 7.7 12.8a2.4 2.4 0 0 1-3.4-3.4L5.6 8.1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>' +
   '<path d="M2.5 2.5 13.5 13.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
 
+/**
+ * Follow a link on a plain click. Routes wikilink atom nodes through the vault
+ * resolver and `link`-marked text through the markdown link opener. Returns true
+ * to consume the click so the cursor doesn't land mid-link.
+ */
+function followLinkAt(node: PMNode): boolean {
+  if (node.type.name === 'wikilink') {
+    const target = (node.attrs.target as string) ?? '';
+    if (target) void openWikilink(target, docPath());
+    return true;
+  }
+  const linkMark = node.marks?.find((m) => m.type.name === 'link');
+  if (linkMark) {
+    const href = (linkMark.attrs.href as string) ?? '';
+    if (href && href !== '#') void openMarkdownLink(href, docPath());
+    return true;
+  }
+  return false;
+}
+
 export const linkTooltip = $prose(
   () =>
     new Plugin({
+      props: {
+        // WKWebView swallows the `click` event for editable links; handleClickOn
+        // is driven by mousedown/mouseup, so it fires on a plain click.
+        handleClickOn: (_view, _pos, node) => followLinkAt(node),
+      },
       view: (editorView) => new LinkTooltipView(editorView),
     }),
 );

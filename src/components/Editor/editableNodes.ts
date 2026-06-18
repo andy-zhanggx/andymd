@@ -41,6 +41,7 @@ class MathNodeView implements NodeView {
   private rendered: HTMLElement;
   private editBtn: HTMLButtonElement | null = null;
   private field: HTMLTextAreaElement | null = null;
+  private applyBtn: HTMLButtonElement | null = null;
   private editing = false;
   private node: ProseNode;
 
@@ -144,6 +145,22 @@ class MathNodeView implements NodeView {
     field.rows = this.inline ? 1 : Math.max(2, src.split('\n').length);
     this.field = field;
     this.dom.appendChild(field);
+    // Explicit Apply button so committing isn't a hidden gesture (⌘-Enter / click
+    // away). mousedown-preventDefault keeps the textarea focused (no blur-commit
+    // race); the click commits and returns focus to the document.
+    const apply = document.createElement('button');
+    apply.type = 'button';
+    apply.className = 'math-apply';
+    apply.setAttribute('contenteditable', 'false');
+    apply.textContent = 'Apply';
+    apply.addEventListener('mousedown', (e) => e.preventDefault());
+    apply.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.commit();
+      this.view.focus();
+    });
+    this.applyBtn = apply;
+    this.dom.appendChild(apply);
     field.focus();
     field.setSelectionRange(field.value.length, field.value.length);
     field.addEventListener('keydown', this.onKeyDown);
@@ -176,6 +193,8 @@ class MathNodeView implements NodeView {
     const value = field.value;
     field.remove();
     this.field = null;
+    this.applyBtn?.remove();
+    this.applyBtn = null;
     this.editing = false;
     this.dom.classList.remove('editing');
     return value;
@@ -222,6 +241,7 @@ class MathNodeView implements NodeView {
 
   stopEvent(e: Event) {
     if (this.editBtn && e.target instanceof Node && this.editBtn.contains(e.target)) return true;
+    if (this.applyBtn && e.target instanceof Node && this.applyBtn.contains(e.target)) return true;
     return this.editing && e.target === this.field;
   }
 
