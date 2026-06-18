@@ -243,14 +243,14 @@ export function useShortcuts() {
           e.preventDefault();
           await docStore.closeWithConfirmation();
           break;
-        case 'b': {
-          const inEditor = document.activeElement?.closest('.editor-container');
-          if (!inEditor) {
+        // Typora toggles the sidebar with ⇧⌘L. ⌘L (no shift) is "select line"
+        // inside the editor, handled by the ProseMirror keymap — leave it alone.
+        case 'l':
+          if (e.shiftKey) {
             e.preventDefault();
             await cfgStore.update({ showSidebar: !cfgStore.config.showSidebar });
           }
           break;
-        }
         case 'f':
           e.preventDefault();
           useUIStore.getState().openFind(e.altKey);

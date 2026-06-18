@@ -8,7 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- **Typora-style editing shortcuts.** The editor now matches Typora's keyboard
+  map: headings `⌘1`–`⌘6`, paragraph `⌘0`, increase/decrease heading level
+  `⌘=`/`⌘-`; table `⌘⌥T`, quote `⌘⌥Q`, ordered/unordered list `⌘⌥O`/`⌘⌥U`,
+  math block `⌘⌥B` (code fences `⌘⌥C` already worked); hyperlink `⌘K`, image
+  `⌘⌃I`, underline `⌘U`, inline code `⌘⇧\``, strikethrough `⌃⇧\``, clear format
+  `⌘\`; select line `⌘L`, select word `⌘D`, delete word `⌘⇧D`. Copy as Markdown
+  is now `⌘⇧C` and Toggle Sidebar moved to `⌘⇧L`, which frees `⌘B` to always be
+  bold in the editor. (Select all `⌘A`, undo `⌘Z`, redo `⌘⇧Z`/`⌘Y` and the mark
+  shortcuts already worked.)
 
 ## [0.2.0] — 2026-06-18
 
