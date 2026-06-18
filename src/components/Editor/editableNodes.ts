@@ -237,9 +237,29 @@ class ImageNodeView implements NodeView {
     this.dom.className = 'image-node';
     this.dom.setAttribute('data-type', 'image');
     this.img = document.createElement('img');
+    this.img.addEventListener('mousedown', this.onMouseDown);
     this.dom.appendChild(this.img);
     this.renderImage();
   }
+
+  // Clicking the image opens its alt/src editor. An <img> is an inline atom, so
+  // a bare click does not reliably make ProseMirror create a NodeSelection (and
+  // thus never fires selectNode). Mirror the block-math affordance: focus the
+  // view first — selectNode only fires once the view has focus — then select the
+  // node explicitly. preventDefault keeps the click from doing anything else.
+  private onMouseDown = (e: MouseEvent) => {
+    if (this.editing) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const pos = this.getPos();
+    if (pos == null) {
+      this.selectNode();
+      return;
+    }
+    this.view.focus();
+    const { state } = this.view;
+    this.view.dispatch(state.tr.setSelection(NodeSelection.create(state.doc, pos)));
+  };
 
   private renderImage() {
     const { src, alt, title } = this.node.attrs as Record<string, string>;
@@ -354,6 +374,7 @@ class ImageNodeView implements NodeView {
   }
 
   destroy() {
+    this.img.removeEventListener('mousedown', this.onMouseDown);
     this.teardownPanel();
   }
 }
