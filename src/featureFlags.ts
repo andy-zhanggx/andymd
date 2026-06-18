@@ -20,15 +20,16 @@ export const ONLINE_COLLAB = import.meta.env.VITE_ENABLE_COLLAB === 'true';
 /**
  * `MULTI_TABS` gates the multi-document tab experience — the tab strip, the
  * "Open in New Tab / This Window" link context menu, ⌘T / Ctrl+Tab, and tab
- * session restore. It is **off by default**: with the flag off the editor
- * behaves as a single-document workspace exactly as before (a link click opens
- * in place, no tab bar). Not ready to ship yet.
+ * session restore. It is **on by default** as of 0.2.0: the editor opens
+ * documents in tabs and restores the tab session on launch.
  *
- * Enable for development:
+ * It can still be turned off (opt-out) to fall back to the single-document
+ * workspace — a link click opens in place, no tab bar — for development or
+ * debugging:
  *
- *     VITE_ENABLE_TABS=true pnpm dev
+ *     VITE_ENABLE_TABS=false pnpm dev
  *
  * The literal-string compare lets Vite fold the constant and tree-shake the
- * gated branches out of a production build when it is false.
+ * gated branches out of a production build when it is disabled.
  */
-export const MULTI_TABS = import.meta.env.VITE_ENABLE_TABS === 'true';
+export const MULTI_TABS = import.meta.env.VITE_ENABLE_TABS !== 'false';

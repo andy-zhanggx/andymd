@@ -95,15 +95,15 @@ Add `linkOpenInNewTab: boolean` (default **true**), `openTabs: string[]`,
 
 ## Feature gate
 
-The whole experience is **off by default**, behind the `MULTI_TABS` flag
-(`src/featureFlags.ts`, env `VITE_ENABLE_TABS`). With it off the editor is the
-prior single-document workspace: no tab strip, links open in place, no tab
-shortcuts/menus, and the tab session is not persisted. The native menu items are
-gated separately at Rust compile time via `option_env!("ANDYMD_ENABLE_TABS")`, so
-a normal release never shows them. Enable both for development:
+The whole experience ships **on by default** as of 0.2.0, behind the
+`MULTI_TABS` flag (`src/featureFlags.ts`, env `VITE_ENABLE_TABS`). It can be
+turned off (opt-out) to fall back to the prior single-document workspace: no tab
+strip, links open in place, no tab shortcuts/menus, and the tab session is not
+persisted. The native menu items are gated separately at Rust compile time via
+`option_env!("ANDYMD_DISABLE_TABS")`. Disable both for development/debugging:
 
 ```bash
-VITE_ENABLE_TABS=true ANDYMD_ENABLE_TABS=1 pnpm tauri dev
+VITE_ENABLE_TABS=false ANDYMD_DISABLE_TABS=1 pnpm tauri dev
 ```
 
 ## Layout (Obsidian-style)

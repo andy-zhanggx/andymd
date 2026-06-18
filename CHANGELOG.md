@@ -8,8 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-06-18
+
 ### Added
 
+- **Multiple tabs.** Open documents side by side in tabs — `⌘T` for a new tab,
+  `Ctrl+Tab` to cycle, middle-click or `⌘`-click a file or link to open it in a
+  new tab, and an "Open in New Tab / This Window" link context menu. Your open
+  tabs are restored on the next launch. (Can be turned off via the `MULTI_TABS`
+  flag.)
 - **Typora-style editing shortcuts.** The editor now matches Typora's keyboard
   map: headings `⌘1`–`⌘6`, paragraph `⌘0`, increase/decrease heading level
   `⌘=`/`⌘-`; table `⌘⌥T`, quote `⌘⌥Q`, ordered/unordered list `⌘⌥O`/`⌘⌥U`,
@@ -19,18 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is now `⌘⇧C` and Toggle Sidebar moved to `⌘⇧L`, which frees `⌘B` to always be
   bold in the editor. (Select all `⌘A`, undo `⌘Z`, redo `⌘⇧Z`/`⌘Y` and the mark
   shortcuts already worked.)
-
-<!--
-Behind a build flag, not yet released: **multiple tabs** + **"Open in new tab /
-this window"** link context menu. Enable for development with
-`VITE_ENABLE_TABS=true` (frontend) and `ANDYMD_ENABLE_TABS=1` (native menu).
-See docs/features-multi-tabs/spec.md.
--->
-
-## [0.2.0] — 2026-06-18
-
-### Added
-
 - **Automatic updates.** AndyMD checks for new versions on launch and offers a
   one-click restart-to-update from the title bar, plus a Software Update settings
   dialog. Updates are fetched from the public GitHub Releases channel.

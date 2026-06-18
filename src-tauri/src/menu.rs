@@ -62,10 +62,11 @@ pub fn build_menu<R: Runtime>(
         .item(&PredefinedMenuItem::quit(app, None)?)
         .build()?;
 
-    // The multi-tab feature is gated. Its menu items only appear when the app is
-    // compiled with ANDYMD_ENABLE_TABS set, matching the frontend VITE_ENABLE_TABS
-    // flag, so a normal release never surfaces the unfinished feature.
-    let tabs_enabled = option_env!("ANDYMD_ENABLE_TABS").is_some();
+    // The multi-tab feature ships on by default as of 0.2.0, matching the
+    // frontend MULTI_TABS flag. Its menu items can be hidden (opt-out) by
+    // compiling with ANDYMD_DISABLE_TABS set, to fall back to the single-document
+    // workspace for development or debugging.
+    let tabs_enabled = option_env!("ANDYMD_DISABLE_TABS").is_none();
 
     let mut file_builder = SubmenuBuilder::new(app, "File").item(
         &MenuItemBuilder::with_id("new", "New")

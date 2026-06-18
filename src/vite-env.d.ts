@@ -3,6 +3,8 @@
 interface ImportMetaEnv {
   /** Set to "true" to enable online real-time collaboration. See featureFlags.ts. */
   readonly VITE_ENABLE_COLLAB?: string;
+  /** Set to "false" to disable the multi-tab experience (on by default). See featureFlags.ts. */
+  readonly VITE_ENABLE_TABS?: string;
 }
 
 /**
