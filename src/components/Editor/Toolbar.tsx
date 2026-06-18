@@ -14,10 +14,10 @@ import {
   insertCodeBlock,
   insertHr,
   insertTable,
-  insertImagePlaceholder,
   insertInlineMath,
   insertMathBlock,
 } from './toolbarActions';
+import { insertImageFromPicker } from './insertImage';
 
 interface ToolbarProps {
   /** Accessor for the live editor instance (null until the editor mounts). */
@@ -126,7 +126,7 @@ const GROUPS: ToolItem[][] = [
           <path d="M3 11.5 6.5 8l2 2L11 7.5l2 2.5" {...stroke} />
         </>,
       ),
-      run: insertImagePlaceholder,
+      run: insertImageFromPicker,
     },
     {
       key: 'math-inline',
