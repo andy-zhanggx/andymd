@@ -37,7 +37,14 @@ pnpm tauri dev
 ## Build
 
 ```bash
-pnpm tauri build          # produces src-tauri/target/release/bundle/{macos,dmg}/
+pnpm tauri build          # current arch → src-tauri/target/release/bundle/{macos,dmg}/
+
+# Per-architecture (Apple Silicon + Intel) — what releases ship. Needs both
+# Rust targets (x86_64 cross-compiles fine on Apple Silicon):
+rustup target add aarch64-apple-darwin x86_64-apple-darwin   # one-time
+pnpm release:macos
+#   → src-tauri/target/aarch64-apple-darwin/release/bundle/{macos,dmg}/  (AndyMD_<ver>_aarch64.dmg)
+#   → src-tauri/target/x86_64-apple-darwin/release/bundle/{macos,dmg}/   (AndyMD_<ver>_x64.dmg)
 ```
 
 ## Test
@@ -83,25 +90,36 @@ branches focused and short-lived.
 1. Ensure `main` is green: `pnpm test` and `cd src-tauri && cargo test`.
 2. Bump the version: `pnpm version:set <x.y.z>`.
 3. Move the `CHANGELOG.md` `[Unreleased]` notes into a new dated version section.
-4. Commit (`release: vX.Y.Z`) and tag, then push:
+4. Commit (`release: vX.Y.Z`) and tag, then push to GitLab (runs tests) and
+   GitHub (the release host):
    ```bash
    git commit -am "release: vX.Y.Z"
    git tag -a vX.Y.Z -m "AndyMD vX.Y.Z"
-   git push && git push --tags
+   git push && git push --tags          # GitLab origin: runs the Vitest/typecheck gate
+   git push github main --tags          # GitHub: triggers the macOS build + release
    ```
-   Pushing the tag triggers [`.gitlab-ci.yml`](.gitlab-ci.yml): it runs the
-   tests and creates the **GitLab Release** (no binary yet).
-5. Build the macOS installer locally and attach it to the release:
-   ```bash
-   pnpm tauri build          # → src-tauri/target/release/bundle/dmg/AndyMD_<ver>_<arch>.dmg
-   pnpm release:dmg          # uploads the .dmg and links it on the release
-   ```
+5. **Publish the macOS installers + updater manifest.** Two ways:
+   - **CI (recommended):** pushing the tag to GitHub triggers
+     [`.github/workflows/release-macos.yml`](.github/workflows/release-macos.yml),
+     which builds both arches on a hosted macOS runner and publishes them — no
+     local build needed.
+   - **Locally**, if you prefer:
+     ```bash
+     TAURI_SIGNING_PRIVATE_KEY="$(cat andymd-updater.key)" \
+     TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" \
+       pnpm release:macos     # builds aarch64 + x64 (.dmg + signed updater tarball each)
+     pnpm release:dmg         # attach both .dmg to the GitHub release
+     pnpm release:update      # publish per-arch updater manifest (latest.json)
+     ```
 
-The `.dmg` is the release's download — there is no macOS CI runner, so it's
-built locally ([`scripts/release-dmg.mjs`](scripts/release-dmg.mjs) handles the
-upload + asset link, deriving the project from the `origin` remote and using
-`$GITLAB_TOKEN`). The bundle is ad-hoc signed, so first launch needs
-right-click → Open.
+Releases live on **public GitHub Releases** (`andy-zhanggx/andymd`), one
+download **per architecture**: `AndyMD_<ver>_aarch64.dmg` (Apple Silicon) and
+`AndyMD_<ver>_x64.dmg` (Intel). [`scripts/release-dmg.mjs`](scripts/release-dmg.mjs)
+attaches both installers; [`scripts/release-update.mjs`](scripts/release-update.mjs)
+publishes `latest.json` mapping `darwin-aarch64` / `darwin-x86_64` each to their
+**own** signed tarball, so the in-app updater (anonymous, no token) downloads only
+the arch each Mac needs. The bundles are ad-hoc signed, so first launch needs
+right-click → Open. (GitLab CI still runs the test gate on every push/MR.)
 
 ## Docs
 
