@@ -1138,6 +1138,20 @@
   margin: 2px 0;
   font-size: 0.92rem;
 }
+.whatsnew-section li code {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.85em;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--bg-secondary, rgba(127, 127, 127, 0.16));
+}
+.whatsnew-section li a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.whatsnew-section li a:hover {
+  text-decoration: underline;
+}
 .whatsnew-foot {
   padding: 12px 20px 16px;
   display: flex;
