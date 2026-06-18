@@ -91,22 +91,35 @@ describe('releaseFor', () => {
 
 describe('decideWhatsNew', () => {
   const all = parseChangelog(SAMPLE);
-  it('shows nothing when lastSeen is null (fresh install / first run)', () => {
-    expect(decideWhatsNew({ all, lastSeen: null, current: '0.2.0' })).toEqual({
-      show: false,
-      releases: [],
-    });
+  it('shows nothing on a fresh install (lastSeen null, no prior install)', () => {
+    expect(
+      decideWhatsNew({ all, lastSeen: null, current: '0.2.0', priorInstall: false }),
+    ).toEqual({ show: false, releases: [] });
+  });
+  it('shows the current version once when an existing install upgrades into the feature', () => {
+    const d = decideWhatsNew({ all, lastSeen: null, current: '0.2.0', priorInstall: true });
+    expect(d.show).toBe(true);
+    expect(d.releases.map((r: Release) => r.version)).toEqual(['0.2.0']);
+  });
+  it('shows nothing for a prior install when current is not in the changelog', () => {
+    expect(
+      decideWhatsNew({ all, lastSeen: null, current: '9.9.9', priorInstall: true }).show,
+    ).toBe(false);
   });
   it('shows the range on an upgrade', () => {
-    const d = decideWhatsNew({ all, lastSeen: '0.1.3', current: '0.2.0' });
+    const d = decideWhatsNew({ all, lastSeen: '0.1.3', current: '0.2.0', priorInstall: true });
     expect(d.show).toBe(true);
     expect(d.releases.map((r: Release) => r.version)).toEqual(['0.2.0']);
   });
   it('shows nothing when already current', () => {
-    expect(decideWhatsNew({ all, lastSeen: '0.2.0', current: '0.2.0' }).show).toBe(false);
+    expect(
+      decideWhatsNew({ all, lastSeen: '0.2.0', current: '0.2.0', priorInstall: true }).show,
+    ).toBe(false);
   });
   it('shows nothing when current is not in the changelog', () => {
-    expect(decideWhatsNew({ all, lastSeen: '0.1.3', current: '9.9.9' }).show).toBe(false);
+    expect(
+      decideWhatsNew({ all, lastSeen: '0.1.3', current: '9.9.9', priorInstall: true }).show,
+    ).toBe(false);
   });
 });
 

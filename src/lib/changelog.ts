@@ -93,12 +93,20 @@ export function decideWhatsNew(args: {
   all: Release[];
   lastSeen: string | null;
   current: string;
+  /** True if the user has run the app before (not a brand-new install). */
+  priorInstall: boolean;
 }): { show: boolean; releases: Release[] } {
-  const { all, lastSeen, current } = args;
-  // Null last-seen = fresh install or upgrade-into-this-feature: record only.
-  if (lastSeen === null || lastSeen === current) return { show: false, releases: [] };
-  // Only show if the running version actually appears in the changelog.
-  if (!releaseFor(all, current)) return { show: false, releases: [] };
+  const { all, lastSeen, current, priorInstall } = args;
+  // Already shown for this version (or relaunch of the same version): nothing to do.
+  if (lastSeen === current) return { show: false, releases: [] };
+  // Only ever show if the running version actually appears in the changelog.
+  const currentRelease = releaseFor(all, current);
+  if (!currentRelease) return { show: false, releases: [] };
+  if (lastSeen === null) {
+    // No recorded version yet. A fresh install stays silent (it gets the Tour);
+    // an existing install upgrading into this feature shows the current notes once.
+    return priorInstall ? { show: true, releases: [currentRelease] } : { show: false, releases: [] };
+  }
   const between = releasesBetween(all, lastSeen, current);
   return between.length > 0 ? { show: true, releases: between } : { show: false, releases: [] };
 }
