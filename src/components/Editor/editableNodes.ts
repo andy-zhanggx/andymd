@@ -70,31 +70,42 @@ class MathNodeView implements NodeView {
       btn.setAttribute('aria-label', 'Edit formula');
       btn.title = 'Edit formula';
       btn.innerHTML = EXPAND_ICON;
-      btn.addEventListener('mousedown', this.onAffordanceDown);
       this.editBtn = btn;
       this.dom.appendChild(btn);
     }
+    // Click the rendered formula (or the block's edit button) to edit it. We
+    // open the source editor directly rather than leaning on ProseMirror's
+    // selectNode, which only fires on a *selection change* while the view has
+    // focus — so re-clicking an already-selected block, or a block selected
+    // before the view gained focus, would otherwise never open the editor.
+    this.dom.addEventListener('mousedown', this.onMouseDown);
     this.renderMath();
   }
 
-  // Enter edit mode by selecting the node (ProseMirror then calls selectNode,
-  // which swaps in the source textarea). mousedown + preventDefault keeps focus
-  // off the button and stops ProseMirror's own selection handling.
-  private onAffordanceDown = (e: MouseEvent) => {
+  // Enter edit mode on a click anywhere on the node (formula or edit button).
+  // preventDefault keeps focus off a clicked button and stops ProseMirror's own
+  // selection handling; we set the NodeSelection and open the editor ourselves.
+  private onMouseDown = (e: MouseEvent) => {
+    if (this.editing) return; // clicks inside the open source field: let them through
     e.preventDefault();
     e.stopPropagation();
-    if (this.editing) return;
-    const pos = this.getPos();
-    if (pos == null) {
-      this.selectNode();
-      return;
-    }
-    // Focus first: ProseMirror only fires selectNode on block atoms once the
-    // view has focus, and that is what opens the source editor.
-    this.view.focus();
-    const { state } = this.view;
-    this.view.dispatch(state.tr.setSelection(NodeSelection.create(state.doc, pos)));
+    this.beginEdit();
   };
+
+  /** Focus the view, node-select this node, and open the source editor. */
+  private beginEdit() {
+    if (this.editing) return;
+    this.view.focus();
+    const pos = this.getPos();
+    if (pos != null) {
+      const { state } = this.view;
+      // Setting the selection lets ProseMirror drive deselectNode → commit when
+      // the user later clicks away; openEditor() below opens the field now even
+      // if selectNode doesn't fire (no change / unfocused view).
+      this.view.dispatch(state.tr.setSelection(NodeSelection.create(state.doc, pos)));
+    }
+    this.openEditor();
+  }
 
   private renderMath() {
     const src = mathSource(this.node, this.inline);
@@ -115,7 +126,13 @@ class MathNodeView implements NodeView {
     }
   }
 
+  // ProseMirror-driven entry (e.g. arrow-keying onto the node). Click entry goes
+  // through beginEdit(); both converge on openEditor().
   selectNode() {
+    this.openEditor();
+  }
+
+  private openEditor() {
     if (this.editing) return;
     this.editing = true;
     this.dom.classList.add('editing');
@@ -213,7 +230,7 @@ class MathNodeView implements NodeView {
   }
 
   destroy() {
-    this.editBtn?.removeEventListener('mousedown', this.onAffordanceDown);
+    this.dom.removeEventListener('mousedown', this.onMouseDown);
     this.teardownField();
   }
 }
@@ -238,8 +255,24 @@ class ImageNodeView implements NodeView {
     this.dom.setAttribute('data-type', 'image');
     this.img = document.createElement('img');
     this.dom.appendChild(this.img);
+    // Click the image to edit its alt/src — see MathNodeView.onMouseDown for why
+    // we open the panel directly instead of relying on ProseMirror's selectNode.
+    this.dom.addEventListener('mousedown', this.onMouseDown);
     this.renderImage();
   }
+
+  private onMouseDown = (e: MouseEvent) => {
+    if (this.editing) return; // clicks inside the open alt/src panel: let them through
+    e.preventDefault();
+    e.stopPropagation();
+    this.view.focus();
+    const pos = this.getPos();
+    if (pos != null) {
+      const { state } = this.view;
+      this.view.dispatch(state.tr.setSelection(NodeSelection.create(state.doc, pos)));
+    }
+    this.openEditor();
+  };
 
   private renderImage() {
     const { src, alt, title } = this.node.attrs as Record<string, string>;
@@ -249,7 +282,12 @@ class ImageNodeView implements NodeView {
     else this.img.removeAttribute('title');
   }
 
+  // ProseMirror-driven entry (arrow-key onto the node); click entry is onMouseDown.
   selectNode() {
+    this.openEditor();
+  }
+
+  private openEditor() {
     if (this.editing) return;
     this.editing = true;
     this.dom.classList.add('editing');
@@ -354,6 +392,7 @@ class ImageNodeView implements NodeView {
   }
 
   destroy() {
+    this.dom.removeEventListener('mousedown', this.onMouseDown);
     this.teardownPanel();
   }
 }

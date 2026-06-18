@@ -62,7 +62,16 @@ export default defineConfig({
     dedupe: SINGLETON_DEPS,
   },
   optimizeDeps: {
-    include: ['@milkdown/plugin-collab', ...SINGLETON_DEPS],
+    // Pre-bundle the singleton deps so every importer shares one copy. We must
+    // skip packages Vite can't resolve to a root entry during dev pre-bundling:
+    // `@milkdown/kit` isn't a direct dependency here, and `y-protocols` ships no
+    // "." export (only submodules like `y-protocols/awareness`). Listing either
+    // crashes `vite`'s cold-start. They're only needed when collab is active
+    // (flag-off by default); `resolve.dedupe` still forces single instances.
+    include: [
+      '@milkdown/plugin-collab',
+      ...SINGLETON_DEPS.filter((d) => d !== '@milkdown/kit' && d !== 'y-protocols'),
+    ],
   },
   server: {
     port: 1420,

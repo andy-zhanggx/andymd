@@ -386,12 +386,12 @@
 }
 
 /*
- * Markdown links follow on ⌘-click (see MarkdownEditor's clickHandler), so the
- * hand cursor only makes sense while ⌘ is held — that's when a click would jump.
- * The `cmd-held` class is toggled on <body> from key state. Wikilinks follow on
- * a plain click and keep their always-on pointer (rule above).
+ * Links (markdown and wikilinks) follow on a plain click — see MarkdownEditor's
+ * clickHandler — so they always show the hand cursor to signal they're live.
+ * Editing a markdown link's text/URL is done from the hover tooltip
+ * (see linkTooltip.ts), not by clicking into it.
  */
-body.cmd-held .editor-container .milkdown a {
+.editor-container .milkdown a {
   cursor: pointer;
 }
 
@@ -430,4 +430,105 @@ body.cmd-held .editor-container .milkdown a {
 .editor-container .katex-display {
   margin: 1em 0;
   overflow-x: auto;
+}
+
+/*
+ * Hover tooltip for markdown links (see linkTooltip.ts). Appended to <body>, so
+ * it is styled at the top level rather than scoped under .editor-container.
+ */
+.link-tooltip {
+  position: fixed;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 360px;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: var(--fg-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+.link-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.link-tooltip-url {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+.link-tooltip-url:hover {
+  text-decoration: underline;
+}
+.link-tooltip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--fg-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.link-tooltip-btn:hover {
+  color: var(--accent);
+  border-color: var(--border);
+  background: var(--hover);
+}
+.link-tooltip-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 240px;
+}
+.link-tooltip-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.link-tooltip-field > span {
+  flex: 0 0 34px;
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+.link-tooltip-field input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px 6px;
+  font-size: 13px;
+  color: var(--fg-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.link-tooltip-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.link-tooltip-save {
+  align-self: flex-end;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.link-tooltip-save:hover {
+  filter: brightness(1.05);
 }

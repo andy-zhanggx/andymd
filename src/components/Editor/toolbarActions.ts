@@ -238,10 +238,12 @@ export function insertImagePlaceholder(editor: Editor): void {
     if (!imageType) return;
     const node = imageType.create({ src: 'path/to/image', alt: 'image', title: null });
     const { from } = state.selection;
+    // Focus before dispatch so the node-selection change opens the edit panel
+    // immediately (ProseMirror only fires selectNode while the view has focus).
+    focus();
     let tr = state.tr.replaceSelectionWith(node, false);
     tr = selectInsertedNode(tr, 'image', from);
     dispatch(tr.scrollIntoView());
-    focus();
   });
 }
 
@@ -255,10 +257,12 @@ export function insertInlineMath(editor: Editor): void {
     // math_inline (plugin-math) serializes its text content.
     const node = mathType.create(null, state.schema.text(MATH_HINT));
     const { from } = state.selection;
+    // Focus before dispatch so the node-selection change opens the source editor
+    // immediately (ProseMirror only fires selectNode while the view has focus).
+    focus();
     let tr = state.tr.replaceSelectionWith(node, false);
     tr = selectInsertedNode(tr, 'math_inline', from);
     dispatch(tr.scrollIntoView());
-    focus();
   });
 }
 
@@ -270,10 +274,12 @@ export function insertMathBlock(editor: Editor): void {
     // math_block (see milkdownConfig override) serializes its `value` attr.
     const node = mathType.create({ value: MATH_HINT });
     const { from } = state.selection;
+    // Focus before dispatch so the node-selection change opens the source editor
+    // immediately (ProseMirror only fires selectNode while the view has focus).
+    focus();
     let tr = state.tr.replaceSelectionWith(node, false);
     tr = selectInsertedNode(tr, 'math_block', from);
     dispatch(tr.scrollIntoView());
-    focus();
   });
 }
 

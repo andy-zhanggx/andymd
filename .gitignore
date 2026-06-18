@@ -13,3 +13,7 @@ src-tauri/Cargo.lock
 # Tauri updater signing key (NEVER commit)
 *.key
 *.key.pub
+
+# Compiled vite config artifacts (source is vite.config.ts)
+vite.config.js
+vite.config.d.ts

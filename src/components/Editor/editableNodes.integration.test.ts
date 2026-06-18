@@ -123,6 +123,47 @@ describe('editable atom nodes (inline math, block math, image)', () => {
     await e.destroy();
   });
 
+  it('block math: a plain mousedown on the formula opens the source editor', async () => {
+    const e = await mount('```math\nE = mc^2\n```');
+    const view = e.ctx.get(editorViewCtx);
+    const rendered = view.dom.querySelector('.math-block .math-rendered')!;
+    expect(view.dom.querySelector('.math-source')).toBeNull();
+    rendered.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    const field = view.dom.querySelector<HTMLTextAreaElement>('.math-source');
+    expect(field, 'clicking the formula opens the editor').not.toBeNull();
+    expect(field!.value).toBe('E = mc^2');
+    await e.destroy();
+  });
+
+  it('block math: stays editable after committing and clicking again (regression)', async () => {
+    const e = await mount('```math\nE = mc^2\n```');
+    const view = e.ctx.get(editorViewCtx);
+    // First edit: open via affordance, change, commit by deselecting.
+    select(e, posOf(e, 'math_block'));
+    const f1 = view.dom.querySelector<HTMLTextAreaElement>('.math-source')!;
+    f1.value = 'a + b';
+    deselect(e);
+    expect(view.dom.querySelector('.math-source')).toBeNull();
+    // Re-click the (now deselected) formula — must reopen the editor even though
+    // the node may be re-selected with no selection change.
+    const rendered = view.dom.querySelector('.math-block .math-rendered')!;
+    rendered.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    const f2 = view.dom.querySelector<HTMLTextAreaElement>('.math-source');
+    expect(f2, 'second click reopens the editor').not.toBeNull();
+    expect(f2!.value).toBe('a + b');
+    await e.destroy();
+  });
+
+  it('image: a plain mousedown opens the alt/src editor', async () => {
+    const e = await mount('![cat](cat.png)');
+    const view = e.ctx.get(editorViewCtx);
+    const img = view.dom.querySelector('.image-node img')!;
+    expect(view.dom.querySelector('.image-src')).toBeNull();
+    img.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    expect(view.dom.querySelector('.image-src'), 'clicking the image opens its editor').not.toBeNull();
+    await e.destroy();
+  });
+
   it('inline math has no block expand affordance', async () => {
     const e = await mount('Inline $y = mx + b$ here');
     const view = e.ctx.get(editorViewCtx);
