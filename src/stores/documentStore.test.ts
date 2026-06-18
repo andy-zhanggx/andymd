@@ -21,7 +21,14 @@ import { dialogService } from '../services/dialogService';
 beforeEach(() => {
   fsMock.readFile.mockReset();
   fsMock.writeFile.mockReset();
-  useDocumentStore.setState({ tabs: [], activeId: null, doc: null, history: [], historyIndex: -1 });
+  useDocumentStore.setState({
+    tabs: [],
+    activeId: null,
+    doc: null,
+    history: [],
+    historyIndex: -1,
+    drafts: {},
+  });
 });
 
 describe('documentStore', () => {
@@ -42,6 +49,31 @@ describe('documentStore', () => {
     await useDocumentStore.getState().open('/some/vault/a.md');
     expect(spy).toHaveBeenCalledWith('/some/vault/a.md');
     spy.mockRestore();
+  });
+
+  it('keeps an unsaved draft in memory and restores it when the file is reopened', async () => {
+    fsMock.readFile.mockResolvedValue({ content: 'disk', mtime: 1 });
+    const store = useDocumentStore.getState();
+    await store.open('/a.md');
+    // The editor flushes the latest content on switch-away (debounce-safe).
+    store.stashDraft('/a.md', 'edited-a');
+    await store.open('/b.md'); // switch to another file
+    expect(useDocumentStore.getState().doc!.path).toBe('/b.md');
+    await store.open('/a.md'); // come back
+    const d = useDocumentStore.getState().doc!;
+    expect(d.draft).toBe('edited-a');
+    expect(d.isDirty).toBe(true);
+  });
+
+  it('clears the in-memory draft once the file is saved', async () => {
+    fsMock.readFile.mockResolvedValue({ content: 'disk', mtime: 1 });
+    fsMock.writeFile.mockResolvedValue({ mtime: 2 });
+    const store = useDocumentStore.getState();
+    await store.open('/a.md');
+    store.stashDraft('/a.md', 'edited');
+    store.setDraft('edited');
+    await store.save();
+    expect(useDocumentStore.getState().drafts['/a.md']).toBeUndefined();
   });
 
   it('setDraft marks dirty only when different', async () => {

@@ -85,47 +85,35 @@ describe('editable atom nodes (inline math, block math, image)', () => {
     await e.destroy();
   });
 
-  it('image: selecting reveals alt/src fields; editing them updates the node', async () => {
+  it('image: renders the <img> plus a Change button and a resize handle', async () => {
     const e = await mount('![cat](cat.png)');
     const view = e.ctx.get(editorViewCtx);
-    const pos = posOf(e, 'image');
-    expect(pos).toBeGreaterThanOrEqual(0);
-
-    select(e, pos);
-    const srcField = view.dom.querySelector<HTMLInputElement>('.image-src');
-    const altField = view.dom.querySelector<HTMLInputElement>('.image-alt');
-    expect(srcField, 'src field appears').not.toBeNull();
-    expect(altField, 'alt field appears').not.toBeNull();
-    expect(srcField!.value).toBe('cat.png');
-    expect(altField!.value).toBe('cat');
-
-    srcField!.value = 'dog.png';
-    altField!.value = 'dog';
-    deselect(e);
-
-    const ser = e.ctx.get(serializerCtx);
-    expect(ser(view.state.doc)).toContain('![dog](dog.png)');
+    expect(view.dom.querySelector('.image-figure img'), 'image renders').not.toBeNull();
+    expect(view.dom.querySelector('.image-change'), 'has a Change button').not.toBeNull();
+    expect(view.dom.querySelector('.image-resize-handle'), 'has a resize handle').not.toBeNull();
+    // No more inline alt/src text fields.
+    expect(view.dom.querySelector('.image-src')).toBeNull();
     await e.destroy();
   });
 
-  it('image: a plain click on the rendered <img> opens the src/alt editor', async () => {
-    // Regression: an image is an inline atom, so a bare click does not reliably
-    // make ProseMirror create a NodeSelection (and thus never fires selectNode).
-    // The NodeView wires its own mousedown → focus → NodeSelection so clicking
-    // the image opens the editor, the way clicking math does.
-    const e = await mount('![cat](cat.png)');
+  it('image: an empty src renders a "Choose image" placeholder button', async () => {
+    const e = await mount('![]()');
     const view = e.ctx.get(editorViewCtx);
-    const img = view.dom.querySelector<HTMLImageElement>('.image-node img');
-    expect(img, 'image renders').not.toBeNull();
-    expect(view.dom.querySelector('.image-src')).toBeNull();
+    const btn = view.dom.querySelector('.image-placeholder');
+    expect(btn, 'placeholder button shown when src is empty').not.toBeNull();
+    expect(btn!.textContent).toContain('Choose image');
+    expect(view.dom.querySelector('.image-figure')).toBeNull();
+    await e.destroy();
+  });
 
-    img!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-    await new Promise((r) => setTimeout(r, 0));
-
-    expect(
-      view.dom.querySelector('.image-src'),
-      'clicking the image opens the source editor',
-    ).not.toBeNull();
+  it('image: width rides in the alt (Obsidian |width) and sizes the <img>', async () => {
+    const e = await mount('![cat|320](cat.png)');
+    const view = e.ctx.get(editorViewCtx);
+    const img = view.dom.querySelector<HTMLImageElement>('.image-figure img')!;
+    expect(img.style.width).toBe('320px');
+    expect(img.alt).toBe('cat'); // the |320 is stripped from the visible alt
+    // Round-trips back to markdown unchanged.
+    expect(e.ctx.get(serializerCtx)(view.state.doc)).toContain('![cat|320](cat.png)');
     await e.destroy();
   });
 
@@ -141,6 +129,41 @@ describe('editable atom nodes (inline math, block math, image)', () => {
     const field = view.dom.querySelector<HTMLTextAreaElement>('.math-source');
     expect(field, 'clicking the affordance opens the source editor').not.toBeNull();
     expect(field!.value).toBe('E = mc^2');
+    await e.destroy();
+  });
+
+  it('block math: a single click does NOT edit (so the caret can navigate); double-click opens', async () => {
+    const e = await mount('```math\nE = mc^2\n```');
+    const view = e.ctx.get(editorViewCtx);
+    const rendered = view.dom.querySelector('.math-block .math-rendered')!;
+    expect(view.dom.querySelector('.math-source')).toBeNull();
+    // Single click (detail 1) leaves it to ProseMirror to node-select → no editor.
+    rendered.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, detail: 1 }));
+    expect(view.dom.querySelector('.math-source'), 'single click does not open the editor').toBeNull();
+    // Double click (detail 2) opens the source editor.
+    rendered.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, detail: 2 }));
+    const field = view.dom.querySelector<HTMLTextAreaElement>('.math-source');
+    expect(field, 'double-click opens the editor').not.toBeNull();
+    expect(field!.value).toBe('E = mc^2');
+    await e.destroy();
+  });
+
+  it('block math: stays editable after committing and double-clicking again (regression)', async () => {
+    const e = await mount('```math\nE = mc^2\n```');
+    const view = e.ctx.get(editorViewCtx);
+    // First edit via node-selection, change, commit by deselecting.
+    select(e, posOf(e, 'math_block'));
+    const f1 = view.dom.querySelector<HTMLTextAreaElement>('.math-source')!;
+    f1.value = 'a + b';
+    deselect(e);
+    expect(view.dom.querySelector('.math-source')).toBeNull();
+    // Double-click the (now deselected) formula — must reopen even though the
+    // node may be re-selected with no selection change.
+    const rendered = view.dom.querySelector('.math-block .math-rendered')!;
+    rendered.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, detail: 2 }));
+    const f2 = view.dom.querySelector<HTMLTextAreaElement>('.math-source');
+    expect(f2, 'second edit reopens the editor').not.toBeNull();
+    expect(f2!.value).toBe('a + b');
     await e.destroy();
   });
 

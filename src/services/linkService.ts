@@ -35,9 +35,9 @@ export async function openMarkdownLink(
     case 'ignore':
       return;
     case 'mdfile': {
-      // open()/openInNewTab() each prompt before clobbering unsaved work, so we
-      // route straight through. New-tab navigation never replaces, so it can't
-      // lose edits.
+      // Unsaved edits survive navigation (the store stashes drafts in memory and
+      // restores them on reopen), and a new-tab open never replaces — so route
+      // straight through without a save prompt.
       const docStore = useDocumentStore.getState();
       try {
         if (opts.newTab) await docStore.openInNewTab(target.absPath);

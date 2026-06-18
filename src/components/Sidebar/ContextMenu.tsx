@@ -31,10 +31,18 @@ export function ContextMenu({ x, y, path, kind, onClose }: Props) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
-    window.addEventListener('click', off);
-    window.addEventListener('contextmenu', off);
+    // Defer the outside-dismiss listeners by a tick. The very right-click that
+    // opened this menu can deliver a trailing click/contextmenu to `window`
+    // right after it mounts (seen in the Tauri WKWebView), which would close the
+    // menu instantly — so it never appeared at all. Registering on the next tick
+    // lets the opening gesture finish first.
+    const t = window.setTimeout(() => {
+      window.addEventListener('click', off);
+      window.addEventListener('contextmenu', off);
+    }, 0);
     window.addEventListener('keydown', onKey);
     return () => {
+      window.clearTimeout(t);
       window.removeEventListener('click', off);
       window.removeEventListener('contextmenu', off);
       window.removeEventListener('keydown', onKey);

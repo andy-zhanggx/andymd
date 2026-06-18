@@ -4,7 +4,12 @@
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    // This project only type-checks vite.config.ts. Without an outDir, `tsc -b`
+    // emits vite.config.js next to the source — and Vite resolves `.js` before
+    // `.ts`, so that stale compiled copy silently shadows edits to the real
+    // config. Send the throwaway emit into node_modules so it can't shadow.
+    "outDir": "./node_modules/.cache/tsc-node"
   },
   "include": ["vite.config.ts"]
 }

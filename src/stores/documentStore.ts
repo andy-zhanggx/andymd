@@ -31,6 +31,15 @@ interface DocumentState {
   doc: Document | null;
   history: string[];
   historyIndex: number;
+  /**
+   * In-memory unsaved drafts, keyed by file path. When a file is read from disk
+   * its stashed draft (if any) is restored instead of disk content, so unsaved
+   * edits survive navigation and tab close/reopen without touching disk
+   * (Typora-style). Cleared when the file is saved or reloaded.
+   */
+  drafts: Record<string, string>;
+  /** Stash a file's current editor content as an unsaved in-memory draft. */
+  stashDraft: (path: string, draft: string) => void;
 
   open: (path: string) => Promise<void>;
   openInNewTab: (path: string) => Promise<void>;
@@ -75,11 +84,14 @@ function makeTab(doc: Document): Tab {
   return { id: nextId(), doc, history, historyIndex: history.length - 1 };
 }
 
-// Read a file from disk into a fresh Document (no store mutation).
-async function readDocument(path: string): Promise<Document> {
+// Read a file from disk into a fresh Document (no store mutation). When the user
+// has an unsaved in-memory draft for this path, restore it instead of disk
+// content so edits survive navigation/tab churn.
+async function readDocument(path: string, stashed?: string): Promise<Document> {
   const { content: raw, mtime } = await fsService.readFile(path);
   const content = lenifyHeadings(raw);
-  return { path, content, draft: content, isDirty: false, mtime, encoding: 'utf-8' };
+  const draft = stashed !== undefined ? stashed : content;
+  return { path, content, draft, isDirty: draft !== content, mtime, encoding: 'utf-8' };
 }
 
 // Side effects after a file becomes visible: make the sidebar follow its vault,
@@ -112,6 +124,17 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
     next[idx] = fn(tabs[idx]);
     commit(next, activeId);
   };
+
+  // Drop the in-memory draft for a path once it's been persisted/refreshed.
+  const clearDraft = (path: string) => {
+    if (!(path in get().drafts)) return;
+    const drafts = { ...get().drafts };
+    delete drafts[path];
+    set({ drafts });
+  };
+
+  // The stashed draft for a path, if the user left unsaved edits there.
+  const stashedFor = (path: string) => get().drafts[path];
 
   // Persist the open-tab session (saved files only) so a relaunch can restore it.
   // No-op while the feature is gated off, to keep the config clean for single-doc
@@ -149,6 +172,11 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
     doc: null,
     history: [],
     historyIndex: -1,
+    drafts: {},
+
+    stashDraft(path, draft) {
+      set({ drafts: { ...get().drafts, [path]: draft } });
+    },
 
     async open(path) {
       const { tabs, activeId } = get();
@@ -157,7 +185,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
       // Re-opening the path already shown in the active tab: reload it from disk
       // without touching history or spawning a tab (matches the old behaviour).
       if (active && active.doc.path === path) {
-        const doc = await readDocument(path);
+        const doc = await readDocument(path, stashedFor(path));
         patchActive((t) => ({ ...t, doc }));
         afterOpen(path);
         return;
@@ -172,7 +200,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
 
       // No active tab yet → this becomes the first tab.
       if (!active) {
-        const tab = makeTab(await readDocument(path));
+        const tab = makeTab(await readDocument(path, stashedFor(path)));
         commit([...tabs, tab], tab.id);
         afterOpen(path);
         persist();
@@ -182,7 +210,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
       // Replace the active tab, guarding against clobbering unsaved work, and
       // push the path onto that tab's history like a browser navigation.
       if (!(await confirmDiscardActive())) return;
-      const doc = await readDocument(path);
+      const doc = await readDocument(path, stashedFor(path));
       patchActive((t) => {
         const trimmed = t.history.slice(0, t.historyIndex + 1);
         trimmed.push(path);
@@ -198,7 +226,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
         get().activateTab(existing.id);
         return;
       }
-      const tab = makeTab(await readDocument(path));
+      const tab = makeTab(await readDocument(path, stashedFor(path)));
       commit([...get().tabs, tab], tab.id);
       afterOpen(path);
       persist();
@@ -275,7 +303,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
       const tabs: Tab[] = [];
       for (const p of paths) {
         try {
-          tabs.push(makeTab(await readDocument(p)));
+          tabs.push(makeTab(await readDocument(p, stashedFor(p))));
         } catch {
           // skip files that have since moved or been deleted
         }
@@ -292,7 +320,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
       const active = get().tabs.find((t) => t.id === get().activeId);
       if (!active || active.historyIndex <= 0) return;
       const idx = active.historyIndex - 1;
-      const doc = await readDocument(active.history[idx]);
+      const doc = await readDocument(active.history[idx], stashedFor(active.history[idx]));
       patchActive((t) => ({ ...t, doc, historyIndex: idx }));
     },
 
@@ -300,7 +328,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
       const active = get().tabs.find((t) => t.id === get().activeId);
       if (!active || active.historyIndex >= active.history.length - 1) return;
       const idx = active.historyIndex + 1;
-      const doc = await readDocument(active.history[idx]);
+      const doc = await readDocument(active.history[idx], stashedFor(active.history[idx]));
       patchActive((t) => ({ ...t, doc, historyIndex: idx }));
     },
 
@@ -363,6 +391,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
       }
       const { mtime } = await fsService.writeFile(d.path, d.draft);
       patchActive((t) => ({ ...t, doc: { ...t.doc, content: t.doc.draft, isDirty: false, mtime } }));
+      clearDraft(d.path);
       void versionService.save(d.path, d.draft);
     },
 
@@ -377,6 +406,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
         ...t,
         doc: { ...t.doc, path: target, content: t.doc.draft, isDirty: false, mtime },
       }));
+      clearDraft(target);
+      if (d.path) clearDraft(d.path);
       void versionService.save(target, d.draft);
       persist();
     },
@@ -384,6 +415,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
     async reload() {
       const d = get().doc;
       if (!d?.path) return;
+      clearDraft(d.path);
       const doc = await readDocument(d.path);
       patchActive((t) => ({ ...t, doc }));
     },

@@ -131,9 +131,12 @@ export function setHeading(editor: Editor, level: number): void {
   withView(editor, ({ state, dispatch, focus }) => {
     const headingType = state.schema.nodes.heading;
     if (!headingType) return;
-    const { $from } = state.selection;
-    const isEmpty = $from.parent.content.size === 0;
-    let tr = state.tr.setBlockType($from.before(), $from.after(), headingType, {
+    const { $from, $to } = state.selection;
+    const isEmpty = $from.parent.content.size === 0 && $from.sameParent($to);
+    // Cover every block the selection touches (from the start of the first to
+    // the end of the last), not just $from's block — a partial multi-block
+    // selection would otherwise leave later blocks unchanged.
+    let tr = state.tr.setBlockType($from.before(), $to.after(), headingType, {
       level,
     });
     if (isEmpty) {
@@ -231,12 +234,17 @@ export function insertTable(editor: Editor): void {
   focusEditor(editor);
 }
 
-/** Insert an image node with placeholder alt/src and select it. */
+/**
+ * Insert an empty image node. With no `src` its NodeView renders a "Choose
+ * image" placeholder button (see ImageNodeView) — inserting never pops a file
+ * dialog; the user decides when to pick an image (or just deletes the
+ * placeholder).
+ */
 export function insertImagePlaceholder(editor: Editor): void {
   withView(editor, ({ state, dispatch, focus }) => {
     const imageType = state.schema.nodes.image;
     if (!imageType) return;
-    const node = imageType.create({ src: 'path/to/image', alt: 'image', title: null });
+    const node = imageType.create({ src: '', alt: '', title: '' });
     const { from } = state.selection;
     let tr = state.tr.replaceSelectionWith(node, false);
     tr = selectInsertedNode(tr, 'image', from);
@@ -255,10 +263,12 @@ export function insertInlineMath(editor: Editor): void {
     // math_inline (plugin-math) serializes its text content.
     const node = mathType.create(null, state.schema.text(MATH_HINT));
     const { from } = state.selection;
+    // Focus before dispatch so the node-selection change opens the source editor
+    // immediately (ProseMirror only fires selectNode while the view has focus).
+    focus();
     let tr = state.tr.replaceSelectionWith(node, false);
     tr = selectInsertedNode(tr, 'math_inline', from);
     dispatch(tr.scrollIntoView());
-    focus();
   });
 }
 
@@ -270,10 +280,12 @@ export function insertMathBlock(editor: Editor): void {
     // math_block (see milkdownConfig override) serializes its `value` attr.
     const node = mathType.create({ value: MATH_HINT });
     const { from } = state.selection;
+    // Focus before dispatch so the node-selection change opens the source editor
+    // immediately (ProseMirror only fires selectNode while the view has focus).
+    focus();
     let tr = state.tr.replaceSelectionWith(node, false);
     tr = selectInsertedNode(tr, 'math_block', from);
     dispatch(tr.scrollIntoView());
-    focus();
   });
 }
 

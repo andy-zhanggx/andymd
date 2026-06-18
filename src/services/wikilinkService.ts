@@ -25,7 +25,8 @@ export async function openWikilink(
     return;
   }
 
-  // open()/openInNewTab() handle the unsaved-changes prompt themselves.
+  // Unsaved edits survive navigation (the store stashes/restores drafts), so
+  // open straight through — into a new tab when requested.
   const docStore = useDocumentStore.getState();
   if (opts.newTab) await docStore.openInNewTab(resolved);
   else await docStore.open(resolved);

@@ -37,6 +37,7 @@ pub fn run() {
             commands::workspace_cmd::open_workspace,
             commands::workspace_cmd::pick_workspace_dir,
             commands::workspace_cmd::pick_markdown_file,
+            commands::workspace_cmd::pick_image_file,
             commands::workspace_cmd::save_markdown_dialog,
             commands::workspace_cmd::save_export_dialog,
             commands::workspace_cmd::export_via_pandoc,
