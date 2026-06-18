@@ -7,6 +7,8 @@ import { imageSchema } from '@milkdown/preset-commonmark';
 import { $view } from '@milkdown/utils';
 import type { $Node } from '@milkdown/utils';
 import { pickAndImportImage } from './insertImage';
+import { resolveImageSrc } from '../../lib/asset';
+import { useDocumentStore } from '../../stores/documentStore';
 
 /**
  * Image size rides in the alt text, Obsidian-style: `![alt|320](src)` (and
@@ -342,11 +344,24 @@ class ImageNodeView implements NodeView {
     fig.className = 'image-figure';
 
     const img = document.createElement('img');
-    img.setAttribute('src', this.src());
+    // Resolve the document-relative path to an asset URL here (instead of
+    // relying solely on MarkdownEditor's MutationObserver) so a changed path
+    // takes effect immediately, and wire load/error so a wrong/missing path is
+    // visibly broken rather than silently showing nothing or a stale image.
+    const docPath = useDocumentStore.getState().doc?.path ?? null;
+    img.setAttribute('src', resolveImageSrc(this.src(), docPath));
     img.alt = alt;
     const title = this.node.attrs.title as string;
     if (title) img.title = title;
     if (width) img.style.width = `${width}px`;
+    img.addEventListener('error', () => {
+      fig.classList.add('broken');
+      fig.dataset.missing = this.src();
+    });
+    img.addEventListener('load', () => {
+      fig.classList.remove('broken');
+      delete fig.dataset.missing;
+    });
     fig.appendChild(img);
 
     const change = document.createElement('button');
