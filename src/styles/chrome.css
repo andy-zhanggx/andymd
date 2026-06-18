@@ -422,10 +422,44 @@
   user-select: none;
 }
 
+.statusbar-left {
+  flex: 1;
+  min-width: 0;
+}
+
 .statusbar-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+}
+
+/* Obsidian-style read-only metrics (backlinks, properties). */
+.statusbar-metric {
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
+/* View-mode toggle (Source ↔ Visual). */
+.statusbar-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.statusbar-mode svg {
+  display: block;
+}
+.statusbar-mode:hover {
+  color: var(--fg-secondary);
+}
+.statusbar-mode[aria-pressed='true'] {
+  color: var(--accent);
 }
 
 .statusbar-help {

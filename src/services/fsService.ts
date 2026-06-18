@@ -30,6 +30,9 @@ export const fsService = {
 
   findVaultRoot: (from: string) => invoke<string>('find_vault_root', { from }),
 
+  countBacklinks: (vaultRoot: string, target: string) =>
+    invoke<number>('count_backlinks', { vaultRoot, target }),
+
   openWorkspace: (root: string) => invoke<void>('open_workspace', { root }),
 
   takePendingOpens: () => invoke<string[]>('take_pending_opens'),
