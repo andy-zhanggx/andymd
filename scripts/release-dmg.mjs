@@ -19,6 +19,9 @@ const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).ver
 const tag = `v${version}`;
 const repo = process.env.GH_RELEASES_REPO || 'andy-zhanggx/andymd';
 const verRe = version.replace(/\./g, '\\.');
+// Hyphen = semver pre-release → publish as a GitHub pre-release so it never
+// becomes releases/latest (the stable in-app updater channel).
+const prerelease = version.includes('-');
 
 // One entry per architecture. `dmgArch` is the suffix Tauri puts in the .dmg
 // filename for that target (aarch64 → "aarch64", x86_64 → "x64").
@@ -45,8 +48,9 @@ const gh = (...args) => execFileSync('gh', args, { cwd: root, stdio: ['ignore', 
 let exists = true;
 try { gh('release', 'view', tag, '--repo', repo); } catch { exists = false; }
 if (!exists) {
-  console.log(`↑ creating release ${tag} on ${repo}`);
-  gh('release', 'create', tag, '--repo', repo, '--title', tag, '--notes', tag);
+  console.log(`↑ creating release ${tag} on ${repo}${prerelease ? ' (pre-release)' : ''}`);
+  gh('release', 'create', tag, '--repo', repo, '--title', tag, '--notes', tag,
+     ...(prerelease ? ['--prerelease'] : []));
 }
 
 console.log(`↑ uploading ${found.map((f) => f.file).join(', ')} → ${repo}@${tag}`);

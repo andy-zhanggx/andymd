@@ -25,6 +25,10 @@ const die = (m) => { console.error(`✗ ${m}`); process.exit(1); };
 const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
 const tag = `v${version}`;
 const repo = process.env.GH_RELEASES_REPO || 'andy-zhanggx/andymd';
+// A hyphen marks a semver pre-release (e.g. 0.3.0-collab.1): publish it as a
+// GitHub pre-release so it never becomes releases/latest — the stable in-app
+// updater channel only ever sees clean vX.Y.Z releases.
+const prerelease = version.includes('-');
 
 // One entry per architecture. `key` is the Tauri updater platform key matched
 // against the running Mac's arch; `arch` is the artifact-name suffix.
@@ -83,8 +87,9 @@ const gh = (...args) => execFileSync('gh', args, { cwd: root, stdio: ['ignore', 
 let exists = true;
 try { gh('release', 'view', tag, '--repo', repo); } catch { exists = false; }
 if (!exists) {
-  console.log(`↑ creating release ${tag} on ${repo}`);
-  gh('release', 'create', tag, '--repo', repo, '--title', tag, '--notes', manifest.notes || tag);
+  console.log(`↑ creating release ${tag} on ${repo}${prerelease ? ' (pre-release)' : ''}`);
+  gh('release', 'create', tag, '--repo', repo, '--title', tag, '--notes', manifest.notes || tag,
+     ...(prerelease ? ['--prerelease'] : []));
 }
 console.log(`↑ uploading ${builds.map((b) => b.assetName).join(', ')} + latest.json → ${repo}@${tag}`);
 gh('release', 'upload', tag, ...uploads, '--repo', repo, '--clobber');

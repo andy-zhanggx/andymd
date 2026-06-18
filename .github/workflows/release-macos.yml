@@ -26,6 +26,31 @@ jobs:
     runs-on: macos-latest   # Apple Silicon; also cross-compiles the x86_64 slice
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # need full history + main for the release-source guard
+
+      # Release-source policy (see CLAUDE.md › Releases):
+      #   • stable `vX.Y.Z` tags MUST be reachable from main — the release branch
+      #     is merged into main *before* tagging, so nothing un-merged ever ships.
+      #   • pre-release tags `vX.Y.Z-<suffix>` are EXEMPT (long-lived branch test
+      #     builds, e.g. v0.3.0-collab.1) and publish as GitHub pre-releases, so
+      #     the stable auto-update channel (releases/latest) never serves them.
+      - name: Enforce release source
+        if: github.ref_type == 'tag'
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          if [[ "$TAG" == *-* ]]; then
+            echo "Pre-release tag '$TAG' — exempt from the main check; publishes as a GitHub pre-release."
+            exit 0
+          fi
+          git fetch --no-tags --depth=2147483647 origin main:refs/remotes/origin/main
+          if git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "OK: stable tag '$TAG' ($GITHUB_SHA) is reachable from origin/main."
+          else
+            echo "::error::Stable tag '$TAG' is not on main. Merge the release branch into main first, then tag (CLAUDE.md › Releases)."
+            exit 1
+          fi
 
       - uses: pnpm/action-setup@v4   # uses the pnpm version pinned in package.json
 

@@ -63,5 +63,35 @@ already fully bundled and runnable.
 ## Releases
 
 Version lives in three files kept in sync by `node scripts/set-version.mjs <semver>`
-(`tauri build` refuses to run if they drift). Tagging `v*` creates the GitLab
-Release; the macOS `.dmg` is built locally and attached via `pnpm release:dmg`.
+(`tauri build` refuses to run if they drift). Pushing a `v*` **tag** triggers
+[`release-macos.yml`](.github/workflows/release-macos.yml), which builds + signs
+both arches on a GitHub-hosted Mac and publishes the per-arch `.dmg` + updater
+manifest to **GitHub Releases** — the public channel the in-app updater reads.
+
+### Release by branch + tag (the rule: every release comes from `main`)
+
+Releases are cut on a short-lived branch off `main`, merged back, then tagged.
+CI enforces this: a stable `vX.Y.Z` tag whose commit is **not reachable from
+`main`** fails the build. Because the version bump must land on `main` before the
+tag, the order is merge-**then**-tag:
+
+```bash
+git switch main && git pull
+git switch -c release/v0.2.0          # branch off main
+node scripts/set-version.mjs 0.2.0    # bump the 3 version files
+#   …update CHANGELOG.md [0.2.0]…  then commit
+git switch main && git merge --ff-only release/v0.2.0
+git push origin main
+git tag v0.2.0 && git push origin v0.2.0   # ← triggers the build
+git branch -d release/v0.2.0
+```
+
+### Long-lived branches (e.g. collab): pre-release tags
+
+A long-lived feature branch (like `feat/collab-editing`) does **not** merge to
+`main` just to hand out a test build. Tag it with a semver **pre-release** suffix
+instead — `vX.Y.Z-collab.1`. Such tags are exempt from the `main` check and
+publish as a GitHub **pre-release**, so `releases/latest` (the stable
+auto-update channel) never serves them; testers download that release's `.dmg`
+by hand. Shipping the feature to everyone still means merging to `main` and
+cutting a clean `vX.Y.Z` from there.
