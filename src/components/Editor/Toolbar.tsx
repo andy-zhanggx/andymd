@@ -1,5 +1,5 @@
 import type { Editor } from '@milkdown/core';
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import {
   insertBold,
   insertItalic,
@@ -234,7 +234,14 @@ const GROUPS: ToolItem[][] = [
 ];
 
 export function Toolbar({ getEditor }: ToolbarProps) {
-  const handle = (run: (editor: Editor) => void) => () => {
+  // Run the action on mousedown (with preventDefault), NOT on click. Two reasons:
+  // preventDefault keeps the editor's selection (the button never takes focus),
+  // and — crucially in the Tauri WKWebView — a click synthesized after a
+  // preventDefaulted mousedown is sometimes dropped, so a click handler would
+  // intermittently "do nothing" (e.g. a heading button not switching). mousedown
+  // fires reliably.
+  const handle = (run: (editor: Editor) => void) => (e: MouseEvent) => {
+    e.preventDefault();
     const editor = getEditor();
     if (editor) run(editor);
   };
@@ -250,9 +257,7 @@ export function Toolbar({ getEditor }: ToolbarProps) {
               className="md-toolbar-btn"
               title={tool.label}
               aria-label={tool.label}
-              // Keep the editor selection: prevent the button from stealing focus.
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={handle(tool.run)}
+              onMouseDown={handle(tool.run)}
             >
               {tool.icon}
             </button>

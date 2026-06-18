@@ -8,7 +8,11 @@ import { useWorkspaceStore } from '../stores/workspaceStore';
  * (or the open workspace) and open the matching note. Prompts to save if
  * the current document has unsaved changes.
  */
-export async function openWikilink(target: string, fromPath: string | null): Promise<void> {
+export async function openWikilink(
+  target: string,
+  fromPath: string | null,
+  opts: { newTab?: boolean } = {},
+): Promise<void> {
   const ws = useWorkspaceStore.getState().workspace;
   const rootDir = fromPath ? await fsService.findVaultRoot(fromPath) : ws?.root;
   if (!rootDir) return;
@@ -21,10 +25,9 @@ export async function openWikilink(target: string, fromPath: string | null): Pro
     return;
   }
 
+  // Unsaved edits survive navigation (the store stashes/restores drafts), so
+  // open straight through — into a new tab when requested.
   const docStore = useDocumentStore.getState();
-  if (docStore.doc?.isDirty) {
-    const ok = await docStore.closeWithConfirmation();
-    if (!ok) return;
-  }
-  await docStore.open(resolved);
+  if (opts.newTab) await docStore.openInNewTab(resolved);
+  else await docStore.open(resolved);
 }

@@ -10,6 +10,7 @@ import { navigate } from '../components/Editor/searchPlugin';
 import { fsService } from '../services/fsService';
 import { buildExportHtml } from '../lib/exportHtml';
 import { openWhatsNewForCurrent } from '../lib/whatsNew';
+import { MULTI_TABS } from '../featureFlags';
 import { invoke } from '@tauri-apps/api/core';
 
 // Inside a workspace, open the in-app file selector (which also creates new
@@ -105,6 +106,12 @@ export async function handleMenuAction(id: string) {
       break;
     case 'new':
       await doc.newFile();
+      break;
+    case 'new-tab':
+      if (MULTI_TABS) doc.newTab();
+      break;
+    case 'links-new-tab-toggle':
+      if (MULTI_TABS) await cfg.update({ linkOpenInNewTab: !cfg.config.linkOpenInNewTab });
       break;
     case 'open': {
       await chooseFileToOpen();
@@ -213,6 +220,12 @@ export async function handleMenuAction(id: string) {
 export function useShortcuts() {
   useEffect(() => {
     async function handler(e: KeyboardEvent) {
+      // Ctrl+Tab / Ctrl+Shift+Tab cycle tabs (no ⌘, so handle before the gate).
+      if (MULTI_TABS && e.ctrlKey && !e.metaKey && e.key === 'Tab') {
+        e.preventDefault();
+        useDocumentStore.getState().cycleTab(e.shiftKey ? -1 : 1);
+        return;
+      }
       if (!e.metaKey) return;
 
       const key = e.key.toLowerCase();
@@ -229,6 +242,11 @@ export function useShortcuts() {
         case 'n':
           e.preventDefault();
           await docStore.newFile();
+          break;
+        case 't':
+          if (!MULTI_TABS) break;
+          e.preventDefault();
+          docStore.newTab();
           break;
         case 'o':
           e.preventDefault();

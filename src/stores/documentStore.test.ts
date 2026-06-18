@@ -21,7 +21,14 @@ import { dialogService } from '../services/dialogService';
 beforeEach(() => {
   fsMock.readFile.mockReset();
   fsMock.writeFile.mockReset();
-  useDocumentStore.setState({ doc: null, history: [], historyIndex: -1 });
+  useDocumentStore.setState({
+    tabs: [],
+    activeId: null,
+    doc: null,
+    history: [],
+    historyIndex: -1,
+    drafts: {},
+  });
 });
 
 describe('documentStore', () => {
@@ -42,6 +49,31 @@ describe('documentStore', () => {
     await useDocumentStore.getState().open('/some/vault/a.md');
     expect(spy).toHaveBeenCalledWith('/some/vault/a.md');
     spy.mockRestore();
+  });
+
+  it('keeps an unsaved draft in memory and restores it when the file is reopened', async () => {
+    fsMock.readFile.mockResolvedValue({ content: 'disk', mtime: 1 });
+    const store = useDocumentStore.getState();
+    await store.open('/a.md');
+    // The editor flushes the latest content on switch-away (debounce-safe).
+    store.stashDraft('/a.md', 'edited-a');
+    await store.open('/b.md'); // switch to another file
+    expect(useDocumentStore.getState().doc!.path).toBe('/b.md');
+    await store.open('/a.md'); // come back
+    const d = useDocumentStore.getState().doc!;
+    expect(d.draft).toBe('edited-a');
+    expect(d.isDirty).toBe(true);
+  });
+
+  it('clears the in-memory draft once the file is saved', async () => {
+    fsMock.readFile.mockResolvedValue({ content: 'disk', mtime: 1 });
+    fsMock.writeFile.mockResolvedValue({ mtime: 2 });
+    const store = useDocumentStore.getState();
+    await store.open('/a.md');
+    store.stashDraft('/a.md', 'edited');
+    store.setDraft('edited');
+    await store.save();
+    expect(useDocumentStore.getState().drafts['/a.md']).toBeUndefined();
   });
 
   it('setDraft marks dirty only when different', async () => {
@@ -170,5 +202,62 @@ describe('documentStore navigation history', () => {
     await get().open('/d.md');
     expect(get().history).toEqual(['/a.md', '/b.md', '/d.md']);
     expect(get().historyIndex).toBe(2);
+  });
+});
+
+describe('documentStore tabs', () => {
+  const get = () => useDocumentStore.getState();
+
+  beforeEach(() => {
+    fsMock.readFile.mockImplementation((path: string) =>
+      Promise.resolve({ content: `# ${path}`, mtime: 1 }),
+    );
+  });
+
+  it('open() reuses a single tab; openInNewTab() adds tabs', async () => {
+    await get().open('/a.md');
+    expect(get().tabs).toHaveLength(1);
+    await get().open('/b.md'); // replaces active tab
+    expect(get().tabs).toHaveLength(1);
+    await get().openInNewTab('/c.md');
+    expect(get().tabs).toHaveLength(2);
+    expect(get().doc!.path).toBe('/c.md');
+  });
+
+  it('opening an already-open path activates its tab instead of duplicating', async () => {
+    await get().openInNewTab('/a.md');
+    await get().openInNewTab('/b.md');
+    expect(get().tabs).toHaveLength(2);
+    await get().openInNewTab('/a.md');
+    expect(get().tabs).toHaveLength(2);
+    expect(get().doc!.path).toBe('/a.md');
+  });
+
+  it('closeTab removes the tab and focuses a neighbour', async () => {
+    await get().openInNewTab('/a.md');
+    await get().openInNewTab('/b.md');
+    const firstId = get().tabs[0].id;
+    await get().closeTab(get().tabs[1].id);
+    expect(get().tabs).toHaveLength(1);
+    expect(get().activeId).toBe(firstId);
+    await get().closeTab(firstId);
+    expect(get().tabs).toHaveLength(0);
+    expect(get().doc).toBeNull();
+  });
+
+  it('restoreTabs rebuilds tabs and activates the saved path', async () => {
+    await get().restoreTabs(['/a.md', '/b.md'], '/a.md');
+    expect(get().tabs.map((t) => t.doc.path)).toEqual(['/a.md', '/b.md']);
+    expect(get().doc!.path).toBe('/a.md');
+  });
+
+  it('each tab keeps its own navigation history', async () => {
+    await get().open('/a.md');
+    await get().open('/b.md'); // tab 0 history: a,b
+    await get().openInNewTab('/c.md'); // tab 1 history: c
+    expect(get().history).toEqual(['/c.md']);
+    get().activateTab(get().tabs[0].id);
+    expect(get().history).toEqual(['/a.md', '/b.md']);
+    expect(get().historyIndex).toBe(1);
   });
 });

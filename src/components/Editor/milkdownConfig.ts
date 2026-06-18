@@ -17,6 +17,7 @@ import { frontmatter } from './frontmatter';
 import { fencedMath } from './fencedMath';
 import { wikilink } from './wikilink';
 import { wikilinkDeadLinkPlugin } from './wikilinkDeadLink';
+import { linkTooltip } from './linkTooltip';
 import { searchPlugin } from './searchPlugin';
 import { viewModePlugin } from './viewModePlugin';
 import { autoPairPlugin } from './autoPairPlugin';
@@ -219,6 +220,7 @@ export function buildEditor(opts: BuildOpts) {
     .use(fencedMath)
     .use(wikilink)
     .use(wikilinkDeadLinkPlugin)
+    .use(linkTooltip)
     .use(highlight)
     .use(superscript)
     .use(subscript)

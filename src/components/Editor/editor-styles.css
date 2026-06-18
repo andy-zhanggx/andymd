@@ -196,6 +196,25 @@
   min-width: 8ch;
   margin: 0 2px;
 }
+.editor-container .milkdown .math-apply {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.editor-container .milkdown .math-inline .math-apply {
+  margin: 0 0 0 4px;
+  vertical-align: middle;
+}
+.editor-container .milkdown .math-apply:hover {
+  filter: brightness(1.05);
+}
 .editor-container .milkdown .math-empty {
   color: var(--fg-muted);
 }
@@ -252,23 +271,113 @@
   display: none;
 }
 
-.editor-container .milkdown .image-node.editing img {
-  outline: 2px solid var(--accent);
+/* Empty image node → a "Choose image…" placeholder button (toolbar insert). */
+.editor-container .milkdown .image-placeholder {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  color: var(--fg-muted);
+  background: var(--bg-secondary, rgba(127, 127, 127, 0.08));
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+.editor-container .milkdown .image-placeholder:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Rendered image: figure wraps the <img> so the Change button + resize handle
+   can be absolutely positioned over it, revealed on hover. */
+.editor-container .milkdown .image-figure {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+.editor-container .milkdown .image-figure img {
+  display: inline-block;
+  max-width: 100%;
   border-radius: 4px;
 }
-.editor-container .milkdown .image-edit {
-  display: inline-flex;
-  gap: 6px;
-  margin-left: 8px;
-  vertical-align: middle;
-}
-.editor-container .milkdown .image-edit input {
-  padding: 4px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+/* A wrong/missing path renders a clear "not found" chip instead of a stale or
+   invisible image (the <img> fired an error). */
+.editor-container .milkdown .image-figure.broken {
+  min-height: 38px;
+  padding: 9px 14px;
+  color: var(--danger, #c43d3d);
   background: var(--bg-secondary, rgba(127, 127, 127, 0.08));
-  color: var(--fg);
+  border: 1px dashed var(--danger, #c43d3d);
+  border-radius: 8px;
+  line-height: 1.3;
+}
+.editor-container .milkdown .image-figure.broken img,
+.editor-container .milkdown .image-figure.broken .image-resize-handle {
+  display: none;
+}
+.editor-container .milkdown .image-figure.broken::before {
+  content: '⚠ Image not found: ' attr(data-missing);
   font-size: 0.85em;
+}
+/* Floating circular "replace image" icon, top-right, revealed on hover. */
+.editor-container .milkdown .image-change {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+.editor-container .milkdown .image-figure:hover .image-change {
+  opacity: 1;
+}
+.editor-container .milkdown .image-change:hover {
+  background: var(--accent);
+}
+/* Bottom-right drag handle to resize. */
+.editor-container .milkdown .image-resize-handle {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 14px;
+  height: 14px;
+  border-right: 3px solid var(--accent);
+  border-bottom: 3px solid var(--accent);
+  border-bottom-right-radius: 4px;
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.editor-container .milkdown .image-figure:hover .image-resize-handle,
+.editor-container .milkdown .image-node.resizing .image-resize-handle {
+  opacity: 0.85;
+}
+
+/* The image node shows its own selected state, so suppress the generic
+   node-selection outline that would otherwise double up with the placeholder's
+   dashed border (or box a transparent PNG). */
+.editor-container .milkdown .image-node.ProseMirror-selectednode {
+  outline: none;
+}
+.editor-container .milkdown .image-node.ProseMirror-selectednode .image-figure img {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.editor-container .milkdown .image-node.ProseMirror-selectednode .image-placeholder {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .editor-container .milkdown a.wikilink {
@@ -386,12 +495,12 @@
 }
 
 /*
- * Markdown links follow on ⌘-click (see MarkdownEditor's clickHandler), so the
- * hand cursor only makes sense while ⌘ is held — that's when a click would jump.
- * The `cmd-held` class is toggled on <body> from key state. Wikilinks follow on
- * a plain click and keep their always-on pointer (rule above).
+ * Links (markdown and wikilinks) follow on a plain click — see MarkdownEditor's
+ * clickHandler — so they always show the hand cursor to signal they're live.
+ * Editing a markdown link's text/URL is done from the hover tooltip
+ * (see linkTooltip.ts), not by clicking into it.
  */
-body.cmd-held .editor-container .milkdown a {
+.editor-container .milkdown a {
   cursor: pointer;
 }
 
@@ -430,6 +539,107 @@ body.cmd-held .editor-container .milkdown a {
 .editor-container .katex-display {
   margin: 1em 0;
   overflow-x: auto;
+}
+
+/*
+ * Hover tooltip for markdown links (see linkTooltip.ts). Appended to <body>, so
+ * it is styled at the top level rather than scoped under .editor-container.
+ */
+.link-tooltip {
+  position: fixed;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 360px;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: var(--fg-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+.link-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.link-tooltip-url {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+.link-tooltip-url:hover {
+  text-decoration: underline;
+}
+.link-tooltip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--fg-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.link-tooltip-btn:hover {
+  color: var(--accent);
+  border-color: var(--border);
+  background: var(--hover);
+}
+.link-tooltip-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 240px;
+}
+.link-tooltip-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.link-tooltip-field > span {
+  flex: 0 0 34px;
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+.link-tooltip-field input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px 6px;
+  font-size: 13px;
+  color: var(--fg-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.link-tooltip-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.link-tooltip-save {
+  align-self: flex-end;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.link-tooltip-save:hover {
+  filter: brightness(1.05);
 }
 
 /* Shown in place of the editor when the Milkdown build fails, instead of a

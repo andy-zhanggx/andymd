@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Editor, editorViewCtx } from '@milkdown/core';
+import { getMarkdown } from '@milkdown/utils';
 import { collabServiceCtx } from '@milkdown/plugin-collab';
 import type { EditorView } from '@milkdown/prose/view';
-import { openMarkdownLink } from '../../services/linkService';
 import { buildEditor } from './milkdownConfig';
 import { useCollabStore, getActiveSession } from '../../collab/collabStore';
-import { ONLINE_COLLAB } from '../../featureFlags';
+import { ONLINE_COLLAB, MULTI_TABS } from '../../featureFlags';
 import { cursorBuilder, selectionBuilder } from '../../collab/cursor';
 import { insertImageNode } from './insertImage';
 import { Toolbar } from './Toolbar';
 import { FindReplace } from './FindReplace';
+import { LinkContextMenu, LinkMenuTarget } from './LinkContextMenu';
 import { EditorBuildError } from './EditorBuildError';
 import { setActiveView } from './activeView';
 import { setTypewriter } from './viewModePlugin';
@@ -20,7 +21,6 @@ import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useUIStore } from '../../stores/uiStore';
 import { dialogService } from '../../services/dialogService';
 import { fsService } from '../../services/fsService';
-import { openWikilink } from '../../services/wikilinkService';
 import { resolveImageSrc } from '../../lib/asset';
 import { isImageFile } from '../../lib/image';
 import './editor-styles.css';
@@ -64,6 +64,8 @@ export function MarkdownEditor() {
   // leaving a blank pane; bumping `reloadKey` re-runs the build effect.
   const [buildError, setBuildError] = useState<Error | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  // Right-clicking a link opens a small menu offering this-window vs new-tab.
+  const [linkMenu, setLinkMenu] = useState<LinkMenuTarget | null>(null);
 
   // Handle image drops at the DOM level. Tauri's native drag interception is
   // disabled (dragDropEnabled: false), so the webview receives the HTML5 drop
@@ -123,25 +125,6 @@ export function MarkdownEditor() {
     }
   }, [onDragOver, onDrop]);
 
-  // Reflect ⌘ being held as a `cmd-held` class on <body> so links can show the
-  // hand ("jump") cursor only while a ⌘-click would actually navigate. Tracking
-  // it globally (not just keys typed in the editor) keeps the cursor in sync no
-  // matter where focus is; blur clears it so a ⌘-tab away can't leave it stuck.
-  useEffect(() => {
-    const sync = (held: boolean) => document.body.classList.toggle('cmd-held', held);
-    const onKey = (e: KeyboardEvent) => sync(e.metaKey);
-    const onBlur = () => sync(false);
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('keyup', onKey);
-    window.addEventListener('blur', onBlur);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('keyup', onKey);
-      window.removeEventListener('blur', onBlur);
-      document.body.classList.remove('cmd-held');
-    };
-  }, []);
-
   useEffect(() => {
     if (!ref.current || !doc) return;
     const root = ref.current;
@@ -173,13 +156,20 @@ export function MarkdownEditor() {
         });
       }
     };
-    const wikilinkClickHandler = (e: MouseEvent) => {
-      const anchor = (e.target as HTMLElement).closest('a[data-type="wikilink"]');
-      if (!anchor) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const target = anchor.getAttribute('data-target') || '';
-      if (target) void openWikilink(target, doc.path);
+    // NOTE: plain/⌘-click link navigation (markdown links + wikilinks) is handled
+    // inside the editor by the linkTooltip plugin's `handleClickOn` — WKWebView
+    // doesn't dispatch `click` for a plain click on an editable `<a>` (only
+    // ⌘-click), so a document-level `click` listener can't be used. The plugin
+    // also honours the new-tab default/modifier. Right-click (below) opens the
+    // tab context menu, which IS a real DOM event we can intercept here.
+    const linkFromEvent = (e: MouseEvent): HTMLAnchorElement | null => {
+      const start = e.target instanceof Element
+        ? e.target
+        : e.target instanceof Node
+          ? e.target.parentElement
+          : null;
+      const anchor = start?.closest<HTMLAnchorElement>('a');
+      return anchor && root.contains(anchor) ? anchor : null;
     };
     const scrollHandler = () => {
       lastScrollTop = scroller?.scrollTop ?? 0;
@@ -188,26 +178,26 @@ export function MarkdownEditor() {
         flushSession();
       }, 500);
     };
-    const clickHandler = (e: MouseEvent) => {
-      const start = e.target instanceof Element
-        ? e.target
-        : e.target instanceof Node
-          ? e.target.parentElement
-          : null;
-      const anchor = start?.closest<HTMLAnchorElement>('a');
-      if (!anchor || !root.contains(anchor)) return;
-      // Wikilinks have their own handler.
-      if (anchor.getAttribute('data-type') === 'wikilink') return;
-
-      const rawHref = anchor.getAttribute('href');
-      if (!rawHref || rawHref === '#') return;
-
-      // Plain click follows the link (directory links open their index note,
-      // non-md files open in the OS, external URLs in the browser). preventDefault
-      // stops the webview from trying to navigate to the raw href.
+    // Right-click a link → choose this-window vs new-tab vs copy. This is a real
+    // `contextmenu` DOM event (unlike plain clicks), so a root listener works.
+    const contextMenuHandler = (e: MouseEvent) => {
+      if (!MULTI_TABS) return;
+      const anchor = linkFromEvent(e);
+      if (!anchor) return;
+      const isWiki = anchor.getAttribute('data-type') === 'wikilink';
+      const value = isWiki
+        ? anchor.getAttribute('data-target') || ''
+        : anchor.getAttribute('href') || '';
+      if (!value || value === '#') return;
       e.preventDefault();
       e.stopPropagation();
-      void openMarkdownLink(rawHref, doc.path);
+      setLinkMenu({
+        kind: isWiki ? 'wikilink' : 'markdown',
+        value,
+        fromPath: doc.path,
+        x: e.clientX,
+        y: e.clientY,
+      });
     };
 
     const setup = async () => {
@@ -275,7 +265,6 @@ export function MarkdownEditor() {
         attributeFilter: ['src'],
       });
       rewrite();
-      root.addEventListener('click', clickHandler);
 
       if (doc.path && scroller) {
         const saved = getSession(doc.path);
@@ -288,8 +277,18 @@ export function MarkdownEditor() {
         }
       }
 
+      // A freshly created / empty document otherwise mounts as a blank pane with
+      // no caret, so it's not obvious where to type. Focus the editor so the
+      // cursor is visible and the user can start typing immediately. (Existing
+      // files are left unfocused to preserve their restored scroll position.)
+      if (!doc.path || doc.draft.trim() === '') {
+        requestAnimationFrame(() => {
+          if (!disposed) viewRef.current?.focus();
+        });
+      }
+
       scroller?.addEventListener('scroll', scrollHandler, { passive: true });
-      root.addEventListener('click', wikilinkClickHandler);
+      root.addEventListener('contextmenu', contextMenuHandler);
     };
 
     void setup().catch((err) => {
@@ -307,11 +306,26 @@ export function MarkdownEditor() {
       viewRef.current = null;
       setActiveView(null);
       mo?.disconnect();
-      root.removeEventListener('click', wikilinkClickHandler);
-      root.removeEventListener('click', clickHandler);
+      root.removeEventListener('contextmenu', contextMenuHandler);
       scroller?.removeEventListener('scroll', scrollHandler);
       if (scrollTimer) window.clearTimeout(scrollTimer);
       flushSession();
+      // Flush the editor's latest markdown before it's torn down. The change
+      // listener is debounced, so the most recent edit (e.g. an image resize)
+      // may not have reached the store yet. Stash it in memory keyed by path so
+      // switching files/views never loses unsaved work; and if we're staying on
+      // the same document (a view/mode toggle), sync the live draft too so
+      // source view reflects the latest edit.
+      if (editor && !collabActive && doc) {
+        try {
+          const md = editor.action(getMarkdown());
+          if (doc.path) useDocumentStore.getState().stashDraft(doc.path, md);
+          const cur = useDocumentStore.getState().doc;
+          if (cur && cur.path === doc.path) setDraft(md);
+        } catch {
+          // editor already disposed — nothing to flush
+        }
+      }
       void (async () => {
         try {
           const instance = editor ?? await createPromise?.catch(() => undefined);
@@ -407,6 +421,7 @@ export function MarkdownEditor() {
     <>
       <Toolbar getEditor={() => editorRef.current} />
       <FindReplace getView={() => viewRef.current} />
+      {linkMenu && <LinkContextMenu {...linkMenu} onClose={() => setLinkMenu(null)} />}
       {buildError && (
         <EditorBuildError
           message={buildError.message}
