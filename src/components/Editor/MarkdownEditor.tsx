@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Editor, editorViewCtx } from '@milkdown/core';
 import { collabServiceCtx } from '@milkdown/plugin-collab';
 import type { EditorView } from '@milkdown/prose/view';
@@ -56,7 +56,7 @@ export function MarkdownEditor() {
   // editor never enters collab mode, so no Y.Doc is bound and no WebSocket is
   // opened — it stays a plain offline editor driven by the local draft.
   const collabActive = ONLINE_COLLAB && roomCode !== null;
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<Editor | null>(null);
   const viewRef = useRef<EditorView | null>(null);
 
@@ -66,51 +66,57 @@ export function MarkdownEditor() {
   // ProseMirror inserts its own broken placeholder — read the bytes, write them
   // into assets/ next to the document, and insert a proper image node at the
   // drop point.
-  useEffect(() => {
-    const root = ref.current;
-    if (!root) return;
-
-    const hasFiles = (e: DragEvent) =>
-      Array.from(e.dataTransfer?.types ?? []).includes('Files');
-
-    const onDragOver = (e: DragEvent) => {
-      if (hasFiles(e)) e.preventDefault();
-    };
-
-    const onDrop = async (e: DragEvent) => {
-      const images = Array.from(e.dataTransfer?.files ?? []).filter(isImageFile);
-      if (images.length === 0) return; // let ProseMirror handle non-image drops
-      e.preventDefault();
-      e.stopPropagation();
-
-      const editor = editorRef.current;
-      const current = useDocumentStore.getState().doc;
-      if (!editor || !current) {
-        window.alert('Open a document before dropping images.');
-        return;
-      }
-      const coords = { left: e.clientX, top: e.clientY };
-      for (const file of images) {
-        try {
-          const bytes = Array.from(new Uint8Array(await file.arrayBuffer()));
-          const { relPath } = await fsService.importImageBytes(file.name, bytes, current.path);
-          insertImageNode(editor, relPath, altFromPath(file.name), coords);
-        } catch (err) {
-          window.alert(
-            (err as Error)?.message ?? 'Failed to import image. Save the document first.'
-          );
-          break;
-        }
-      }
-    };
-
-    root.addEventListener('dragover', onDragOver, true);
-    root.addEventListener('drop', onDrop, true);
-    return () => {
-      root.removeEventListener('dragover', onDragOver, true);
-      root.removeEventListener('drop', onDrop, true);
-    };
+  //
+  // The listeners are wired via a callback ref rather than a mount-time effect:
+  // the editor container is conditionally rendered (it's absent on the empty
+  // state and in source mode), so a `useEffect(…, [])` would attach to a null
+  // root and never re-run when the real container later mounts — leaving drop
+  // dead in the normal "launch → open file" flow. The callback ref fires
+  // exactly when the node mounts/unmounts, independent of the doc churn (a new
+  // `doc` object is created on every keystroke).
+  const onDragOver = useCallback((e: DragEvent) => {
+    if (Array.from(e.dataTransfer?.types ?? []).includes('Files')) e.preventDefault();
   }, []);
+
+  const onDrop = useCallback(async (e: DragEvent) => {
+    const images = Array.from(e.dataTransfer?.files ?? []).filter(isImageFile);
+    if (images.length === 0) return; // let ProseMirror handle non-image drops
+    e.preventDefault();
+    e.stopPropagation();
+
+    const editor = editorRef.current;
+    const current = useDocumentStore.getState().doc;
+    if (!editor || !current) {
+      window.alert('Open a document before dropping images.');
+      return;
+    }
+    const coords = { left: e.clientX, top: e.clientY };
+    for (const file of images) {
+      try {
+        const bytes = Array.from(new Uint8Array(await file.arrayBuffer()));
+        const { relPath } = await fsService.importImageBytes(file.name, bytes, current.path);
+        insertImageNode(editor, relPath, altFromPath(file.name), coords);
+      } catch (err) {
+        window.alert(
+          (err as Error)?.message ?? 'Failed to import image. Save the document first.'
+        );
+        break;
+      }
+    }
+  }, []);
+
+  const setEditorRoot = useCallback((node: HTMLDivElement | null) => {
+    const prev = ref.current;
+    if (prev) {
+      prev.removeEventListener('dragover', onDragOver, true);
+      prev.removeEventListener('drop', onDrop, true);
+    }
+    ref.current = node;
+    if (node) {
+      node.addEventListener('dragover', onDragOver, true);
+      node.addEventListener('drop', onDrop, true);
+    }
+  }, [onDragOver, onDrop]);
 
   // Reflect ⌘ being held as a `cmd-held` class on <body> so links can show the
   // hand ("jump") cursor only while a ⌘-click would actually navigate. Tracking
@@ -402,7 +408,7 @@ export function MarkdownEditor() {
           lineHeight,
           fontFamily,
         }}
-        ref={ref}
+        ref={setEditorRoot}
       />
     </>
   );
