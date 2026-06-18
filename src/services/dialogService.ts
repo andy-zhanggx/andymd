@@ -5,6 +5,8 @@ export const dialogService = {
 
   pickMarkdownFile: () => invoke<string | null>('pick_markdown_file'),
 
+  pickImageFile: () => invoke<string | null>('pick_image_file'),
+
   saveMarkdownAs: (defaultName: string) =>
     invoke<string | null>('save_markdown_dialog', { defaultName }),
 

@@ -17,6 +17,15 @@ interface DocumentState {
    */
   history: string[];
   historyIndex: number;
+  /**
+   * In-memory unsaved drafts, keyed by file path. Switching files/views stashes
+   * the current editor content here (see MarkdownEditor's flush-on-teardown) and
+   * reopening restores it — so unsaved edits survive navigation without writing
+   * to disk (Typora-style). Cleared when the file is saved or reloaded.
+   */
+  drafts: Record<string, string>;
+  /** Stash a file's current editor content as an unsaved in-memory draft. */
+  stashDraft: (path: string, draft: string) => void;
   open: (path: string) => Promise<void>;
   back: () => Promise<void>;
   forward: () => Promise<void>;
@@ -46,12 +55,17 @@ function emptyDraft(): Document {
 // pushes onto the navigation history.
 async function loadDoc(
   set: (partial: Partial<DocumentState>) => void,
+  get: () => DocumentState,
   path: string,
 ): Promise<void> {
   const { content: raw, mtime } = await fsService.readFile(path);
   const content = lenifyHeadings(raw);
+  // Restore an in-memory unsaved draft if we have one for this path (the user
+  // edited it, switched away, and is coming back). Otherwise show disk content.
+  const stashed = get().drafts[path];
+  const draft = stashed !== undefined ? stashed : content;
   set({
-    doc: { path, content, draft: content, isDirty: false, mtime, encoding: 'utf-8' },
+    doc: { path, content, draft, isDirty: draft !== content, mtime, encoding: 'utf-8' },
   });
   // Make the sidebar (namespace) follow the file's vault. Never let a
   // workspace-follow failure prevent the document from opening.
@@ -68,6 +82,11 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   doc: null,
   history: [],
   historyIndex: -1,
+  drafts: {},
+
+  stashDraft(path, draft) {
+    set({ drafts: { ...get().drafts, [path]: draft } });
+  },
 
   async open(path) {
     // Record into history before loading. Re-opening the already-current path
@@ -79,7 +98,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       trimmed.push(path);
       set({ history: trimmed, historyIndex: trimmed.length - 1 });
     }
-    await loadDoc(set, path);
+    await loadDoc(set, get, path);
   },
 
   async back() {
@@ -87,7 +106,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     if (historyIndex <= 0) return;
     const idx = historyIndex - 1;
     set({ historyIndex: idx });
-    await loadDoc(set, history[idx]);
+    await loadDoc(set, get, history[idx]);
   },
 
   async forward() {
@@ -95,7 +114,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     if (historyIndex >= history.length - 1) return;
     const idx = historyIndex + 1;
     set({ historyIndex: idx });
-    await loadDoc(set, history[idx]);
+    await loadDoc(set, get, history[idx]);
   },
 
   // Create a real, editable file. Inside a workspace this writes an
@@ -145,7 +164,9 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       // file may have been deleted; proceed to write
     }
     const { mtime } = await fsService.writeFile(d.path, d.draft);
-    set({ doc: { ...d, content: d.draft, isDirty: false, mtime } });
+    const drafts = { ...get().drafts };
+    delete drafts[d.path];
+    set({ doc: { ...d, content: d.draft, isDirty: false, mtime }, drafts });
     void versionService.save(d.path, d.draft);
   },
 
@@ -156,7 +177,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     const target = await dialogService.saveMarkdownAs(defaultName);
     if (!target) return;
     const { mtime } = await fsService.writeFile(target, d.draft);
-    set({ doc: { ...d, path: target, content: d.draft, isDirty: false, mtime } });
+    const drafts = { ...get().drafts };
+    delete drafts[target];
+    if (d.path) delete drafts[d.path];
+    set({ doc: { ...d, path: target, content: d.draft, isDirty: false, mtime }, drafts });
     void versionService.save(target, d.draft);
   },
 
@@ -165,7 +189,12 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     if (!d?.path) return;
     const { content: raw, mtime } = await fsService.readFile(d.path);
     const content = lenifyHeadings(raw);
-    set({ doc: { path: d.path, content, draft: content, isDirty: false, mtime, encoding: 'utf-8' } });
+    const drafts = { ...get().drafts };
+    delete drafts[d.path];
+    set({
+      doc: { path: d.path, content, draft: content, isDirty: false, mtime, encoding: 'utf-8' },
+      drafts,
+    });
   },
 
   close() {

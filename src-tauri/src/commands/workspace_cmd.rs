@@ -40,6 +40,21 @@ pub async fn pick_markdown_file(app: AppHandle) -> CommandResult<Option<String>>
 }
 
 #[tauri::command]
+pub async fn pick_image_file(app: AppHandle) -> CommandResult<Option<String>> {
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Insert Image")
+        .add_filter(
+            "Images",
+            &["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif"],
+        )
+        .add_filter("All Files", &["*"])
+        .blocking_pick_file();
+    Ok(picked.map(|p| p.to_string()))
+}
+
+#[tauri::command]
 pub async fn save_markdown_dialog(
     app: AppHandle,
     default_name: String,

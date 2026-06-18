@@ -220,11 +220,21 @@ describe('toolbarActions — placeholder hints on an empty document', () => {
     }
   });
 
-  it('image inserts a placeholder image node', async () => {
+  it('image inserts an empty placeholder image node (no file dialog)', async () => {
     const { editor, cleanup } = await mount();
     try {
       insertImagePlaceholder(editor);
-      expect(md(editor)).toContain('![image](path/to/image)');
+      // Empty src/alt — its NodeView renders a "Choose image" button; the user
+      // picks a file from there rather than a dialog popping on insert.
+      const imageType = editor.ctx.get(editorViewCtx).state.schema.nodes.image;
+      let found = false;
+      editor.ctx.get(editorViewCtx).state.doc.descendants((n) => {
+        if (n.type === imageType) {
+          found = true;
+          expect(n.attrs.src).toBe('');
+        }
+      });
+      expect(found, 'an image node was inserted').toBe(true);
     } finally {
       await cleanup();
     }
