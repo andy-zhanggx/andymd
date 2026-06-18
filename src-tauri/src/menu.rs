@@ -62,12 +62,24 @@ pub fn build_menu<R: Runtime>(
         .item(&PredefinedMenuItem::quit(app, None)?)
         .build()?;
 
-    let file_menu = SubmenuBuilder::new(app, "File")
-        .item(
-            &MenuItemBuilder::with_id("new", "New")
-                .accelerator("CmdOrCtrl+N")
+    // The multi-tab feature is gated. Its menu items only appear when the app is
+    // compiled with ANDYMD_ENABLE_TABS set, matching the frontend VITE_ENABLE_TABS
+    // flag, so a normal release never surfaces the unfinished feature.
+    let tabs_enabled = option_env!("ANDYMD_ENABLE_TABS").is_some();
+
+    let mut file_builder = SubmenuBuilder::new(app, "File").item(
+        &MenuItemBuilder::with_id("new", "New")
+            .accelerator("CmdOrCtrl+N")
+            .build(app)?,
+    );
+    if tabs_enabled {
+        file_builder = file_builder.item(
+            &MenuItemBuilder::with_id("new-tab", "New Tab")
+                .accelerator("CmdOrCtrl+T")
                 .build(app)?,
-        )
+        );
+    }
+    let file_menu = file_builder
         .item(
             &MenuItemBuilder::with_id("open", "Open File…")
                 .accelerator("CmdOrCtrl+O")
@@ -166,7 +178,7 @@ pub fn build_menu<R: Runtime>(
         )
         .build()?;
 
-    let view_menu = SubmenuBuilder::new(app, "View")
+    let mut view_builder = SubmenuBuilder::new(app, "View")
         .item(
             &MenuItemBuilder::with_id("toggle-sidebar", "Toggle Sidebar")
                 .accelerator("CmdOrCtrl+B")
@@ -176,7 +188,14 @@ pub fn build_menu<R: Runtime>(
             &MenuItemBuilder::with_id("toggle-outline", "Outline")
                 .accelerator("CmdOrCtrl+Shift+1")
                 .build(app)?,
-        )
+        );
+    if tabs_enabled {
+        view_builder = view_builder.item(
+            &MenuItemBuilder::with_id("links-new-tab-toggle", "Open Links in New Tab")
+                .build(app)?,
+        );
+    }
+    let view_menu = view_builder
         .separator()
         .item(
             &MenuItemBuilder::with_id("toggle-source", "Source Code Mode")

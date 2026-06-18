@@ -6,6 +6,18 @@ import type { Node as PMNode } from '@milkdown/prose/model';
 import { openMarkdownLink } from '../../services/linkService';
 import { openWikilink } from '../../services/wikilinkService';
 import { useDocumentStore } from '../../stores/documentStore';
+import { useConfigStore } from '../../stores/configStore';
+import { MULTI_TABS } from '../../featureFlags';
+
+// Whether following a link should open a new tab: only with the tabs feature on,
+// and then either because the user held ⌘/Ctrl or because the "open links in new
+// tab" default is set. Gated off → always in place (single-document behaviour).
+function wantNewTab(e: MouseEvent): boolean {
+  return (
+    MULTI_TABS &&
+    (e.metaKey || e.ctrlKey || useConfigStore.getState().config.linkOpenInNewTab)
+  );
+}
 
 /**
  * Link clicking + a hover tooltip for editing links.
@@ -285,8 +297,9 @@ class LinkTooltipView {
     e.preventDefault();
     const info = this.info;
     if (!info) return;
-    if (info.kind === 'wikilink') void openWikilink(info.target, docPath());
-    else void openMarkdownLink(info.href, docPath());
+    const newTab = wantNewTab(e);
+    if (info.kind === 'wikilink') void openWikilink(info.target, docPath(), { newTab });
+    else void openMarkdownLink(info.href, docPath(), { newTab });
     this.hide();
   };
 
@@ -411,16 +424,16 @@ const UNLINK =
  * resolver and `link`-marked text through the markdown link opener. Returns true
  * to consume the click so the cursor doesn't land mid-link.
  */
-function followLinkAt(node: PMNode): boolean {
+function followLinkAt(node: PMNode, newTab: boolean): boolean {
   if (node.type.name === 'wikilink') {
     const target = (node.attrs.target as string) ?? '';
-    if (target) void openWikilink(target, docPath());
+    if (target) void openWikilink(target, docPath(), { newTab });
     return true;
   }
   const linkMark = node.marks?.find((m) => m.type.name === 'link');
   if (linkMark) {
     const href = (linkMark.attrs.href as string) ?? '';
-    if (href && href !== '#') void openMarkdownLink(href, docPath());
+    if (href && href !== '#') void openMarkdownLink(href, docPath(), { newTab });
     return true;
   }
   return false;
@@ -431,8 +444,10 @@ export const linkTooltip = $prose(
     new Plugin({
       props: {
         // WKWebView swallows the `click` event for editable links; handleClickOn
-        // is driven by mousedown/mouseup, so it fires on a plain click.
-        handleClickOn: (_view, _pos, node) => followLinkAt(node),
+        // is driven by mousedown/mouseup, so it fires on a plain click. The
+        // mouse event lets us honour ⌘-click / the new-tab default.
+        handleClickOn: (_view, _pos, node, _nodePos, event) =>
+          followLinkAt(node, wantNewTab(event)),
       },
       view: (editorView) => new LinkTooltipView(editorView),
     }),

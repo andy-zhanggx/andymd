@@ -5,11 +5,12 @@ import { collabServiceCtx } from '@milkdown/plugin-collab';
 import type { EditorView } from '@milkdown/prose/view';
 import { buildEditor } from './milkdownConfig';
 import { useCollabStore, getActiveSession } from '../../collab/collabStore';
-import { ONLINE_COLLAB } from '../../featureFlags';
+import { ONLINE_COLLAB, MULTI_TABS } from '../../featureFlags';
 import { cursorBuilder, selectionBuilder } from '../../collab/cursor';
 import { insertImageNode } from './insertImage';
 import { Toolbar } from './Toolbar';
 import { FindReplace } from './FindReplace';
+import { LinkContextMenu, LinkMenuTarget } from './LinkContextMenu';
 import { EditorBuildError } from './EditorBuildError';
 import { setActiveView } from './activeView';
 import { setTypewriter } from './viewModePlugin';
@@ -63,6 +64,8 @@ export function MarkdownEditor() {
   // leaving a blank pane; bumping `reloadKey` re-runs the build effect.
   const [buildError, setBuildError] = useState<Error | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  // Right-clicking a link opens a small menu offering this-window vs new-tab.
+  const [linkMenu, setLinkMenu] = useState<LinkMenuTarget | null>(null);
 
   // Handle image drops at the DOM level. Tauri's native drag interception is
   // disabled (dragDropEnabled: false), so the webview receives the HTML5 drop
@@ -153,18 +156,48 @@ export function MarkdownEditor() {
         });
       }
     };
-    // NOTE: link navigation (markdown links + wikilinks) is handled inside the
-    // editor by the linkTooltip plugin's `handleClickOn`. A document-level
-    // `click` listener cannot be used: WKWebView does not dispatch `click` for a
-    // plain click on an editable `<a>` (only ⌘-click), which is exactly why
-    // links used to "need ⌘". ProseMirror's click handling is mousedown-based
-    // and fires on a plain click.
+    // NOTE: plain/⌘-click link navigation (markdown links + wikilinks) is handled
+    // inside the editor by the linkTooltip plugin's `handleClickOn` — WKWebView
+    // doesn't dispatch `click` for a plain click on an editable `<a>` (only
+    // ⌘-click), so a document-level `click` listener can't be used. The plugin
+    // also honours the new-tab default/modifier. Right-click (below) opens the
+    // tab context menu, which IS a real DOM event we can intercept here.
+    const linkFromEvent = (e: MouseEvent): HTMLAnchorElement | null => {
+      const start = e.target instanceof Element
+        ? e.target
+        : e.target instanceof Node
+          ? e.target.parentElement
+          : null;
+      const anchor = start?.closest<HTMLAnchorElement>('a');
+      return anchor && root.contains(anchor) ? anchor : null;
+    };
     const scrollHandler = () => {
       lastScrollTop = scroller?.scrollTop ?? 0;
       if (scrollTimer) window.clearTimeout(scrollTimer);
       scrollTimer = window.setTimeout(() => {
         flushSession();
       }, 500);
+    };
+    // Right-click a link → choose this-window vs new-tab vs copy. This is a real
+    // `contextmenu` DOM event (unlike plain clicks), so a root listener works.
+    const contextMenuHandler = (e: MouseEvent) => {
+      if (!MULTI_TABS) return;
+      const anchor = linkFromEvent(e);
+      if (!anchor) return;
+      const isWiki = anchor.getAttribute('data-type') === 'wikilink';
+      const value = isWiki
+        ? anchor.getAttribute('data-target') || ''
+        : anchor.getAttribute('href') || '';
+      if (!value || value === '#') return;
+      e.preventDefault();
+      e.stopPropagation();
+      setLinkMenu({
+        kind: isWiki ? 'wikilink' : 'markdown',
+        value,
+        fromPath: doc.path,
+        x: e.clientX,
+        y: e.clientY,
+      });
     };
 
     const setup = async () => {
@@ -255,6 +288,7 @@ export function MarkdownEditor() {
       }
 
       scroller?.addEventListener('scroll', scrollHandler, { passive: true });
+      root.addEventListener('contextmenu', contextMenuHandler);
     };
 
     void setup().catch((err) => {
@@ -272,6 +306,7 @@ export function MarkdownEditor() {
       viewRef.current = null;
       setActiveView(null);
       mo?.disconnect();
+      root.removeEventListener('contextmenu', contextMenuHandler);
       scroller?.removeEventListener('scroll', scrollHandler);
       if (scrollTimer) window.clearTimeout(scrollTimer);
       flushSession();
@@ -386,6 +421,7 @@ export function MarkdownEditor() {
     <>
       <Toolbar getEditor={() => editorRef.current} />
       <FindReplace getView={() => viewRef.current} />
+      {linkMenu && <LinkContextMenu {...linkMenu} onClose={() => setLinkMenu(null)} />}
       {buildError && (
         <EditorBuildError
           message={buildError.message}

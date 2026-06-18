@@ -1,6 +1,7 @@
 import { Tree, NodeRendererProps } from 'react-arborist';
 import { FileNode } from '../../types';
 import { useDocumentStore } from '../../stores/documentStore';
+import { MULTI_TABS } from '../../featureFlags';
 
 interface Props {
   root: FileNode;
@@ -63,6 +64,7 @@ function Chevron({ open }: { open: boolean }) {
 
 function Node({ node, style, dragHandle, activePath, onContextMenu }: NodeProps) {
   const openDoc = useDocumentStore((s) => s.open);
+  const openDocInNewTab = useDocumentStore((s) => s.openInNewTab);
   const isFile = node.data.kind === 'file';
   const isActive = activePath === node.data.path;
 
@@ -71,9 +73,18 @@ function Node({ node, style, dragHandle, activePath, onContextMenu }: NodeProps)
       ref={dragHandle}
       className={isActive ? 'filetree-row active' : 'filetree-row'}
       style={style}
-      onClick={() => {
-        if (isFile) openDoc(node.data.path);
-        else node.toggle();
+      onClick={(e) => {
+        if (isFile) {
+          // ⌘/Ctrl-click opens the file in a new tab, like the editor links.
+          if (MULTI_TABS && (e.metaKey || e.ctrlKey)) openDocInNewTab(node.data.path);
+          else openDoc(node.data.path);
+        } else node.toggle();
+      }}
+      onAuxClick={(e) => {
+        if (MULTI_TABS && e.button === 1 && isFile) {
+          e.preventDefault();
+          openDocInNewTab(node.data.path);
+        }
       }}
       onContextMenu={(e) => {
         e.preventDefault();

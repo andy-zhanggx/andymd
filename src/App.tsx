@@ -8,13 +8,14 @@ import { useConfigStore } from './stores/configStore';
 import { useUIStore } from './stores/uiStore';
 import { DEFAULT_CONFIG } from './types';
 import { TitleBar } from './components/TitleBar';
+import { TabBar } from './components/TabBar';
 import { StatusBar } from './components/StatusBar';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { MarkdownEditor } from './components/Editor/MarkdownEditor';
 import { OpenFileDialog } from './components/OpenFileDialog';
 import { VersionHistory } from './components/VersionHistory';
 import { ShareDialog } from './components/Collab/ShareDialog';
-import { ONLINE_COLLAB } from './featureFlags';
+import { ONLINE_COLLAB, MULTI_TABS } from './featureFlags';
 import { Tour } from './components/Tour';
 import { WhatsNew } from './components/WhatsNew';
 import { runWhatsNewCheck } from './lib/whatsNew';
@@ -78,14 +79,22 @@ export default function App() {
       style={{
         display: 'grid',
         gridTemplateColumns: showSidebar ? `${width}px 1fr` : '1fr',
-        gridTemplateRows: '38px 1fr 24px',
-        gridTemplateAreas: showSidebar
-          ? '"titlebar titlebar" "sidebar editor" "statusbar statusbar"'
-          : '"titlebar" "editor" "statusbar"',
+        // With tabs on, the strip sits ONLY over the editor column (Obsidian
+        // style): the sidebar spans the full height to its left. Without tabs we
+        // keep the classic two-row layout.
+        gridTemplateRows: MULTI_TABS ? '38px auto 1fr 24px' : '38px 1fr 24px',
+        gridTemplateAreas: MULTI_TABS
+          ? showSidebar
+            ? '"titlebar titlebar" "sidebar tabbar" "sidebar editor" "statusbar statusbar"'
+            : '"titlebar" "tabbar" "editor" "statusbar"'
+          : showSidebar
+            ? '"titlebar titlebar" "sidebar editor" "statusbar statusbar"'
+            : '"titlebar" "editor" "statusbar"',
         height: '100vh',
       }}
     >
       <div style={{ gridArea: 'titlebar' }}><TitleBar /></div>
+      {MULTI_TABS && <div style={{ gridArea: 'tabbar' }}><TabBar /></div>}
       {showSidebar && (
         <aside
           style={{

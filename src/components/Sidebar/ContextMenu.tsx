@@ -3,6 +3,7 @@ import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useDocumentStore } from '../../stores/documentStore';
 import { fsService } from '../../services/fsService';
 import { findNode, uniqueChildName } from '../../lib/workspacePath';
+import { MULTI_TABS } from '../../featureFlags';
 
 export interface Props {
   x: number;
@@ -18,7 +19,9 @@ export function ContextMenu({ x, y, path, kind, onClose }: Props) {
   const rename = useWorkspaceStore((s) => s.rename);
   const deleteEntry = useWorkspaceStore((s) => s.deleteEntry);
   const tree = useWorkspaceStore((s) => s.workspace?.tree ?? null);
+  const root = useWorkspaceStore((s) => s.workspace?.root ?? null);
   const openDoc = useDocumentStore((s) => s.open);
+  const openDocInNewTab = useDocumentStore((s) => s.openInNewTab);
 
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ x, y });
@@ -99,15 +102,57 @@ export function ContextMenu({ x, y, path, kind, onClose }: Props) {
     action: () => fsService.revealInFinder(path),
   };
 
+  const openInNewTab: Item = {
+    label: 'Open in New Tab',
+    action: () => openDocInNewTab(path),
+  };
+
+  // Copy this entry next to itself as "<name> copy.<ext>" (deduped), mirroring
+  // the contents for a file. Folder duplication isn't offered (recursive copy).
+  const duplicate: Item = {
+    label: 'Duplicate',
+    action: async () => {
+      try {
+        const base = path.split('/').pop() ?? path;
+        const dot = base.lastIndexOf('.');
+        const stem = dot > 0 ? base.slice(0, dot) : base;
+        const ext = dot > 0 ? base.slice(dot + 1) : 'md';
+        const name = uniqueChildName(findNode(tree, parent)?.children, `${stem} copy`, ext);
+        const node = await createFile(parent, name);
+        const { content } = await fsService.readFile(path);
+        await fsService.writeFile(node.path, content);
+      } catch (e) {
+        window.alert(`Could not duplicate: ${(e as Error)?.message ?? e}`);
+      }
+    },
+  };
+
+  const copyPath: Item = {
+    label: 'Copy Path',
+    action: () => void navigator.clipboard.writeText(path).catch(() => {}),
+  };
+
+  // Vault-relative when the entry lives under the open workspace; otherwise the
+  // absolute path is the only meaningful answer.
+  const copyRelativePath: Item = {
+    label: 'Copy Relative Path',
+    action: () => {
+      const rel = root && path.startsWith(`${root}/`) ? path.slice(root.length + 1) : path;
+      void navigator.clipboard.writeText(rel).catch(() => {});
+    },
+  };
+
   // The workspace root gets only safe actions — renaming or trashing the entire
   // vault root from a stray right-click would be a footgun.
   const items: Item[] =
     kind === 'workspace'
       ? [newFile, newFolder, 'sep', revealInFinder]
       : [
+          ...(MULTI_TABS && kind === 'file' ? [openInNewTab, 'sep' as const] : []),
           newFile,
           newFolder,
           'sep',
+          ...(kind === 'file' ? [duplicate] : []),
           {
             label: 'Rename…',
             action: async () => {
@@ -119,6 +164,9 @@ export function ContextMenu({ x, y, path, kind, onClose }: Props) {
               }
             },
           },
+          'sep',
+          copyPath,
+          copyRelativePath,
           revealInFinder,
           'sep',
           {
