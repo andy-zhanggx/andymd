@@ -21,7 +21,7 @@ import { dialogService } from '../services/dialogService';
 beforeEach(() => {
   fsMock.readFile.mockReset();
   fsMock.writeFile.mockReset();
-  useDocumentStore.setState({ doc: null });
+  useDocumentStore.setState({ doc: null, history: [], historyIndex: -1 });
 });
 
 describe('documentStore', () => {
@@ -105,5 +105,70 @@ describe('documentStore', () => {
     await useDocumentStore.getState().open('/a.md');
     const d = useDocumentStore.getState().doc!;
     expect(d.content).toBe('# Title\n## Heading\ntext with # in middle\n# 正常\n');
+  });
+});
+
+describe('documentStore navigation history', () => {
+  const get = () => useDocumentStore.getState();
+
+  beforeEach(() => {
+    // Echo the path back so we can assert which file is loaded.
+    fsMock.readFile.mockImplementation((path: string) =>
+      Promise.resolve({ content: `# ${path}`, mtime: 1 }),
+    );
+  });
+
+  it('records each opened path and exposes a moving index', async () => {
+    await get().open('/a.md');
+    expect(get().history).toEqual(['/a.md']);
+    expect(get().historyIndex).toBe(0);
+    await get().open('/b.md');
+    expect(get().history).toEqual(['/a.md', '/b.md']);
+    expect(get().historyIndex).toBe(1);
+  });
+
+  it('does not push a new entry when re-opening the current path', async () => {
+    await get().open('/a.md');
+    await get().open('/a.md');
+    expect(get().history).toEqual(['/a.md']);
+    expect(get().historyIndex).toBe(0);
+  });
+
+  it('back and forward move through history without mutating it', async () => {
+    await get().open('/a.md');
+    await get().open('/b.md');
+    await get().open('/c.md');
+
+    await get().back();
+    expect(get().historyIndex).toBe(1);
+    expect(get().doc!.path).toBe('/b.md');
+
+    await get().back();
+    expect(get().historyIndex).toBe(0);
+    expect(get().doc!.path).toBe('/a.md');
+
+    await get().forward();
+    expect(get().historyIndex).toBe(1);
+    expect(get().doc!.path).toBe('/b.md');
+
+    expect(get().history).toEqual(['/a.md', '/b.md', '/c.md']);
+  });
+
+  it('back is a no-op at the start, forward is a no-op at the end', async () => {
+    await get().open('/a.md');
+    await get().back();
+    expect(get().historyIndex).toBe(0);
+    await get().forward();
+    expect(get().historyIndex).toBe(0);
+  });
+
+  it('opening after going back truncates the forward stack', async () => {
+    await get().open('/a.md');
+    await get().open('/b.md');
+    await get().open('/c.md');
+    await get().back(); // at /b.md (index 1)
+    await get().open('/d.md');
+    expect(get().history).toEqual(['/a.md', '/b.md', '/d.md']);
+    expect(get().historyIndex).toBe(2);
   });
 });

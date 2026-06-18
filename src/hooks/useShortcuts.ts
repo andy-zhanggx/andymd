@@ -263,6 +263,19 @@ export function useShortcuts() {
           e.preventDefault();
           useUIStore.getState().toggleSourceMode();
           break;
+        // Browser-style history navigation. Inside a list, ProseMirror already
+        // binds ⌘[ / ⌘] to outdent/indent and calls preventDefault — defer to it
+        // and only navigate when the editor left the key unhandled.
+        case '[':
+          if (e.defaultPrevented) break;
+          e.preventDefault();
+          await docStore.back();
+          break;
+        case ']':
+          if (e.defaultPrevented) break;
+          e.preventDefault();
+          await docStore.forward();
+          break;
       }
     }
     window.addEventListener('keydown', handler);
