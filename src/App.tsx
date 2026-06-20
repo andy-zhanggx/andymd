@@ -6,6 +6,7 @@ import { useOpenFileRequest } from './hooks/useOpenFileRequest';
 import { useWorkspaceWatcher } from './hooks/useWorkspaceWatcher';
 import { useConfigStore } from './stores/configStore';
 import { useUIStore } from './stores/uiStore';
+import { useDocumentStore } from './stores/documentStore';
 import { DEFAULT_CONFIG } from './types';
 import { TitleBar } from './components/TitleBar';
 import { TabBar } from './components/TabBar';
@@ -21,6 +22,7 @@ import { WhatsNew } from './components/WhatsNew';
 import { runWhatsNewCheck } from './lib/whatsNew';
 import { UpdateSettings } from './components/UpdateSettings';
 import { runUpdateCheck, UPDATE_CHECK_INTERVAL_MS } from './lib/updater';
+import { useIsNarrow } from './lib/platform';
 
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 420;
@@ -35,6 +37,19 @@ export default function App() {
   const update = useConfigStore((s) => s.update);
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const width = dragWidth ?? sidebarWidth;
+
+  // On a phone-sized viewport the sidebar can't be a resizable pane — it becomes
+  // an overlay drawer over the editor, dismissed by tapping the backdrop.
+  const narrow = useIsNarrow();
+
+  // Opening a file from the drawer should get out of the way: close the overlay
+  // sidebar whenever the active document changes on a narrow viewport.
+  const activeDocPath = useDocumentStore((s) => s.doc?.path);
+  useEffect(() => {
+    if (narrow && useConfigStore.getState().config.showSidebar) {
+      void update({ showSidebar: false });
+    }
+  }, [activeDocPath, narrow, update]);
 
   // First-run: launch the onboarding tour once the config has loaded.
   const configLoaded = useConfigStore((s) => s.loaded);
@@ -73,21 +88,26 @@ export default function App() {
     window.addEventListener('mouseup', onUp);
   };
 
+  // On a narrow viewport the sidebar floats over the editor as a drawer rather
+  // than occupying a grid column, so the editor always gets the full width.
+  const sidebarInGrid = showSidebar && !narrow;
+
   return (
     <div
       id="app-root"
+      className={narrow ? 'is-narrow' : undefined}
       style={{
         display: 'grid',
-        gridTemplateColumns: showSidebar ? `${width}px 1fr` : '1fr',
+        gridTemplateColumns: sidebarInGrid ? `${width}px 1fr` : '1fr',
         // With tabs on, the strip sits ONLY over the editor column (Obsidian
         // style): the sidebar spans the full height to its left. Without tabs we
         // keep the classic two-row layout.
         gridTemplateRows: MULTI_TABS ? '38px auto 1fr 24px' : '38px 1fr 24px',
         gridTemplateAreas: MULTI_TABS
-          ? showSidebar
+          ? sidebarInGrid
             ? '"titlebar titlebar" "sidebar tabbar" "sidebar editor" "statusbar statusbar"'
             : '"titlebar" "tabbar" "editor" "statusbar"'
-          : showSidebar
+          : sidebarInGrid
             ? '"titlebar titlebar" "sidebar editor" "statusbar statusbar"'
             : '"titlebar" "editor" "statusbar"',
         height: '100vh',
@@ -95,7 +115,7 @@ export default function App() {
     >
       <div style={{ gridArea: 'titlebar' }}><TitleBar /></div>
       {MULTI_TABS && <div style={{ gridArea: 'tabbar' }}><TabBar /></div>}
-      {showSidebar && (
+      {sidebarInGrid && (
         <aside
           style={{
             gridArea: 'sidebar',
@@ -136,6 +156,18 @@ export default function App() {
             title="Drag to resize · double-click to reset"
           />
         </aside>
+      )}
+      {narrow && showSidebar && (
+        <>
+          <div
+            className="sidebar-backdrop"
+            onClick={() => void update({ showSidebar: false })}
+            aria-hidden="true"
+          />
+          <aside className="sidebar-drawer" aria-label="Files">
+            <Sidebar />
+          </aside>
+        </>
       )}
       <main style={{ gridArea: 'editor', overflow: 'auto', background: 'var(--bg-primary)' }}>
         <MarkdownEditor />

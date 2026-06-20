@@ -7,7 +7,17 @@ async function bootstrap() {
   try {
     await useConfigStore.getState().load();
     const cfg = useConfigStore.getState().config;
-    const last = cfg.lastWorkspace;
+    const { isMobile } = await import('./lib/platform');
+
+    // On iOS there's no folder to "open" the way desktop does; if we don't have
+    // a remembered workspace, fall back to the app sandbox's Documents vault so
+    // the file tree is never empty on first launch.
+    let last = cfg.lastWorkspace;
+    if (!last && isMobile()) {
+      try {
+        last = await (await import('./services/fsService')).fsService.defaultVaultDir();
+      } catch { /* ignore — start with no workspace */ }
+    }
     if (last) {
       const mod = await import('./stores/workspaceStore');
       try { await mod.useWorkspaceStore.getState().open(last); } catch { /* ignore if folder missing */ }

@@ -1,8 +1,14 @@
+// The native menu bar is a desktop concept. iOS has no app menu bar, so the
+// entire builder is `#[cfg(desktop)]` and the mobile build only keeps a no-op
+// `rebuild_recent_menu` command (defined at the bottom) so the shared
+// `generate_handler!` list compiles on both targets.
+#[cfg(desktop)]
 use tauri::{
     menu::{MenuBuilder, MenuEvent, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder},
     AppHandle, Emitter, Runtime,
 };
 
+#[cfg(desktop)]
 fn base_name(path: &str) -> String {
     path.rsplit(['/', '\\'])
         .next()
@@ -11,6 +17,7 @@ fn base_name(path: &str) -> String {
         .to_string()
 }
 
+#[cfg(desktop)]
 fn build_recent_submenu<R: Runtime>(
     app: &AppHandle<R>,
     recent_files: &[String],
@@ -45,6 +52,7 @@ fn build_recent_submenu<R: Runtime>(
     builder.build()
 }
 
+#[cfg(desktop)]
 pub fn build_menu<R: Runtime>(
     app: &AppHandle<R>,
     recent_files: &[String],
@@ -233,12 +241,14 @@ pub fn build_menu<R: Runtime>(
         .build()
 }
 
+#[cfg(desktop)]
 pub fn on_menu_event<R: Runtime>(app: &AppHandle<R>, event: MenuEvent) {
     let _ = app.emit("menu", event.id().as_ref());
 }
 
 /// Rebuild the application menu so the "Open Recent" submenu reflects the
 /// latest recents. Called from the frontend whenever recents change.
+#[cfg(desktop)]
 #[tauri::command]
 pub fn rebuild_recent_menu(
     app: AppHandle,
@@ -247,5 +257,17 @@ pub fn rebuild_recent_menu(
 ) -> Result<(), String> {
     let menu = build_menu(&app, &recent_files, &recent_workspaces).map_err(|e| e.to_string())?;
     app.set_menu(menu).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Mobile has no native menu bar, so recents are surfaced in the UI instead.
+/// This no-op keeps the `generate_handler!` command list identical across
+/// platforms (the frontend calls it unconditionally).
+#[cfg(mobile)]
+#[tauri::command]
+pub fn rebuild_recent_menu(
+    _recent_files: Vec<String>,
+    _recent_workspaces: Vec<String>,
+) -> Result<(), String> {
     Ok(())
 }

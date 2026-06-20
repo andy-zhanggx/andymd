@@ -3,8 +3,35 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
+use tauri::{AppHandle, Manager};
 
 use crate::error::{CommandError, CommandResult};
+
+/// The default, always-writable vault location for this app.
+///
+/// On iOS this is the app sandbox's Documents directory — it's writable with
+/// plain `std::fs` (no security-scoped bookmark needed), is visible to the user
+/// in the Files app, and syncs via iCloud when the app enables it. We seed it
+/// with a welcome note on first launch so the editor never opens to an empty
+/// void. On desktop it resolves to the user's Documents folder, but desktop
+/// bootstraps from the last-opened workspace instead and never calls this.
+#[tauri::command]
+pub fn default_vault_dir(app: AppHandle) -> CommandResult<String> {
+    let dir = app
+        .path()
+        .document_dir()
+        .map_err(|e| CommandError::Other(format!("no documents dir: {e}")))?;
+    fs::create_dir_all(&dir)?;
+
+    let welcome = dir.join("Welcome.md");
+    if fs::read_dir(&dir)?.next().is_none() {
+        let _ = fs::write(&welcome, WELCOME_NOTE);
+    }
+    Ok(dir.to_string_lossy().into_owned())
+}
+
+const WELCOME_NOTE: &str = "# Welcome to AndyMD\n\nThis is your vault. Notes you create here live in the **Files** app under \
+*On My iPhone → AndyMD* and sync via iCloud when enabled.\n\n- Tap **+** to create a note\n- Tap the folder icon to import an existing folder\n- Use `[[wikilinks]]` to connect notes\n";
 
 #[derive(Serialize)]
 pub struct ReadFileResult {
@@ -205,9 +232,23 @@ pub fn rename_path(from: String, to: String) -> CommandResult<()> {
     Ok(())
 }
 
+/// Delete a file or directory. Desktop sends it to the system Trash (recoverable);
+/// iOS has no user-facing Trash, so we remove it directly from the sandbox.
 #[tauri::command]
 pub fn delete_to_trash(path: String) -> CommandResult<()> {
-    trash::delete(&path).map_err(|e| CommandError::Trash(e.to_string()))?;
+    #[cfg(desktop)]
+    {
+        trash::delete(&path).map_err(|e| CommandError::Trash(e.to_string()))?;
+    }
+    #[cfg(mobile)]
+    {
+        let p = PathBuf::from(&path);
+        if p.is_dir() {
+            fs::remove_dir_all(&p)?;
+        } else {
+            fs::remove_file(&p)?;
+        }
+    }
     Ok(())
 }
 
@@ -321,14 +362,23 @@ pub fn import_image_bytes(
     Ok(result)
 }
 
+/// Reveal a path in the OS file manager (Finder). Desktop-only — iOS has no
+/// "reveal in Finder", so the mobile build is a no-op (the UI hides the action).
 #[tauri::command]
 pub fn reveal_in_finder(path: String) -> CommandResult<()> {
-    let p = PathBuf::from(&path);
-    std::process::Command::new("open")
-        .arg("-R")
-        .arg(&p)
-        .status()
-        .map_err(|e| CommandError::Other(e.to_string()))?;
+    #[cfg(desktop)]
+    {
+        let p = PathBuf::from(&path);
+        std::process::Command::new("open")
+            .arg("-R")
+            .arg(&p)
+            .status()
+            .map_err(|e| CommandError::Other(e.to_string()))?;
+    }
+    #[cfg(mobile)]
+    {
+        let _ = path;
+    }
     Ok(())
 }
 

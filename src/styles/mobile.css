@@ -1,0 +1,85 @@
+/*
+ * Mobile / narrow-viewport chrome for the iOS port.
+ *
+ * Everything here is scoped to `#app-root.is-narrow` (set by App.tsx via
+ * `useIsNarrow`) so the desktop layout is untouched. On a phone the sidebar is
+ * an overlay drawer instead of a resizable pane, and we respect the iOS safe
+ * areas (notch / home indicator).
+ */
+
+/* Let CSS read the device safe-area insets. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+/* The dim layer behind the drawer; tapping it closes the sidebar. */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1500;
+  animation: andymd-fade-in 120ms ease-out;
+}
+
+/* The sliding file-tree drawer. */
+.sidebar-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 82vw;
+  max-width: 320px;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.25);
+  z-index: 1600;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Keep contents clear of the notch / status bar and home indicator. */
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
+  animation: andymd-slide-in 160ms ease-out;
+}
+
+@keyframes andymd-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes andymd-slide-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+/* iOS has no traffic-light window buttons, so drop the macOS left inset and
+   pull the title bar below the status bar / notch. */
+#app-root.is-narrow .titlebar {
+  padding-left: max(12px, var(--safe-left));
+  padding-right: max(12px, var(--safe-right));
+  padding-top: var(--safe-top);
+  height: calc(38px + var(--safe-top));
+  -webkit-app-region: none;
+}
+
+/* Roomier tap targets for the title-bar controls on touch. */
+#app-root.is-narrow .titlebar-toggle {
+  min-width: 34px;
+  min-height: 34px;
+}
+
+/* Keep the status bar above the home indicator. */
+#app-root.is-narrow .statusbar,
+#app-root.is-narrow [style*="statusbar"] > * {
+  padding-bottom: var(--safe-bottom);
+}
+
+/* Don't let iOS auto-inflate text, and disable the tap-highlight flash. */
+#app-root.is-narrow {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}

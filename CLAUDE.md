@@ -18,6 +18,21 @@ links). Frontend lives in `src/`, the native shell in `src-tauri/`.
   quick unsigned `.app` to try locally.
 - `pnpm test` — Vitest. Typecheck with **`tsc -b`** (root tsconfig has `files: []`,
   so plain `tsc --noEmit` checks nothing).
+- `pnpm ios:init` / `pnpm ios:dev` / `pnpm ios:build` — the iOS (Tauri mobile)
+  build. **Requires macOS + Xcode.** See [docs/ios.md](docs/ios.md).
+
+## iOS / mobile
+
+The same frontend + Rust core also targets iOS via Tauri 2 mobile. Desktop-only
+pieces (native menu, `notify` watcher, `trash`, pandoc export, fullscreen,
+updater/process plugins) are gated with `#[cfg(desktop)]` / `#[cfg(mobile)]` in
+Rust and target-gated in `src-tauri/Cargo.toml`; capabilities are split into
+`capabilities/default.json` (cross-platform) and `capabilities/desktop.json`.
+The frontend branches on `src/lib/platform.ts` (`useIsNarrow` → overlay drawer
+sidebar, safe-area CSS in `src/styles/mobile.css`). Full details, the storage
+model, and the security-scoped-bookmark follow-up are in
+[docs/ios.md](docs/ios.md). **Convention: keep new desktop-only native code
+behind `#[cfg(desktop)]` so the iOS build keeps compiling.**
 
 ## Build labels — know which build you're running
 

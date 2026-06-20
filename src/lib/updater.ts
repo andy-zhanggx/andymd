@@ -1,4 +1,5 @@
 import { useUpdateStore } from '../stores/updateStore';
+import { isMobile } from './platform';
 
 /** How often to auto-check for updates while the app runs (6 hours). */
 export const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
@@ -25,6 +26,9 @@ let stagedUpdate: { install: () => Promise<void> } | null = null;
  * Drives `updateStore`; never throws (errors just set the error status).
  */
 export async function runUpdateCheck(force = false): Promise<void> {
+  // iOS ships through the App Store and the updater plugin isn't registered on
+  // mobile, so an invoke would just error — skip entirely.
+  if (isMobile()) return;
   const store = useUpdateStore.getState();
   const now = Date.now();
   if (!force && !shouldCheckNow(store.lastCheckedAt, now, UPDATE_CHECK_INTERVAL_MS)) return;

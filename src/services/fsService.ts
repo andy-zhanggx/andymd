@@ -36,6 +36,11 @@ export const fsService = {
   openWorkspace: (root: string) => invoke<void>('open_workspace', { root }),
 
   takePendingOpens: () => invoke<string[]>('take_pending_opens'),
+
+  // iOS: the app sandbox's Documents directory, used as the default vault when
+  // there's no previously-opened workspace. Created (and seeded with a welcome
+  // note) on first call by the Rust side.
+  defaultVaultDir: () => invoke<string>('default_vault_dir'),
 };
 
 // Dev-only handle so browser-based QA can stub filesystem commands without a
