@@ -88,6 +88,7 @@ pub async fn save_export_dialog(
 
 /// Locate the pandoc binary. A Finder-launched .app has a minimal PATH that
 /// usually excludes Homebrew / conda, so fall back to common install dirs.
+#[cfg(desktop)]
 fn resolve_pandoc() -> Option<String> {
     use std::process::{Command, Stdio};
     let on_path = Command::new("pandoc")
@@ -112,7 +113,16 @@ fn resolve_pandoc() -> Option<String> {
 }
 
 /// Export markdown to `to` (a pandoc writer name, e.g. docx/epub/latex/rtf/odt)
-/// at `out_path`, piping the document through pandoc's stdin.
+/// at `out_path`, piping the document through pandoc's stdin. Desktop-only: iOS
+/// can't spawn subprocesses, so the mobile build returns an error and the UI
+/// hides the export-via-pandoc actions.
+#[cfg(mobile)]
+#[tauri::command]
+pub fn export_via_pandoc(_markdown: String, _to: String, _out_path: String) -> Result<(), String> {
+    Err("Export via pandoc is not available on this platform.".to_string())
+}
+
+#[cfg(desktop)]
 #[tauri::command]
 pub fn export_via_pandoc(markdown: String, to: String, out_path: String) -> Result<(), String> {
     use std::io::Write;
@@ -153,10 +163,19 @@ pub fn export_via_pandoc(markdown: String, to: String, out_path: String) -> Resu
     Ok(())
 }
 
+/// Toggle the window's fullscreen state. Desktop-only — iOS apps are always
+/// "fullscreen", so the mobile build is a no-op.
 #[tauri::command]
 pub fn toggle_fullscreen(window: tauri::Window) -> Result<(), String> {
-    let fs = window.is_fullscreen().map_err(|e| e.to_string())?;
-    window.set_fullscreen(!fs).map_err(|e| e.to_string())?;
+    #[cfg(desktop)]
+    {
+        let fs = window.is_fullscreen().map_err(|e| e.to_string())?;
+        window.set_fullscreen(!fs).map_err(|e| e.to_string())?;
+    }
+    #[cfg(mobile)]
+    {
+        let _ = window;
+    }
     Ok(())
 }
 
