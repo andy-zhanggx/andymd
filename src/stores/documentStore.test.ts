@@ -395,6 +395,29 @@ describe('documentStore external change detection', () => {
     expect(get().doc!.isDirty).toBe(false);
   });
 
+  it('merge with overlapping edits switches to source mode for marker cleanup', async () => {
+    const { useUIStore } = await import('./uiStore');
+    useUIStore.setState({ sourceMode: false });
+    fsMock.readFile
+      .mockResolvedValueOnce({ content: 'line', mtime: 1 })
+      .mockResolvedValueOnce({ content: 'line THEIRS', mtime: 2 });
+    await get().open('/a.md');
+    get().setDraft('line MINE');
+    await get().checkExternalChange('/a.md');
+    await get().resolveConflict('/a.md', 'merge');
+    expect(get().doc!.draft).toContain('<<<<<<<');
+    expect(useUIStore.getState().sourceMode).toBe(true);
+    useUIStore.setState({ sourceMode: false });
+  });
+
+  it('a clean merge stays in the visual editor', async () => {
+    const { useUIStore } = await import('./uiStore');
+    useUIStore.setState({ sourceMode: false });
+    await openConflicted();
+    await get().resolveConflict('/a.md', 'merge');
+    expect(useUIStore.getState().sourceMode).toBe(false);
+  });
+
   it('dismissConflict clears the pending conflict without touching the doc', async () => {
     await openConflicted();
     get().dismissConflict('/a.md');

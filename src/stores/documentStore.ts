@@ -4,6 +4,7 @@ import { fsService } from '../services/fsService';
 import { merge3 } from '../lib/merge';
 import { dialogService } from '../services/dialogService';
 import { useWorkspaceStore } from './workspaceStore';
+import { useUIStore } from './uiStore';
 import { lenifyHeadings } from '../lib/markdown';
 import { uniqueChildName } from '../lib/workspacePath';
 import { useConfigStore } from './configStore';
@@ -291,7 +292,11 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
         // theirs = disk. The doc adopts the disk snapshot as its new base so
         // a following save is conflict-free; the merged draft stays dirty for
         // the user to review (and to resolve any conflict markers).
-        const { merged } = merge3(tab.doc.content, tab.doc.draft, conflict.diskContent);
+        const { merged, conflicts: overlaps } = merge3(
+          tab.doc.content,
+          tab.doc.draft,
+          conflict.diskContent,
+        );
         patchByPath(path, (t) => ({
           ...t,
           doc: {
@@ -304,6 +309,12 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
           },
         }));
         set({ drafts: { ...get().drafts, [path]: merged } });
+        // Conflict markers aren't markdown — the WYSIWYG view would mangle
+        // `=======`/`>>>>>>>` lines. Drop into source mode so the user can
+        // resolve them as plain text.
+        if (overlaps > 0 && !useUIStore.getState().sourceMode) {
+          useUIStore.getState().toggleSourceMode();
+        }
       }
       clearConflict(path);
     },
