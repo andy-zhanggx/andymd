@@ -14,6 +14,7 @@ import { Sidebar } from './components/Sidebar/Sidebar';
 import { MarkdownEditor } from './components/Editor/MarkdownEditor';
 import { OpenFileDialog } from './components/OpenFileDialog';
 import { VersionHistory } from './components/VersionHistory';
+import { ConflictDialog } from './components/ConflictDialog';
 import { ShareDialog } from './components/Collab/ShareDialog';
 import { ONLINE_COLLAB, MULTI_TABS } from './featureFlags';
 import { Tour } from './components/Tour';
@@ -143,6 +144,7 @@ export default function App() {
       <div style={{ gridArea: 'statusbar' }}><StatusBar /></div>
       <OpenFileDialog />
       <VersionHistory />
+      <ConflictDialog />
       {ONLINE_COLLAB && <ShareDialog />}
       <Tour />
       <WhatsNew />

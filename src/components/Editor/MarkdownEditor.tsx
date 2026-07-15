@@ -316,7 +316,15 @@ export function MarkdownEditor() {
       // switching files/views never loses unsaved work; and if we're staying on
       // the same document (a view/mode toggle), sync the live draft too so
       // source view reflects the latest edit.
-      if (editor && !collabActive && doc) {
+      // …but NOT when the rebuild was caused by the draft being replaced from
+      // outside the editor (external reload / conflict resolution): flushing
+      // would clobber the fresh content with the stale editor buffer. Such
+      // replacements bump `doc.revision`, so a mismatch means "skip".
+      const tabNow = doc.path
+        ? useDocumentStore.getState().tabs.find((t) => t.doc.path === doc.path)
+        : null;
+      const replacedExternally = (tabNow?.doc.revision ?? 0) !== (doc.revision ?? 0);
+      if (editor && !collabActive && doc && !replacedExternally) {
         try {
           const md = editor.action(getMarkdown());
           if (doc.path) useDocumentStore.getState().stashDraft(doc.path, md);
@@ -340,7 +348,7 @@ export function MarkdownEditor() {
       })();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc?.path, sourceMode, collabActive, roomCode, reloadKey]);
+  }, [doc?.path, doc?.revision, sourceMode, collabActive, roomCode, reloadKey]);
 
   // Keep the typewriter plugin's module flag in sync with UI state.
   useEffect(() => {
