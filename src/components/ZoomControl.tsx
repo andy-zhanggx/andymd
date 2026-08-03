@@ -31,7 +31,7 @@ export function ZoomControl() {
         className="zoom-step"
         onClick={() => ui().zoomStep(-1)}
         aria-label="Zoom out"
-        title="Zoom out (⌘−)"
+        title="Zoom out (⇧⌘−)"
       >
         −
       </button>
@@ -48,7 +48,7 @@ export function ZoomControl() {
         className="zoom-step"
         onClick={() => ui().zoomStep(1)}
         aria-label="Zoom in"
-        title="Zoom in (⌘+)"
+        title="Zoom in (⇧⌘+)"
       >
         +
       </button>
@@ -64,7 +64,7 @@ export function ZoomControl() {
             }}
           >
             Fit Width
-            <kbd>⌘2</kbd>
+            <kbd>⇧⌘2</kbd>
           </button>
           <button
             className="zoom-option"
@@ -76,7 +76,7 @@ export function ZoomControl() {
             }}
           >
             Actual Size
-            <kbd>⌘0</kbd>
+            <kbd>⇧⌘0</kbd>
           </button>
           <div className="zoom-popover-sep" />
           {ZOOM_PRESETS.filter((p) => p >= 50).map((p) => (

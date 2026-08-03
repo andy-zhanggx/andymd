@@ -37,7 +37,7 @@ observed via `ResizeObserver` on the `<main>` scroller.
 | Surface | Behavior |
 |---|---|
 | Trackpad pinch | WebKit `gesturestart/change/end` (primary in WKWebView) and `wheel` with `ctrlKey` (Chromium-style fallback; also enables ⌃-scroll zoom). Multiplicative, clamped, anchor-preserving: the content point under the cursor stays put by adjusting `scrollTop/Left`. `preventDefault` to suppress any native page magnification. |
-| Keyboard | ⌘= / ⌘+ zoom in, ⌘− zoom out (preset ladder, browser-style); ⌘0 and ⌘1 → Actual Size (browser + Acrobat conventions); ⌘2 → Fit Width (Acrobat). Implemented in `useShortcuts` keydown (menu accelerators don't preempt the webview). |
+| Keyboard | ⇧⌘+ zoom in, ⇧⌘− zoom out (preset ladder); ⇧⌘0 → Actual Size; ⇧⌘2 → Fit Width. The zoom layer is ⇧⌘ because the editor's Typora keymap owns the unshifted ⌘0–⌘6/⌘=/⌘− (paragraph, headings, heading level). Matched on `e.code` (physical keys) in `useShortcuts` keydown so ⇧-modified characters and non-US layouts don't matter; menu accelerators don't preempt the webview. |
 | View menu | Zoom In / Zoom Out / Actual Size / Fit Width items (menu.rs) → `menu` events → `handleMenuAction`. |
 | Status bar | Left slot: `Fit ▾` / `125% ▾` control; popover offers Fit Width, Actual Size, and the preset ladder 50–400%. |
 

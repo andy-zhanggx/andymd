@@ -240,6 +240,33 @@ export function useShortcuts() {
       }
       if (!e.metaKey) return;
 
+      // Document zoom lives on the ⇧⌘ layer — the editor's Typora keymap owns
+      // the unshifted ⌘0–⌘6/⌘=/⌘− (paragraph, headings, heading level). Match
+      // physical keys (e.code) so ⇧-modified characters and non-US layouts
+      // don't matter: ⇧⌘+ / ⇧⌘− step, ⇧⌘0 Actual Size, ⇧⌘2 Fit Width.
+      // preventDefault also suppresses the matching menu accelerators.
+      if (e.shiftKey && !e.altKey && !e.ctrlKey) {
+        const ui = useUIStore.getState();
+        switch (e.code) {
+          case 'Equal':
+            e.preventDefault();
+            ui.zoomStep(1);
+            return;
+          case 'Minus':
+            e.preventDefault();
+            ui.zoomStep(-1);
+            return;
+          case 'Digit0':
+            e.preventDefault();
+            ui.actualSize();
+            return;
+          case 'Digit2':
+            e.preventDefault();
+            ui.setFitWidth();
+            return;
+        }
+      }
+
       const key = e.key.toLowerCase();
       const docStore = useDocumentStore.getState();
       const cfgStore = useConfigStore.getState();
@@ -292,30 +319,6 @@ export function useShortcuts() {
         case '/':
           e.preventDefault();
           useUIStore.getState().toggleSourceMode();
-          break;
-        // Zoom, aligned with Acrobat/browser conventions: ⌘+/⌘− step the preset
-        // ladder, ⌘0/⌘1 reset to Actual Size, ⌘2 is Fit Width. preventDefault
-        // also suppresses the matching menu accelerators (no double-fire).
-        // ⌘⇧1 stays with the Outline menu accelerator — leave shifted keys alone.
-        case '=':
-        case '+':
-          e.preventDefault();
-          useUIStore.getState().zoomStep(1);
-          break;
-        case '-':
-          e.preventDefault();
-          useUIStore.getState().zoomStep(-1);
-          break;
-        case '0':
-        case '1':
-          if (e.shiftKey) break;
-          e.preventDefault();
-          useUIStore.getState().actualSize();
-          break;
-        case '2':
-          if (e.shiftKey) break;
-          e.preventDefault();
-          useUIStore.getState().setFitWidth();
           break;
         // Browser-style history navigation. Inside a list, ProseMirror already
         // binds ⌘[ / ⌘] to outdent/indent and calls preventDefault — defer to it

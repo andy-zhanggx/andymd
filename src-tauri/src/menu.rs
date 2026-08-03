@@ -216,23 +216,24 @@ pub fn build_menu<R: Runtime>(
         )
         .separator()
         .item(
+            // ⇧⌘ layer: the editor's Typora keymap owns unshifted ⌘0–6/⌘=/⌘−.
             &MenuItemBuilder::with_id("zoom-in", "Zoom In")
-                .accelerator("CmdOrCtrl+=")
+                .accelerator("CmdOrCtrl+Shift+=")
                 .build(app)?,
         )
         .item(
             &MenuItemBuilder::with_id("zoom-out", "Zoom Out")
-                .accelerator("CmdOrCtrl+-")
+                .accelerator("CmdOrCtrl+Shift+-")
                 .build(app)?,
         )
         .item(
             &MenuItemBuilder::with_id("zoom-actual", "Actual Size")
-                .accelerator("CmdOrCtrl+0")
+                .accelerator("CmdOrCtrl+Shift+0")
                 .build(app)?,
         )
         .item(
             &MenuItemBuilder::with_id("zoom-fit-width", "Fit Width")
-                .accelerator("CmdOrCtrl+2")
+                .accelerator("CmdOrCtrl+Shift+2")
                 .build(app)?,
         )
         .separator()

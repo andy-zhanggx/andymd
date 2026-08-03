@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Zoom & reading modes (Acrobat-style).** Zoom the document to any level from
+  25% to 400%: two-finger trackpad pinch (zooms around the pointer), `⇧⌘+` /
+  `⇧⌘−` to step through presets, a status-bar zoom control with a preset menu,
+  and View-menu items. Two reading modes match Adobe Acrobat: **Fit Width**
+  (`⇧⌘2`) keeps the content column filling the window as it resizes, and
+  **Actual Size** (`⇧⌘0`) returns to 100%. Works in both Visual and Source
+  mode; the zoom level is remembered across launches and never affects
+  printing.
+
 ## [0.2.0] — 2026-06-18
 
 ### Added
