@@ -177,6 +177,18 @@ export async function handleMenuAction(id: string) {
     case 'toggle-fullscreen':
       await invoke('toggle_fullscreen').catch((e) => console.warn(e));
       break;
+    case 'zoom-in':
+      useUIStore.getState().zoomStep(1);
+      break;
+    case 'zoom-out':
+      useUIStore.getState().zoomStep(-1);
+      break;
+    case 'zoom-actual':
+      useUIStore.getState().actualSize();
+      break;
+    case 'zoom-fit-width':
+      useUIStore.getState().setFitWidth();
+      break;
     case 'toggle-outline': {
       const ui = useUIStore.getState();
       ui.setSidebarTab(ui.sidebarTab === 'outline' ? 'files' : 'outline');
@@ -280,6 +292,30 @@ export function useShortcuts() {
         case '/':
           e.preventDefault();
           useUIStore.getState().toggleSourceMode();
+          break;
+        // Zoom, aligned with Acrobat/browser conventions: ⌘+/⌘− step the preset
+        // ladder, ⌘0/⌘1 reset to Actual Size, ⌘2 is Fit Width. preventDefault
+        // also suppresses the matching menu accelerators (no double-fire).
+        // ⌘⇧1 stays with the Outline menu accelerator — leave shifted keys alone.
+        case '=':
+        case '+':
+          e.preventDefault();
+          useUIStore.getState().zoomStep(1);
+          break;
+        case '-':
+          e.preventDefault();
+          useUIStore.getState().zoomStep(-1);
+          break;
+        case '0':
+        case '1':
+          if (e.shiftKey) break;
+          e.preventDefault();
+          useUIStore.getState().actualSize();
+          break;
+        case '2':
+          if (e.shiftKey) break;
+          e.preventDefault();
+          useUIStore.getState().setFitWidth();
           break;
         // Browser-style history navigation. Inside a list, ProseMirror already
         // binds ⌘[ / ⌘] to outdent/indent and calls preventDefault — defer to it

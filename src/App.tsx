@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './styles/global.css';
 import { useTheme } from './hooks/useTheme';
 import { useShortcuts } from './hooks/useShortcuts';
 import { useOpenFileRequest } from './hooks/useOpenFileRequest';
 import { useWorkspaceWatcher } from './hooks/useWorkspaceWatcher';
+import { usePinchZoom } from './hooks/usePinchZoom';
+import { EDITOR_COLUMN_WIDTH, fitWidthZoom } from './lib/zoom';
 import { useConfigStore } from './stores/configStore';
 import { useUIStore } from './stores/uiStore';
 import { DEFAULT_CONFIG } from './types';
@@ -31,10 +33,35 @@ export default function App() {
   useShortcuts();
   useOpenFileRequest();
   useWorkspaceWatcher();
-  const { showSidebar, sidebarWidth } = useConfigStore((s) => s.config);
+  const { showSidebar, sidebarWidth, editorWidth } = useConfigStore((s) => s.config);
   const update = useConfigStore((s) => s.update);
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const width = dragWidth ?? sidebarWidth;
+
+  // Zoom: trackpad pinch on the editor scroller, and — in Fit Width mode —
+  // keep the measured fit zoom in sync with the pane width (window resizes,
+  // sidebar drags, editor-width changes).
+  const mainRef = useRef<HTMLElement | null>(null);
+  usePinchZoom(mainRef);
+  const zoomMode = useUIStore((s) => s.zoomMode);
+  useEffect(() => {
+    if (zoomMode !== 'fit-width') return;
+    const el = mainRef.current;
+    if (!el) return;
+    const measure = () =>
+      useUIStore
+        .getState()
+        .setFitWidthZoom(fitWidthZoom(el.clientWidth, EDITOR_COLUMN_WIDTH[editorWidth]));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.addEventListener('resize', measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+    // showSidebar/width change the pane without a window resize — re-measure.
+  }, [zoomMode, editorWidth, showSidebar, width]);
 
   // First-run: launch the onboarding tour once the config has loaded.
   const configLoaded = useConfigStore((s) => s.loaded);
@@ -137,7 +164,10 @@ export default function App() {
           />
         </aside>
       )}
-      <main style={{ gridArea: 'editor', overflow: 'auto', background: 'var(--bg-primary)' }}>
+      <main
+        ref={mainRef}
+        style={{ gridArea: 'editor', overflow: 'auto', background: 'var(--bg-primary)' }}
+      >
         <MarkdownEditor />
       </main>
       <div style={{ gridArea: 'statusbar' }}><StatusBar /></div>

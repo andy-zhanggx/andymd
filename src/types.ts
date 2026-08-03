@@ -57,6 +57,8 @@ export interface AppConfig {
   linkOpenInNewTab: boolean;       // plain link-click opens a new tab vs replacing the current one
   openTabs: string[];              // absolute paths of tabs to restore on launch (drafts excluded)
   activeTabPath: string | null;    // which restored tab is active
+  zoomMode: 'custom' | 'fit-width'; // Acrobat-style reading mode
+  zoomLevel: number;               // multiplier, 1 = 100% (used in 'custom' mode)
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -83,6 +85,8 @@ export const DEFAULT_CONFIG: AppConfig = {
   linkOpenInNewTab: true,
   openTabs: [],
   activeTabPath: null,
+  zoomMode: 'custom',
+  zoomLevel: 1,
 };
 
 export const SESSION_CAP = 200; // LRU limit for sessions map

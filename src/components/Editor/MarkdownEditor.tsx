@@ -23,6 +23,7 @@ import { dialogService } from '../../services/dialogService';
 import { fsService } from '../../services/fsService';
 import { resolveImageSrc } from '../../lib/asset';
 import { isImageFile } from '../../lib/image';
+import { EDITOR_COLUMN_WIDTH } from '../../lib/zoom';
 import './editor-styles.css';
 
 function altFromPath(path: string): string {
@@ -31,12 +32,6 @@ function altFromPath(path: string): string {
   return dot > 0 ? base.slice(0, dot) : base;
 }
 
-const EDITOR_MAX_WIDTH: Record<string, number | 'none'> = {
-  narrow: 620,
-  normal: 740,
-  wide: 920,
-  full: 'none',
-};
 
 export function MarkdownEditor() {
   const doc = useDocumentStore((s) => s.doc);
@@ -51,6 +46,8 @@ export function MarkdownEditor() {
   const sourceMode = useUIStore((s) => s.sourceMode);
   const focusMode = useUIStore((s) => s.focusMode);
   const typewriterMode = useUIStore((s) => s.typewriterMode);
+  // Document zoom: CSS `zoom` (not transform) so layout/scrolling reflow.
+  const zoom = useUIStore((s) => (s.zoomMode === 'fit-width' ? s.fitWidthZoom : s.zoomLevel));
   const roomCode = useCollabStore((s) => s.roomCode);
   const collabRole = useCollabStore((s) => s.role);
   // Online collaboration is feature-flagged off by default. When disabled the
@@ -411,7 +408,7 @@ export function MarkdownEditor() {
         value={doc.draft}
         spellCheck={false}
         onChange={(e) => setDraft(e.target.value)}
-        style={{ fontSize, lineHeight }}
+        style={{ fontSize, lineHeight, zoom }}
         aria-label="Markdown source"
       />
     );
@@ -435,12 +432,13 @@ export function MarkdownEditor() {
           typewriterMode ? ' typewriter-mode' : ''
         }`}
         style={{
-          maxWidth: EDITOR_MAX_WIDTH[editorWidth] ?? 740,
+          maxWidth: EDITOR_COLUMN_WIDTH[editorWidth] ?? 'none',
           margin: '0 auto',
           padding: '32px 24px 30vh',
           fontSize,
           lineHeight,
           fontFamily,
+          zoom,
           display: buildError ? 'none' : undefined,
         }}
         ref={setEditorRoot}
