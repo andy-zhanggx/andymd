@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { AppConfig, DEFAULT_CONFIG, DocumentSession, SESSION_CAP } from '../types';
 import { configService } from '../services/configService';
 import { menuService } from '../services/menuService';
+import { useUIStore, onZoomChanged } from './uiStore';
 
 interface ConfigState {
   config: AppConfig;
@@ -29,6 +30,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   async load() {
     const cfg = await configService.load();
     set({ config: cfg, loaded: true });
+    useUIStore.getState().hydrateZoom(cfg.zoomMode, cfg.zoomLevel);
     void menuService.syncRecentMenu(cfg.recentFiles, cfg.recentWorkspaces);
   },
 
@@ -66,6 +68,16 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     void menuService.syncRecentMenu([], []);
   },
 }));
+
+// Persist zoom changes. Pinch emits continuously, so debounce the config write.
+let zoomSaveTimer: ReturnType<typeof setTimeout> | undefined;
+onZoomChanged((mode, level) => {
+  clearTimeout(zoomSaveTimer);
+  zoomSaveTimer = setTimeout(() => {
+    const store = useConfigStore.getState();
+    if (store.loaded) void store.update({ zoomMode: mode, zoomLevel: level });
+  }, 500);
+});
 
 // Dev-only handle so browser-based QA can drive the app's real store instance
 // (dynamic import() in the console resolves to a separate module copy).

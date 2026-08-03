@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Release } from '../lib/changelog';
+import { clampZoom, stepZoom, ZoomMode } from '../lib/zoom';
 
 export type SidebarTab = 'files' | 'outline';
 
@@ -48,9 +49,34 @@ interface UIState {
   toggleFocusMode: () => void;
   typewriterMode: boolean;
   toggleTypewriterMode: () => void;
+
+  // Document zoom (Acrobat-style reading modes). `zoomLevel` only applies in
+  // 'custom' mode; in 'fit-width' the rendered zoom is `fitWidthZoom`, measured
+  // from the scroller by the layout (App) and pushed here.
+  zoomMode: ZoomMode;
+  zoomLevel: number;
+  fitWidthZoom: number;
+  /** The zoom actually rendered right now, whichever mode is active. */
+  effectiveZoom: () => number;
+  setZoomLevel: (level: number) => void;
+  zoomStep: (dir: 1 | -1) => void;
+  setFitWidth: () => void;
+  setFitWidthZoom: (zoom: number) => void;
+  actualSize: () => void;
+  hydrateZoom: (mode: ZoomMode, level: number) => void;
 }
 
-export const useUIStore = create<UIState>((set) => ({
+/** Zoom changes worth persisting — pinch spams these, so config saves are debounced. */
+export function onZoomChanged(fn: (mode: ZoomMode, level: number) => void): () => void {
+  zoomListeners.add(fn);
+  return () => zoomListeners.delete(fn);
+}
+const zoomListeners = new Set<(mode: ZoomMode, level: number) => void>();
+function emitZoom(mode: ZoomMode, level: number) {
+  zoomListeners.forEach((fn) => fn(mode, level));
+}
+
+export const useUIStore = create<UIState>((set, get) => ({
   openFileDialog: false,
   setOpenFileDialog: (open) => set({ openFileDialog: open }),
 
@@ -86,4 +112,35 @@ export const useUIStore = create<UIState>((set) => ({
   toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
   typewriterMode: false,
   toggleTypewriterMode: () => set((s) => ({ typewriterMode: !s.typewriterMode })),
+
+  zoomMode: 'custom',
+  zoomLevel: 1,
+  fitWidthZoom: 1,
+  effectiveZoom: () => {
+    const s = get();
+    return s.zoomMode === 'fit-width' ? s.fitWidthZoom : s.zoomLevel;
+  },
+  setZoomLevel: (level) => {
+    const next = clampZoom(level);
+    set({ zoomMode: 'custom', zoomLevel: next });
+    emitZoom('custom', next);
+  },
+  // Stepping out of fit-width starts from the zoom the user is looking at
+  // (Acrobat behavior), not from a stale custom level.
+  zoomStep: (dir) => {
+    const s = get();
+    const next = stepZoom(s.effectiveZoom(), dir);
+    set({ zoomMode: 'custom', zoomLevel: next });
+    emitZoom('custom', next);
+  },
+  setFitWidth: () => {
+    set({ zoomMode: 'fit-width' });
+    emitZoom('fit-width', get().zoomLevel);
+  },
+  setFitWidthZoom: (zoom) => set({ fitWidthZoom: clampZoom(zoom) }),
+  actualSize: () => {
+    set({ zoomMode: 'custom', zoomLevel: 1 });
+    emitZoom('custom', 1);
+  },
+  hydrateZoom: (mode, level) => set({ zoomMode: mode, zoomLevel: clampZoom(level) }),
 }));

@@ -177,6 +177,18 @@ export async function handleMenuAction(id: string) {
     case 'toggle-fullscreen':
       await invoke('toggle_fullscreen').catch((e) => console.warn(e));
       break;
+    case 'zoom-in':
+      useUIStore.getState().zoomStep(1);
+      break;
+    case 'zoom-out':
+      useUIStore.getState().zoomStep(-1);
+      break;
+    case 'zoom-actual':
+      useUIStore.getState().actualSize();
+      break;
+    case 'zoom-fit-width':
+      useUIStore.getState().setFitWidth();
+      break;
     case 'toggle-outline': {
       const ui = useUIStore.getState();
       ui.setSidebarTab(ui.sidebarTab === 'outline' ? 'files' : 'outline');
@@ -227,6 +239,33 @@ export function useShortcuts() {
         return;
       }
       if (!e.metaKey) return;
+
+      // Document zoom lives on the ⇧⌘ layer — the editor's Typora keymap owns
+      // the unshifted ⌘0–⌘6/⌘=/⌘− (paragraph, headings, heading level). Match
+      // physical keys (e.code) so ⇧-modified characters and non-US layouts
+      // don't matter: ⇧⌘+ / ⇧⌘− step, ⇧⌘0 Actual Size, ⇧⌘2 Fit Width.
+      // preventDefault also suppresses the matching menu accelerators.
+      if (e.shiftKey && !e.altKey && !e.ctrlKey) {
+        const ui = useUIStore.getState();
+        switch (e.code) {
+          case 'Equal':
+            e.preventDefault();
+            ui.zoomStep(1);
+            return;
+          case 'Minus':
+            e.preventDefault();
+            ui.zoomStep(-1);
+            return;
+          case 'Digit0':
+            e.preventDefault();
+            ui.actualSize();
+            return;
+          case 'Digit2':
+            e.preventDefault();
+            ui.setFitWidth();
+            return;
+        }
+      }
 
       const key = e.key.toLowerCase();
       const docStore = useDocumentStore.getState();

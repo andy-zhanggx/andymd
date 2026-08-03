@@ -5,6 +5,7 @@ import { useWorkspaceStore } from '../stores/workspaceStore';
 import { docStats } from '../lib/docStats';
 import { frontmatterKeyCount } from '../lib/frontmatter';
 import { fsService, onWorkspaceChanged } from '../services/fsService';
+import { ZoomControl } from './ZoomControl';
 
 export function StatusBar() {
   const doc = useDocumentStore((s) => s.doc);
@@ -33,7 +34,7 @@ export function StatusBar() {
 
   return (
     <div className="statusbar">
-      <div className="statusbar-left" />
+      <div className="statusbar-left">{doc && <ZoomControl />}</div>
       <div className="statusbar-right">
         {doc && backlinks !== null && (
           <span className="statusbar-metric" title="Notes linking here (wikilinks + Markdown links)">

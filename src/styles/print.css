@@ -18,13 +18,19 @@
     margin: 2cm;
   }
 
+  /* Screen zoom must not scale the printed document. */
+  .editor-container {
+    zoom: 1 !important;
+  }
+
   .titlebar,
   .statusbar,
   aside,
   .sidebar-resizer,
   .context-menu,
   .find-bar,
-  .stats-popover {
+  .stats-popover,
+  .zoom-popover {
     display: none !important;
   }
 
