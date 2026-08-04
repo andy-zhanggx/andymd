@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Inline `$…$` math with `\tag{…}` no longer shows a red KaTeX error.**
+  KaTeX only allows `\tag` in display mode, so numbered equations wrapped in
+  single dollars (common in LLM-exported notes) rendered as raw red source.
+  Such formulas are now detected and typeset as display equations — tag
+  included — while ordinary inline math stays inline and genuinely invalid
+  math keeps the visible error rendering.
+
 ## [0.3.0] — 2026-08-03
 
 ### Added

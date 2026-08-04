@@ -155,13 +155,31 @@ class MathNodeView implements NodeView {
       return;
     }
     this.rendered.classList.remove('math-empty');
+    const opts = { ...this.ctx.get(katexOptionsCtx.key), displayMode: !this.inline };
     try {
-      katex.render(src, this.rendered, {
-        ...this.ctx.get(katexOptionsCtx.key),
-        displayMode: !this.inline,
-      });
-    } catch {
-      this.rendered.textContent = src;
+      katex.render(src, this.rendered, { ...opts, throwOnError: true });
+    } catch (err) {
+      // Numbered display equations often arrive wrapped in single `$…$` (LLM
+      // exports do this a lot). KaTeX's \tag is display-mode-only, so this
+      // exact inline failure means the author meant a display equation —
+      // render it as one instead of showing the red error source.
+      if (
+        this.inline &&
+        err instanceof Error &&
+        err.message.includes('\\tag works only in display equations')
+      ) {
+        try {
+          katex.render(src, this.rendered, { ...opts, displayMode: true });
+          return;
+        } catch {
+          /* fall through to the configured error rendering */
+        }
+      }
+      try {
+        katex.render(src, this.rendered, opts);
+      } catch {
+        this.rendered.textContent = src;
+      }
     }
   }
 
