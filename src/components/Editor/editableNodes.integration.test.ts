@@ -85,6 +85,31 @@ describe('editable atom nodes (inline math, block math, image)', () => {
     await e.destroy();
   });
 
+  it('inline math with \\tag renders as display math, not a red KaTeX error', async () => {
+    // LLM-exported notes often wrap numbered display equations in single `$…$`.
+    // KaTeX's \tag is display-mode-only; inline it errors and prints the raw
+    // source in red. Such formulas should upgrade to display rendering instead.
+    const e = await mount('$L(N) = N^2,\\quad \\text{（non-embedding 参数）} \\tag{1.1}$');
+    const view = e.ctx.get(editorViewCtx);
+    const rendered = view.dom.querySelector('.math-inline .math-rendered')!;
+    expect(rendered, 'inline math node renders').not.toBeNull();
+    expect(rendered.querySelector('.katex-error'), 'no red error rendering').toBeNull();
+    expect(rendered.querySelector('.katex-display'), 'upgraded to display mode').not.toBeNull();
+    expect(rendered.textContent).toContain('1.1'); // the tag itself is typeset
+    // The source round-trips unchanged as `$…$`.
+    expect(e.ctx.get(serializerCtx)(view.state.doc)).toContain('\\tag{1.1}$');
+    await e.destroy();
+  });
+
+  it('inline math that is genuinely broken still shows the KaTeX error fallback', async () => {
+    const e = await mount('$\\frac{a$');
+    const view = e.ctx.get(editorViewCtx);
+    const rendered = view.dom.querySelector('.math-inline .math-rendered')!;
+    expect(rendered, 'inline math node renders').not.toBeNull();
+    expect(rendered.querySelector('.katex-error'), 'broken math keeps the error render').not.toBeNull();
+    await e.destroy();
+  });
+
   it('image: renders the <img> plus a Change button and a resize handle', async () => {
     const e = await mount('![cat](cat.png)');
     const view = e.ctx.get(editorViewCtx);
