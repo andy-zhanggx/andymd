@@ -195,6 +195,9 @@ export async function handleMenuAction(id: string) {
       if (!cfg.config.showSidebar) await cfg.update({ showSidebar: true });
       break;
     }
+    case 'toggle-minimap':
+      await cfg.update({ showMinimap: !cfg.config.showMinimap });
+      break;
     case 'copy-as-markdown': {
       const d = useDocumentStore.getState().doc;
       if (d) await navigator.clipboard.writeText(d.draft).catch((e) => console.warn(e));
@@ -264,6 +267,12 @@ export function useShortcuts() {
             e.preventDefault();
             ui.setFitWidth();
             return;
+          case 'KeyM': {
+            e.preventDefault();
+            const cfg = useConfigStore.getState();
+            void cfg.update({ showMinimap: !cfg.config.showMinimap });
+            return;
+          }
         }
       }
 

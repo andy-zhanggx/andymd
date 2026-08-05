@@ -992,6 +992,47 @@
   font-size: 12px;
 }
 
+/* ── Editor minimap (document thumbnail) ─────────────────────────────── */
+.minimap {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  background: var(--bg-primary);
+  border-left: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.minimap-pan {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  will-change: transform;
+}
+.minimap-scale {
+  transform-origin: 0 0;
+  opacity: 0.75;
+}
+.minimap-scale,
+.minimap-scale * {
+  pointer-events: none !important;
+}
+.minimap-viewport {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: var(--hover);
+  border: 1px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  border-radius: 2px;
+  opacity: 0.6;
+  box-sizing: border-box;
+}
+.minimap:hover .minimap-viewport {
+  opacity: 0.9;
+}
+
 /* ── Status-bar statistics popover ───────────────────────────────────── */
 .statusbar-stat {
   border: none;

@@ -59,6 +59,7 @@ export interface AppConfig {
   activeTabPath: string | null;    // which restored tab is active
   zoomMode: 'custom' | 'fit-width'; // Acrobat-style reading mode
   zoomLevel: number;               // multiplier, 1 = 100% (used in 'custom' mode)
+  showMinimap: boolean;            // document thumbnail strip beside the editor
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -87,6 +88,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   activeTabPath: null,
   zoomMode: 'custom',
   zoomLevel: 1,
+  showMinimap: true,
 };
 
 export const SESSION_CAP = 200; // LRU limit for sessions map

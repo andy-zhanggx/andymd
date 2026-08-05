@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDocumentStore } from '../../stores/documentStore';
-import { parseOutline } from '../../lib/outline';
+import { parseOutline, pickActiveHeading } from '../../lib/outline';
 import { getActiveView } from '../Editor/activeView';
 
 function headingEls(): HTMLElement[] {
@@ -15,24 +15,45 @@ export function Outline() {
   const path = useDocumentStore((s) => s.doc?.path ?? null);
   const headings = useMemo(() => parseOutline(draft), [draft]);
   const [active, setActive] = useState(-1);
+  const listRef = useRef<HTMLDivElement>(null);
 
   // Highlight the heading the reader is currently under, as they scroll.
+  // Positions are measured with bounding rects relative to the scroller, which
+  // stays correct under the editor's CSS zoom (offsetTop does not).
   useEffect(() => {
     const scroller = document.querySelector('main');
     if (!scroller) return;
-    const onScroll = () => {
-      const els = headingEls();
-      const top = scroller.scrollTop;
-      let idx = -1;
-      els.forEach((el, i) => {
-        if (el.offsetTop - 16 <= top) idx = i;
-      });
-      setActive(idx);
+    let raf = 0;
+    const recompute = () => {
+      raf = 0;
+      const top = scroller.getBoundingClientRect().top;
+      const tops = headingEls().map((el) => el.getBoundingClientRect().top - top);
+      setActive(pickActiveHeading(tops));
     };
-    scroller.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    return () => scroller.removeEventListener('scroll', onScroll);
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(recompute);
+    };
+    scroller.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    // The editor builds asynchronously and headings shift as images/math load,
+    // so recompute on DOM changes too (rAF-collapsed with the scroll updates).
+    const mo = new MutationObserver(schedule);
+    mo.observe(scroller, { subtree: true, childList: true });
+    schedule();
+    return () => {
+      scroller.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      mo.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, [headings.length, path]);
+
+  // Keep the highlighted entry visible inside the outline panel as it moves.
+  useEffect(() => {
+    if (active < 0) return;
+    const el = listRef.current?.children[active] as HTMLElement | undefined;
+    el?.scrollIntoView({ block: 'nearest' });
+  }, [active]);
 
   const go = (index: number) => {
     const el = headingEls()[index];
@@ -44,7 +65,7 @@ export function Outline() {
   }
 
   return (
-    <div className="outline" role="tree" aria-label="Document outline">
+    <div ref={listRef} className="outline" role="tree" aria-label="Document outline">
       {headings.map((h) => (
         <button
           key={h.index}

@@ -190,6 +190,11 @@ pub fn build_menu<R: Runtime>(
             &MenuItemBuilder::with_id("toggle-outline", "Outline")
                 .accelerator("CmdOrCtrl+Shift+1")
                 .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id("toggle-minimap", "Minimap")
+                .accelerator("CmdOrCtrl+Shift+M")
+                .build(app)?,
         );
     if tabs_enabled {
         view_builder = view_builder.item(

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDocumentStore } from '../stores/documentStore';
 import { useUIStore } from '../stores/uiStore';
+import { useConfigStore } from '../stores/configStore';
 import { useWorkspaceStore } from '../stores/workspaceStore';
 import { docStats } from '../lib/docStats';
 import { frontmatterKeyCount } from '../lib/frontmatter';
@@ -13,6 +14,8 @@ export function StatusBar() {
   const sourceMode = useUIStore((s) => s.sourceMode);
   const toggleSourceMode = useUIStore((s) => s.toggleSourceMode);
   const startTour = useUIStore((s) => s.startTour);
+  const showMinimap = useConfigStore((s) => s.config.showMinimap);
+  const updateConfig = useConfigStore((s) => s.update);
 
   const text = doc?.draft ?? '';
   const stats = docStats(text);
@@ -45,6 +48,17 @@ export function StatusBar() {
           <span className="statusbar-metric" title="Frontmatter properties">
             {properties} {properties === 1 ? 'property' : 'properties'}
           </span>
+        )}
+        {doc && !sourceMode && (
+          <button
+            className="statusbar-mode"
+            onClick={() => void updateConfig({ showMinimap: !showMinimap })}
+            aria-pressed={showMinimap}
+            title="Minimap — click to toggle (⇧⌘M)"
+          >
+            <MinimapIcon />
+            <span>Minimap</span>
+          </button>
         )}
         {doc && (
           <button
@@ -137,6 +151,16 @@ function useBacklinks(
   }, [path, vaultRoot, mtime]);
 
   return count;
+}
+
+function MinimapIcon() {
+  // A pane with a narrow strip on its right edge.
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="2" />
+      <path d="M16 4v16" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
 }
 
 function ModeIcon({ source }: { source: boolean }) {
