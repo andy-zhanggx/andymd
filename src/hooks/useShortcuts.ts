@@ -70,7 +70,8 @@ async function saveDocument() {
     await docStore.save();
   } catch (err) {
     if ((err as Error).message === 'EXTERNAL_MODIFIED') {
-      window.alert('This file has been modified externally. Use Save As to keep your changes.');
+      // save() recorded the conflict; the ConflictDialog is now open with a
+      // diff and merge options — nothing more to do here.
     } else {
       console.error(err);
     }

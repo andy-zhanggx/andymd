@@ -1303,6 +1303,72 @@
   cursor: default;
 }
 
+/* ── External-change conflict dialog ─────────────────────────────────── */
+.cd-modal {
+  height: min(560px, 84vh);
+}
+.cd-explain {
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--fg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.cd-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+}
+.cd-legend-del {
+  color: #c0392b;
+}
+.cd-legend-add {
+  color: #1e8e3e;
+}
+.cd-diff {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 0;
+  background: var(--bg-secondary);
+}
+.cd-diff pre {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--fg-primary);
+}
+.cd-line {
+  padding: 0 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.cd-line.del {
+  background: rgba(220, 60, 50, 0.14);
+  color: #c0392b;
+}
+.cd-line.add {
+  background: rgba(40, 160, 80, 0.14);
+  color: #1e8e3e;
+}
+.cd-line.gap {
+  color: var(--fg-muted);
+  user-select: none;
+}
+.cd-sign {
+  display: inline-block;
+  width: 16px;
+  user-select: none;
+  opacity: 0.75;
+}
+.cd-footer {
+  align-items: center;
+}
+.cd-spacer {
+  flex: 1;
+}
+
 /* ── What's New popup ────────────────────────────────────────── */
 .whatsnew-backdrop {
   position: fixed;

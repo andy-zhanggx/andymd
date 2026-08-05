@@ -1,8 +1,10 @@
 import { create } from 'zustand';
-import { Document } from '../types';
+import { Document, FileConflict } from '../types';
 import { fsService } from '../services/fsService';
+import { merge3 } from '../lib/merge';
 import { dialogService } from '../services/dialogService';
 import { useWorkspaceStore } from './workspaceStore';
+import { useUIStore } from './uiStore';
 import { lenifyHeadings } from '../lib/markdown';
 import { uniqueChildName } from '../lib/workspacePath';
 import { useConfigStore } from './configStore';
@@ -40,6 +42,18 @@ interface DocumentState {
   drafts: Record<string, string>;
   /** Stash a file's current editor content as an unsaved in-memory draft. */
   stashDraft: (path: string, draft: string) => void;
+  /**
+   * External changes found on disk for open-and-dirty files, keyed by path.
+   * A pending entry makes the ConflictDialog open when that file's tab is
+   * active.
+   */
+  conflicts: Record<string, FileConflict>;
+  /** Re-read `path` from disk and reconcile an open tab with what's there. */
+  checkExternalChange: (path: string) => Promise<void>;
+  /** Apply the user's decision for a pending conflict. */
+  resolveConflict: (path: string, resolution: 'keepMine' | 'useTheirs' | 'merge') => Promise<void>;
+  /** Put the decision off; the next save re-detects and re-prompts. */
+  dismissConflict: (path: string) => void;
 
   open: (path: string) => Promise<void>;
   openInNewTab: (path: string) => Promise<void>;
@@ -125,6 +139,28 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
     commit(next, activeId);
   };
 
+  // Replace whichever tab shows `path` (active or background) with a
+  // transformed copy.
+  const patchByPath = (path: string, fn: (tab: Tab) => Tab) => {
+    const { tabs, activeId } = get();
+    const idx = tabs.findIndex((t) => t.doc.path === path);
+    if (idx < 0) return;
+    const next = tabs.slice();
+    next[idx] = fn(tabs[idx]);
+    commit(next, activeId);
+  };
+
+  const setConflict = (path: string, conflict: FileConflict) => {
+    set({ conflicts: { ...get().conflicts, [path]: conflict } });
+  };
+
+  const clearConflict = (path: string) => {
+    if (!(path in get().conflicts)) return;
+    const conflicts = { ...get().conflicts };
+    delete conflicts[path];
+    set({ conflicts });
+  };
+
   // Drop the in-memory draft for a path once it's been persisted/refreshed.
   const clearDraft = (path: string) => {
     if (!(path in get().drafts)) return;
@@ -173,9 +209,118 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
     history: [],
     historyIndex: -1,
     drafts: {},
+    conflicts: {},
 
     stashDraft(path, draft) {
       set({ drafts: { ...get().drafts, [path]: draft } });
+    },
+
+    // Called by the workspace watcher when `path` changed on disk (and by
+    // save() when its mtime guard trips). Compares disk with the last-known
+    // snapshot and either silently follows disk (clean tab), or records a
+    // conflict for the user to resolve (dirty tab).
+    async checkExternalChange(path) {
+      const tab = get().tabs.find((t) => t.doc.path === path);
+      if (!tab) return;
+      let fresh: { content: string; mtime: number };
+      try {
+        fresh = await fsService.readFile(path);
+      } catch {
+        return; // deleted or unreadable — keep the buffer as-is
+      }
+      const disk = lenifyHeadings(fresh.content);
+      if (disk === tab.doc.content) {
+        // Echo of our own save, or a metadata-only touch: track the new mtime
+        // so the save-time guard doesn't misfire later.
+        if (fresh.mtime !== tab.doc.mtime) {
+          patchByPath(path, (t) => ({ ...t, doc: { ...t.doc, mtime: fresh.mtime } }));
+        }
+        return;
+      }
+      if (!tab.doc.isDirty) {
+        // No local edits at risk — follow the disk silently (Obsidian-style).
+        patchByPath(path, (t) => ({
+          ...t,
+          doc: {
+            ...t.doc,
+            content: disk,
+            draft: disk,
+            isDirty: false,
+            mtime: fresh.mtime,
+            revision: (t.doc.revision ?? 0) + 1,
+          },
+        }));
+        clearDraft(path);
+        clearConflict(path);
+        return;
+      }
+      setConflict(path, { diskContent: disk, diskMtime: fresh.mtime });
+    },
+
+    async resolveConflict(path, resolution) {
+      const conflict = get().conflicts[path];
+      const tab = get().tabs.find((t) => t.doc.path === path);
+      if (!conflict || !tab) {
+        clearConflict(path);
+        return;
+      }
+      if (resolution === 'keepMine') {
+        // Overwrite the disk with the local draft.
+        const { mtime } = await fsService.writeFile(path, tab.doc.draft);
+        patchByPath(path, (t) => ({
+          ...t,
+          doc: { ...t.doc, content: t.doc.draft, isDirty: false, mtime },
+        }));
+        clearDraft(path);
+        void versionService.save(path, tab.doc.draft);
+      } else if (resolution === 'useTheirs') {
+        // Discard the local draft and adopt the disk version.
+        patchByPath(path, (t) => ({
+          ...t,
+          doc: {
+            ...t.doc,
+            content: conflict.diskContent,
+            draft: conflict.diskContent,
+            isDirty: false,
+            mtime: conflict.diskMtime,
+            revision: (t.doc.revision ?? 0) + 1,
+          },
+        }));
+        clearDraft(path);
+      } else {
+        // Three-way merge: base = last-loaded snapshot, mine = draft,
+        // theirs = disk. The doc adopts the disk snapshot as its new base so
+        // a following save is conflict-free; the merged draft stays dirty for
+        // the user to review (and to resolve any conflict markers).
+        const { merged, conflicts: overlaps } = merge3(
+          tab.doc.content,
+          tab.doc.draft,
+          conflict.diskContent,
+        );
+        patchByPath(path, (t) => ({
+          ...t,
+          doc: {
+            ...t.doc,
+            content: conflict.diskContent,
+            draft: merged,
+            isDirty: merged !== conflict.diskContent,
+            mtime: conflict.diskMtime,
+            revision: (t.doc.revision ?? 0) + 1,
+          },
+        }));
+        set({ drafts: { ...get().drafts, [path]: merged } });
+        // Conflict markers aren't markdown — the WYSIWYG view would mangle
+        // `=======`/`>>>>>>>` lines. Drop into source mode so the user can
+        // resolve them as plain text.
+        if (overlaps > 0 && !useUIStore.getState().sourceMode) {
+          useUIStore.getState().toggleSourceMode();
+        }
+      }
+      clearConflict(path);
+    },
+
+    dismissConflict(path) {
+      clearConflict(path);
     },
 
     async open(path) {
@@ -260,6 +405,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
           }
         }
       }
+      if (tab.doc.path) clearConflict(tab.doc.path);
       const remaining = get().tabs.filter((t) => t.id !== id);
       let nextActive = get().activeId;
       if (nextActive === id) {
@@ -383,6 +529,12 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
       try {
         const fresh = await fsService.readFile(d.path);
         if (fresh.mtime > d.mtime && fresh.content !== d.content) {
+          // Record the conflict so the ConflictDialog opens with a diff and
+          // merge options; the throw tells callers the save did not happen.
+          setConflict(d.path, {
+            diskContent: lenifyHeadings(fresh.content),
+            diskMtime: fresh.mtime,
+          });
           throw new Error('EXTERNAL_MODIFIED');
         }
       } catch (e) {
@@ -392,6 +544,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
       const { mtime } = await fsService.writeFile(d.path, d.draft);
       patchActive((t) => ({ ...t, doc: { ...t.doc, content: t.doc.draft, isDirty: false, mtime } }));
       clearDraft(d.path);
+      clearConflict(d.path);
       void versionService.save(d.path, d.draft);
     },
 

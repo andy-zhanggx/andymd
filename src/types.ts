@@ -23,6 +23,18 @@ export interface Document {
   isDirty: boolean;           // draft !== content
   mtime: number;              // unix millis from last read/write
   encoding: 'utf-8';
+  /**
+   * Bumped whenever `draft` is replaced from OUTSIDE the editor (external
+   * reload, conflict resolution) so the editor knows to rebuild; absent/0 for
+   * ordinary typing, which flows editor → store and needs no rebuild.
+   */
+  revision?: number;
+}
+
+/** New disk state of an open file that conflicts with unsaved local edits. */
+export interface FileConflict {
+  diskContent: string;
+  diskMtime: number;
 }
 
 export interface DocumentSession {
