@@ -1,6 +1,6 @@
 [package]
 name = "andymd"
-version = "0.3.1"
+version = "0.3.2"
 description = "AndyMD"
 authors = ["andy.zhanggx"]
 edition = "2021"

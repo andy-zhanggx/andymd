@@ -8,6 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-08-05
+
+### Added
+
+- **Document minimap.** A VSCode-style thumbnail of the whole document sits
+  beside the editor, with a draggable viewport indicator — click or drag it to
+  jump anywhere. Toggle it from View → Minimap (`⇧⌘M`) or the status-bar
+  button; the setting is remembered across launches. Hidden in Source mode.
+- **External file changes are detected and merged.** When a file open in
+  AndyMD is modified on disk (git pull, Obsidian, a sync client), the app
+  notices immediately: a clean tab reloads from disk, while a tab with unsaved
+  edits gets a conflict dialog showing a diff and offering a three-way merge —
+  replacing the old dead-end "Save As" alert. If a merge leaves conflict
+  markers, the editor drops to Source mode so they're visible and resolvable.
+
+### Fixed
+
+- **Outline now highlights the section you're reading, reliably.** The active
+  heading tracks your scroll position correctly at any zoom level (it used to
+  drift when the document was zoomed), updates as images and math finish
+  loading, and the highlighted entry keeps itself scrolled into view inside
+  the outline panel.
+
 ## [0.3.1] — 2026-08-04
 
 ### Fixed
