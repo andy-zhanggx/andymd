@@ -1,5 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import { parseOutline, stripInline } from './outline';
+import { parseOutline, pickActiveHeading, stripInline } from './outline';
+
+describe('pickActiveHeading', () => {
+  it('returns -1 before the first heading', () => {
+    expect(pickActiveHeading([])).toBe(-1);
+    expect(pickActiveHeading([200, 500, 900])).toBe(-1);
+  });
+
+  it('picks the last heading at or above the viewport top', () => {
+    expect(pickActiveHeading([-300, 100, 400])).toBe(0);
+    expect(pickActiveHeading([-300, -50, 400])).toBe(1);
+    expect(pickActiveHeading([-300, -50, -10])).toBe(2);
+  });
+
+  it('treats a heading just below the top edge as current (tolerance)', () => {
+    expect(pickActiveHeading([0, 300])).toBe(0);
+    expect(pickActiveHeading([20, 300])).toBe(0); // scrollIntoView landing slack
+    expect(pickActiveHeading([30, 300])).toBe(-1);
+  });
+});
 
 describe('stripInline', () => {
   it('removes emphasis, code, links, wikilinks, highlight', () => {

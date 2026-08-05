@@ -23,6 +23,21 @@ export function stripInline(s: string): string {
 }
 
 /**
+ * Given each heading's rendered top edge relative to the scroller's top edge
+ * (negative = scrolled past), pick the heading the reader is currently under:
+ * the last one at or above the viewport top. -1 when the reader is still above
+ * the first heading. Positions must be in document order.
+ */
+export function pickActiveHeading(tops: number[], tolerance = 24): number {
+  let active = -1;
+  for (let i = 0; i < tops.length; i++) {
+    if (tops[i] <= tolerance) active = i;
+    else break;
+  }
+  return active;
+}
+
+/**
  * Parse ATX headings into a flat outline. Fenced code blocks are skipped so
  * `# comment` lines inside code don't appear. Heading order matches the order
  * ProseMirror renders <h1..h6>, so `index` can drive scroll-to-heading.

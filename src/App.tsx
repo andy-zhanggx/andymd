@@ -14,6 +14,7 @@ import { TabBar } from './components/TabBar';
 import { StatusBar } from './components/StatusBar';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { MarkdownEditor } from './components/Editor/MarkdownEditor';
+import { Minimap } from './components/Editor/Minimap';
 import { OpenFileDialog } from './components/OpenFileDialog';
 import { VersionHistory } from './components/VersionHistory';
 import { ConflictDialog } from './components/ConflictDialog';
@@ -34,7 +35,7 @@ export default function App() {
   useShortcuts();
   useOpenFileRequest();
   useWorkspaceWatcher();
-  const { showSidebar, sidebarWidth, editorWidth } = useConfigStore((s) => s.config);
+  const { showSidebar, sidebarWidth, editorWidth, showMinimap } = useConfigStore((s) => s.config);
   const update = useConfigStore((s) => s.update);
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const width = dragWidth ?? sidebarWidth;
@@ -165,12 +166,17 @@ export default function App() {
           />
         </aside>
       )}
-      <main
-        ref={mainRef}
-        style={{ gridArea: 'editor', overflow: 'auto', background: 'var(--bg-primary)' }}
-      >
-        <MarkdownEditor />
-      </main>
+      {/* The scroller and the minimap share the editor cell: the strip sits in
+          its own column so it never covers the scrollbar or the content. */}
+      <div style={{ gridArea: 'editor', display: 'flex', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
+        <main
+          ref={mainRef}
+          style={{ flex: 1, minWidth: 0, overflow: 'auto', background: 'var(--bg-primary)' }}
+        >
+          <MarkdownEditor />
+        </main>
+        {showMinimap && <Minimap scrollerRef={mainRef} />}
+      </div>
       <div style={{ gridArea: 'statusbar' }}><StatusBar /></div>
       <OpenFileDialog />
       <VersionHistory />
