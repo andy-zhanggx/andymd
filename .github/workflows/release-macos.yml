@@ -69,6 +69,11 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Title-bar build label (CLAUDE.md › Build labels): tag builds bake in
+          # the tag name; on a workflow_dispatch run ref_name is a *branch*, so
+          # leave it unset there — vite.config.ts then shows an empty label on CI
+          # rather than leaking a branch name.
+          VITE_RELEASE_NAME: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
         run: pnpm release:macos
 
       - name: Publish .dmg + per-arch updater manifest to GitHub Releases
