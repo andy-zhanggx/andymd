@@ -28,11 +28,13 @@ The value is injected by `vite.config.ts` (`define: __BUILD_LABEL__`) and read v
 
 Resolution order (first match wins):
 
-1. **`VITE_RELEASE_NAME`** — the formal release name. **Set this for any release
-   build.** Releases are built locally (no macOS CI runner), so pass it explicitly:
+1. **`VITE_RELEASE_NAME`** — the formal release name. Releases are built by
+   [`release-macos.yml`](.github/workflows/release-macos.yml) on tag push, and its
+   build step sets this to the tag (`github.ref_name`, tag builds only — a
+   `workflow_dispatch` run leaves it unset so no branch name leaks). For a manual
+   local release build, pass it explicitly:
    ```bash
    VITE_RELEASE_NAME="v$(node -p "require('./package.json').version")" pnpm tauri build
-   # then: pnpm release:dmg
    ```
 2. If running under CI (`CI` / `GITHUB_ACTIONS` / `GITLAB_CI`) with no release name
    → label is empty (never leak a branch name into a release).
