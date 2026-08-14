@@ -212,6 +212,9 @@ export async function handleMenuAction(id: string) {
     case 'find':
       useUIStore.getState().openFind(false);
       break;
+    case 'global-search':
+      useUIStore.getState().setGlobalSearchOpen(true);
+      break;
     case 'replace':
       useUIStore.getState().openFind(true);
       break;
@@ -320,7 +323,9 @@ export function useShortcuts() {
           break;
         case 'f':
           e.preventDefault();
-          useUIStore.getState().openFind(e.altKey);
+          // ⇧⌘F searches the whole workspace; ⌘F / ⌥⌘F stay in-file.
+          if (e.shiftKey) useUIStore.getState().setGlobalSearchOpen(true);
+          else useUIStore.getState().openFind(e.altKey);
           break;
         case 'g':
           e.preventDefault();

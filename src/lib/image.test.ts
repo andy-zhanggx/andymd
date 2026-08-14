@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { isImagePath, filterImagePaths, isImageFile } from './image';
+import {
+  isImagePath,
+  filterImagePaths,
+  isImageFile,
+  pastedImageName,
+  imagesFromPaste,
+} from './image';
 
 describe('isImagePath', () => {
   it('accepts common image extensions case-insensitively', () => {
@@ -23,6 +29,48 @@ describe('isImagePath', () => {
 describe('filterImagePaths', () => {
   it('keeps only image paths', () => {
     expect(filterImagePaths(['/a.png', '/b.md', '/c.gif'])).toEqual(['/a.png', '/c.gif']);
+  });
+});
+
+describe('pastedImageName', () => {
+  const now = new Date(2026, 7, 14, 9, 5, 3); // 2026-08-14 09:05:03 local
+
+  it('timestamps generic clipboard names', () => {
+    expect(pastedImageName({ name: 'image.png', type: 'image/png' }, now)).toBe(
+      'pasted-20260814-090503.png'
+    );
+    expect(pastedImageName({ name: '', type: 'image/jpeg' }, now)).toBe(
+      'pasted-20260814-090503.jpg'
+    );
+  });
+
+  it('keeps real filenames', () => {
+    expect(pastedImageName({ name: '股指走势.png', type: 'image/png' }, now)).toBe('股指走势.png');
+  });
+
+  it('falls back to png for unknown MIME types', () => {
+    expect(pastedImageName({ name: 'image', type: 'image/x-odd' }, now)).toBe(
+      'pasted-20260814-090503.png'
+    );
+  });
+});
+
+describe('imagesFromPaste', () => {
+  const imgFile = new File(['x'], 'image.png', { type: 'image/png' });
+
+  it('returns image files from a files-only paste', () => {
+    const dt = { files: [imgFile], getData: () => '' };
+    expect(imagesFromPaste(dt)).toHaveLength(1);
+  });
+
+  it('defers to text when the paste also carries text/plain', () => {
+    const dt = { files: [imgFile], getData: (t: string) => (t === 'text/plain' ? 'a\tb' : '') };
+    expect(imagesFromPaste(dt)).toHaveLength(0);
+  });
+
+  it('handles empty and null transfers', () => {
+    expect(imagesFromPaste(null)).toHaveLength(0);
+    expect(imagesFromPaste({ files: [], getData: () => '' })).toHaveLength(0);
   });
 });
 

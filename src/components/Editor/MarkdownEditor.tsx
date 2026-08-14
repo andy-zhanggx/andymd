@@ -22,7 +22,7 @@ import { useUIStore } from '../../stores/uiStore';
 import { dialogService } from '../../services/dialogService';
 import { fsService } from '../../services/fsService';
 import { resolveImageSrc } from '../../lib/asset';
-import { isImageFile } from '../../lib/image';
+import { isImageFile, imagesFromPaste, pastedImageName } from '../../lib/image';
 import { EDITOR_COLUMN_WIDTH } from '../../lib/zoom';
 import './editor-styles.css';
 
@@ -109,18 +109,49 @@ export function MarkdownEditor() {
     }
   }, []);
 
+  // Clipboard image paste (screenshots, images copied from other apps).
+  // Intercepted in the capture phase like drops, before ProseMirror's own
+  // paste handling; pastes that also carry text keep their text meaning (see
+  // imagesFromPaste). Images land in assets/ next to the doc and insert at the
+  // caret.
+  const onPaste = useCallback(async (e: ClipboardEvent) => {
+    const images = imagesFromPaste(e.clipboardData);
+    if (images.length === 0) return; // let ProseMirror handle the paste
+    e.preventDefault();
+    e.stopPropagation();
+
+    const editor = editorRef.current;
+    const current = useDocumentStore.getState().doc;
+    if (!editor || !current) return;
+    for (const file of images) {
+      try {
+        const bytes = Array.from(new Uint8Array(await file.arrayBuffer()));
+        const name = pastedImageName(file, new Date());
+        const { relPath } = await fsService.importImageBytes(name, bytes, current.path);
+        insertImageNode(editor, relPath, altFromPath(name));
+      } catch (err) {
+        window.alert(
+          (err as Error)?.message ?? 'Failed to paste image. Save the document first.'
+        );
+        break;
+      }
+    }
+  }, []);
+
   const setEditorRoot = useCallback((node: HTMLDivElement | null) => {
     const prev = ref.current;
     if (prev) {
       prev.removeEventListener('dragover', onDragOver, true);
       prev.removeEventListener('drop', onDrop, true);
+      prev.removeEventListener('paste', onPaste, true);
     }
     ref.current = node;
     if (node) {
       node.addEventListener('dragover', onDragOver, true);
       node.addEventListener('drop', onDrop, true);
+      node.addEventListener('paste', onPaste, true);
     }
-  }, [onDragOver, onDrop]);
+  }, [onDragOver, onDrop, onPaste]);
 
   useEffect(() => {
     if (!ref.current || !doc) return;

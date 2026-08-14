@@ -1,6 +1,19 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { FileNode, ImportImageResult, ReadFileResult, WriteFileResult } from '../types';
+import type { SearchResults } from '../lib/globalSearch';
+
+export interface BacklinkLine {
+  line: number;
+  text: string;
+}
+
+export interface BacklinkSource {
+  path: string;
+  relPath: string;
+  linkCount: number;
+  lines: BacklinkLine[];
+}
 
 export const fsService = {
   readFile: (path: string) => invoke<ReadFileResult>('read_file', { path }),
@@ -32,6 +45,12 @@ export const fsService = {
 
   countBacklinks: (vaultRoot: string, target: string) =>
     invoke<number>('count_backlinks', { vaultRoot, target }),
+
+  searchWorkspace: (root: string, query: string) =>
+    invoke<SearchResults>('search_workspace', { root, query }),
+
+  listBacklinks: (vaultRoot: string, target: string) =>
+    invoke<BacklinkSource[]>('list_backlinks', { vaultRoot, target }),
 
   openWorkspace: (root: string) => invoke<void>('open_workspace', { root }),
 

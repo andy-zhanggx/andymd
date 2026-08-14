@@ -15,6 +15,10 @@ interface UIState {
   openFind: (replace: boolean) => void;
   closeFind: () => void;
 
+  // Vault-wide search panel
+  globalSearchOpen: boolean;
+  setGlobalSearchOpen: (open: boolean) => void;
+
   // Sidebar tab (file tree vs document outline)
   sidebarTab: SidebarTab;
   setSidebarTab: (tab: SidebarTab) => void;
@@ -84,6 +88,9 @@ export const useUIStore = create<UIState>((set, get) => ({
   replaceMode: false,
   openFind: (replace) => set({ findOpen: true, replaceMode: replace }),
   closeFind: () => set({ findOpen: false }),
+
+  globalSearchOpen: false,
+  setGlobalSearchOpen: (open) => set({ globalSearchOpen: open }),
 
   sidebarTab: 'files',
   setSidebarTab: (tab) => set({ sidebarTab: tab }),

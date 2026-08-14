@@ -5,7 +5,7 @@ import { useConfigStore } from '../stores/configStore';
 import { useWorkspaceStore } from '../stores/workspaceStore';
 import { docStats } from '../lib/docStats';
 import { frontmatterKeyCount } from '../lib/frontmatter';
-import { fsService, onWorkspaceChanged } from '../services/fsService';
+import { fsService, onWorkspaceChanged, type BacklinkSource } from '../services/fsService';
 import { ZoomControl } from './ZoomControl';
 
 export function StatusBar() {
@@ -40,9 +40,11 @@ export function StatusBar() {
       <div className="statusbar-left">{doc && <ZoomControl />}</div>
       <div className="statusbar-right">
         {doc && backlinks !== null && (
-          <span className="statusbar-metric" title="Notes linking here (wikilinks + Markdown links)">
-            {backlinks} {backlinks === 1 ? 'backlink' : 'backlinks'}
-          </span>
+          <BacklinksMetric
+            count={backlinks}
+            path={doc.path}
+            vaultRoot={vaultRoot}
+          />
         )}
         {doc && properties > 0 && (
           <span className="statusbar-metric" title="Frontmatter properties">
@@ -100,6 +102,96 @@ export function StatusBar() {
           ?
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The backlinks count as a button: clicking it opens a popover listing which
+ * notes link here, with the matching lines; clicking a note opens it.
+ */
+function BacklinksMetric({
+  count,
+  path,
+  vaultRoot,
+}: {
+  count: number;
+  path: string | null;
+  vaultRoot: string | null;
+}) {
+  const openDoc = useDocumentStore((s) => s.open);
+  const [open, setOpen] = useState(false);
+  const [sources, setSources] = useState<BacklinkSource[] | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener('mousedown', onDown);
+    return () => window.removeEventListener('mousedown', onDown);
+  }, [open]);
+
+  // (Re)load the sources each time the popover opens — the count already
+  // tracks vault changes, so an open-time fetch is always fresh enough.
+  useEffect(() => {
+    if (!open || !path || !vaultRoot) return;
+    let cancelled = false;
+    setSources(null);
+    fsService
+      .listBacklinks(vaultRoot, path)
+      .then((s) => {
+        if (!cancelled) setSources(s);
+      })
+      .catch(() => {
+        if (!cancelled) setSources([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, path, vaultRoot]);
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        className="statusbar-stat"
+        onClick={() => count > 0 && setOpen((v) => !v)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        title="Notes linking here (wikilinks + Markdown links) — click to browse"
+      >
+        {count} {count === 1 ? 'backlink' : 'backlinks'}
+      </button>
+      {open && (
+        <div className="stats-popover backlinks-popover" role="dialog" aria-label="Backlinks">
+          {sources === null && <div className="backlinks-empty">Loading…</div>}
+          {sources !== null && sources.length === 0 && (
+            <div className="backlinks-empty">No backlinks</div>
+          )}
+          {sources?.map((src) => (
+            <div key={src.path} className="backlinks-source">
+              <button
+                className="backlinks-file"
+                title={src.relPath}
+                onClick={() => {
+                  setOpen(false);
+                  void openDoc(src.path);
+                }}
+              >
+                <span className="backlinks-filename">{src.relPath}</span>
+                <span className="backlinks-count">{src.linkCount}</span>
+              </button>
+              {src.lines.map((l) => (
+                <div key={l.line} className="backlinks-line" title={l.text}>
+                  <span className="backlinks-lineno">{l.line}</span>
+                  <span className="backlinks-text">{l.text}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
