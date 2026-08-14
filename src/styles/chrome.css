@@ -1681,3 +1681,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Context-menu section divider (used by the table menu) */
+.context-menu-section {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}

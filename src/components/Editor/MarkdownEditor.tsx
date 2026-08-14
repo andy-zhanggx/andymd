@@ -11,6 +11,8 @@ import { insertImageNode } from './insertImage';
 import { Toolbar } from './Toolbar';
 import { FindReplace } from './FindReplace';
 import { LinkContextMenu, LinkMenuTarget } from './LinkContextMenu';
+import { TableContextMenu, TableMenuTarget } from './TableContextMenu';
+import { TextSelection } from '@milkdown/prose/state';
 import { EditorBuildError } from './EditorBuildError';
 import { setActiveView } from './activeView';
 import { setTypewriter } from './viewModePlugin';
@@ -63,6 +65,8 @@ export function MarkdownEditor() {
   const [reloadKey, setReloadKey] = useState(0);
   // Right-clicking a link opens a small menu offering this-window vs new-tab.
   const [linkMenu, setLinkMenu] = useState<LinkMenuTarget | null>(null);
+  // Right-clicking inside a table opens row/column editing operations.
+  const [tableMenu, setTableMenu] = useState<TableMenuTarget | null>(null);
 
   // Handle image drops at the DOM level. Tauri's native drag interception is
   // disabled (dragDropEnabled: false), so the webview receives the HTML5 drop
@@ -209,23 +213,48 @@ export function MarkdownEditor() {
     // Right-click a link → choose this-window vs new-tab vs copy. This is a real
     // `contextmenu` DOM event (unlike plain clicks), so a root listener works.
     const contextMenuHandler = (e: MouseEvent) => {
-      if (!MULTI_TABS) return;
-      const anchor = linkFromEvent(e);
-      if (!anchor) return;
-      const isWiki = anchor.getAttribute('data-type') === 'wikilink';
-      const value = isWiki
-        ? anchor.getAttribute('data-target') || ''
-        : anchor.getAttribute('href') || '';
-      if (!value || value === '#') return;
-      e.preventDefault();
-      e.stopPropagation();
-      setLinkMenu({
-        kind: isWiki ? 'wikilink' : 'markdown',
-        value,
-        fromPath: doc.path,
-        x: e.clientX,
-        y: e.clientY,
-      });
+      const anchor = MULTI_TABS ? linkFromEvent(e) : null;
+      if (anchor) {
+        const isWiki = anchor.getAttribute('data-type') === 'wikilink';
+        const value = isWiki
+          ? anchor.getAttribute('data-target') || ''
+          : anchor.getAttribute('href') || '';
+        if (!value || value === '#') return;
+        e.preventDefault();
+        e.stopPropagation();
+        setLinkMenu({
+          kind: isWiki ? 'wikilink' : 'markdown',
+          value,
+          fromPath: doc.path,
+          x: e.clientX,
+          y: e.clientY,
+        });
+        return;
+      }
+
+      // Inside a table cell → row/column operations. Move the caret to the
+      // clicked cell first: right-click alone doesn't update ProseMirror's
+      // selection, and the menu's commands act on the caret's cell.
+      const start =
+        e.target instanceof HTMLElement
+          ? e.target
+          : e.target instanceof Node
+            ? e.target.parentElement
+            : null;
+      const cell = start?.closest('td, th');
+      if (cell && root.contains(cell)) {
+        e.preventDefault();
+        e.stopPropagation();
+        const view = viewRef.current;
+        if (view) {
+          const at = view.posAtCoords({ left: e.clientX, top: e.clientY });
+          if (at) {
+            const $pos = view.state.doc.resolve(at.pos);
+            view.dispatch(view.state.tr.setSelection(TextSelection.near($pos)));
+          }
+        }
+        setTableMenu({ x: e.clientX, y: e.clientY });
+      }
     };
 
     const setup = async () => {
@@ -458,6 +487,13 @@ export function MarkdownEditor() {
       <Toolbar getEditor={() => editorRef.current} />
       <FindReplace getView={() => viewRef.current} />
       {linkMenu && <LinkContextMenu {...linkMenu} onClose={() => setLinkMenu(null)} />}
+      {tableMenu && (
+        <TableContextMenu
+          {...tableMenu}
+          getEditor={() => editorRef.current}
+          onClose={() => setTableMenu(null)}
+        />
+      )}
       {buildError && (
         <EditorBuildError
           message={buildError.message}

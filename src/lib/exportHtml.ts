@@ -82,6 +82,19 @@ body {
 .markdown-body th, .markdown-body td { border: 1px solid #d0d7de; padding: 6px 13px; }
 .markdown-body img { max-width: 100%; }
 .markdown-body hr { border: none; border-top: 1px solid #d0d7de; margin: 2em 0; }
+.markdown-body sup[data-type="footnote_reference"] { color: #0969da; font-size: 0.75em; font-weight: 600; }
+.markdown-body sup[data-type="footnote_reference"]::before { content: "["; }
+.markdown-body sup[data-type="footnote_reference"]::after { content: "]"; }
+.markdown-body dl[data-type="footnote_definition"] {
+  display: flex; gap: 8px; align-items: baseline;
+  margin: 12px 0 0; padding: 8px 0 0; border-top: 1px solid #d0d7de;
+  font-size: 0.9em; color: #57606a;
+}
+.markdown-body dl[data-type="footnote_definition"] > dt { font-weight: 600; color: #0969da; }
+.markdown-body dl[data-type="footnote_definition"] > dt::before { content: "["; }
+.markdown-body dl[data-type="footnote_definition"] > dt::after { content: "]:"; }
+.markdown-body dl[data-type="footnote_definition"] > dd { margin: 0; }
+.markdown-body dl[data-type="footnote_definition"] > dd > p { margin: 0; }
 @media (prefers-color-scheme: dark) {
   body { background: #0d1117; color: #e6edf3; }
   .markdown-body h2 { border-bottom-color: #21262d; }
