@@ -14,7 +14,9 @@ import { prism } from '@milkdown/plugin-prism';
 import { commonmark, htmlSchema, htmlAttr } from '@milkdown/preset-commonmark';
 import { gfm, remarkGFMPlugin } from '@milkdown/preset-gfm';
 import { frontmatter } from './frontmatter';
+import { obsidianMath } from './obsidianMath';
 import { fencedMath } from './fencedMath';
+import { emojiGuardProtect, emojiGuardRestore } from './emojiGuard';
 import { wikilink } from './wikilink';
 import { wikilinkDeadLinkPlugin } from './wikilinkDeadLink';
 import { linkTooltip } from './linkTooltip';
@@ -217,6 +219,9 @@ export function buildEditor(opts: BuildOpts) {
     .use(commonmark)
     .use(gfm)
     .use(frontmatter)
+    // Before fencedMath so ```math fences are still `code` nodes and stay out
+    // of the $$-repair's way.
+    .use(obsidianMath)
     .use(fencedMath)
     .use(wikilink)
     .use(wikilinkDeadLinkPlugin)
@@ -224,7 +229,12 @@ export function buildEditor(opts: BuildOpts) {
     .use(highlight)
     .use(superscript)
     .use(subscript)
+    // The guard pair shields math/inlineMath/inlineCode/yaml literals from the
+    // twemoji pass, which would otherwise split them around emoji-range chars
+    // (a block literal split that way crashes doc creation).
+    .use(emojiGuardProtect)
     .use(emoji)
+    .use(emojiGuardRestore)
     // After emoji (and other inline splitters) so it can stitch fragmented
     // HTML comments back into a single node.
     .use(htmlComment)
