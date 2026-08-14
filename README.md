@@ -6,7 +6,8 @@ Personal project by Andy Zhang.
 
 ## Features (v0.1)
 
-- WYSIWYG Markdown editing: CommonMark + GFM (tables, task lists, strikethrough)
+- WYSIWYG Markdown editing: CommonMark + GFM (tables, task lists, strikethrough, footnotes)
+- Table editing via right-click: add/delete rows & columns, column alignment
 - Code block syntax highlighting (Prism)
 - KaTeX math (`$inline$` and `$$block$$`)
 - Extended marks: `==highlight==`, `^superscript^`, `~subscript~` (live input rules)
@@ -16,6 +17,9 @@ Personal project by Andy Zhang.
 - Lenient Chinese-friendly heading parsing (`##标题` without space still renders as H2)
 - File tree sidebar **+ document outline (TOC) panel**
 - **Find & Replace** (⌘F / ⌘G / ⌘⌥F) with live match highlights
+- **Search in Workspace** (⇧⌘F) — vault-wide full-text search with highlighted, clickable results
+- **Backlinks panel** — click the status-bar count to see (and open) the notes linking here
+- **Image paste & drag-drop** — clipboard screenshots and image files land in `assets/`
 - **Source-code mode** (⌘/), **Focus mode** (F8), **Typewriter mode** (F9)
 - **Document statistics** popover (words, chars, lines, reading time)
 - **Export** to HTML (⌘⇧E), **Word / ePub / LaTeX / RTF** (pandoc), Print / Save-as-PDF (⌘P)
