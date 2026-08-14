@@ -67,12 +67,52 @@ export function usePinchZoom(ref: RefObject<HTMLElement | null>) {
       gestureActive = false;
     };
 
-    el.addEventListener('wheel', onWheel, { passive: false });
+    // A permanently attached non-passive `wheel` listener puts the scroller on
+    // WebKit's main-thread scrolling path: every wheel frame must wait for JS +
+    // layout/paint of the whole document, which makes long documents visibly
+    // janky. WKWebView delivers pinches as gesture events, so there the wheel
+    // path only serves ⌃-scroll zoom — attach it non-passively just while ⌃ is
+    // held, keeping ordinary scrolling fully asynchronous. Chromium-style
+    // engines synthesize pinches as ctrl-wheel with no preceding keydown, so
+    // they keep the always-on listener.
+    const hasNativeGestures = 'ongesturestart' in window;
+
+    let wheelAttached = false;
+    const attachWheel = () => {
+      if (wheelAttached) return;
+      wheelAttached = true;
+      el.addEventListener('wheel', onWheel, { passive: false });
+    };
+    const detachWheel = () => {
+      if (!wheelAttached) return;
+      wheelAttached = false;
+      el.removeEventListener('wheel', onWheel);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Control') attachWheel();
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Control') detachWheel();
+    };
+    const onWindowBlur = () => detachWheel();
+
+    if (hasNativeGestures) {
+      window.addEventListener('keydown', onKeyDown, true);
+      window.addEventListener('keyup', onKeyUp, true);
+      window.addEventListener('blur', onWindowBlur);
+    } else {
+      attachWheel();
+    }
     el.addEventListener('gesturestart', onGestureStart);
     el.addEventListener('gesturechange', onGestureChange);
     el.addEventListener('gestureend', onGestureEnd);
     return () => {
-      el.removeEventListener('wheel', onWheel);
+      detachWheel();
+      if (hasNativeGestures) {
+        window.removeEventListener('keydown', onKeyDown, true);
+        window.removeEventListener('keyup', onKeyUp, true);
+        window.removeEventListener('blur', onWindowBlur);
+      }
       el.removeEventListener('gesturestart', onGestureStart);
       el.removeEventListener('gesturechange', onGestureChange);
       el.removeEventListener('gestureend', onGestureEnd);

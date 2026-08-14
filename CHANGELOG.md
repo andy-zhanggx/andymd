@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Smooth scrolling in long documents.** Scrolling a long article no longer
+  stutters. The trackpad-zoom handler kept a permanently attached non-passive
+  `wheel` listener on the editor scroller, which forced every wheel frame
+  through the main thread (WebKit disables asynchronous scrolling in that
+  case); it now attaches only while `⌃` is held, so ordinary scrolling stays
+  fully asynchronous. The outline's current-heading highlight also measured
+  every heading's position on every scroll frame — positions are now cached
+  and per-scroll work is pure arithmetic — and the minimap's document clone is
+  isolated with CSS containment so it can't amplify layout work.
+
 ## [0.4.0] — 2026-08-14
 
 ### Added

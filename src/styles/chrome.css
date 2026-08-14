@@ -1009,6 +1009,10 @@
   left: 0;
   width: 100%;
   will-change: transform;
+  /* The pan hosts a full clone of the document; containment keeps that large
+     subtree from participating in (and amplifying) layout/style/paint work
+     outside the strip. */
+  contain: content;
 }
 .minimap-scale {
   transform-origin: 0 0;

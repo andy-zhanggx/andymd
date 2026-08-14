@@ -19,30 +19,49 @@ export function Outline() {
 
   // Highlight the heading the reader is currently under, as they scroll.
   // Positions are measured with bounding rects relative to the scroller, which
-  // stays correct under the editor's CSS zoom (offsetTop does not).
+  // stays correct under the editor's CSS zoom (offsetTop does not). Measuring
+  // every heading on every scroll frame is O(document) DOM work and makes long
+  // documents janky, so rect reads happen only when the cache is invalid —
+  // per-scroll updates are pure arithmetic on cached content-space offsets.
   useEffect(() => {
     const scroller = document.querySelector('main');
     if (!scroller) return;
     let raf = 0;
+    // Heading tops in scroller content coordinates (viewport-relative top +
+    // scrollTop at measure time). Layout changes that move headings without a
+    // childList mutation (zoom, font size, images loading) also change the
+    // scroller's scrollHeight, which the recompute below checks per scroll.
+    let cachedTops: number[] | null = null;
+    let cachedScrollHeight = 0;
+    const measure = () => {
+      const top = scroller.getBoundingClientRect().top;
+      const scrolled = scroller.scrollTop;
+      cachedTops = headingEls().map((el) => el.getBoundingClientRect().top - top + scrolled);
+      cachedScrollHeight = scroller.scrollHeight;
+    };
     const recompute = () => {
       raf = 0;
-      const top = scroller.getBoundingClientRect().top;
-      const tops = headingEls().map((el) => el.getBoundingClientRect().top - top);
-      setActive(pickActiveHeading(tops));
+      if (!cachedTops || scroller.scrollHeight !== cachedScrollHeight) measure();
+      const scrolled = scroller.scrollTop;
+      setActive(pickActiveHeading(cachedTops!.map((t) => t - scrolled)));
     };
     const schedule = () => {
       if (!raf) raf = requestAnimationFrame(recompute);
     };
+    const invalidate = () => {
+      cachedTops = null;
+      schedule();
+    };
     scroller.addEventListener('scroll', schedule, { passive: true });
-    window.addEventListener('resize', schedule);
+    window.addEventListener('resize', invalidate);
     // The editor builds asynchronously and headings shift as images/math load,
-    // so recompute on DOM changes too (rAF-collapsed with the scroll updates).
-    const mo = new MutationObserver(schedule);
+    // so re-measure on DOM changes too (rAF-collapsed with the scroll updates).
+    const mo = new MutationObserver(invalidate);
     mo.observe(scroller, { subtree: true, childList: true });
-    schedule();
+    invalidate();
     return () => {
       scroller.removeEventListener('scroll', schedule);
-      window.removeEventListener('resize', schedule);
+      window.removeEventListener('resize', invalidate);
       mo.disconnect();
       if (raf) cancelAnimationFrame(raf);
     };
