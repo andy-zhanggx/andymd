@@ -1005,10 +1005,11 @@
 }
 .minimap-pan {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  will-change: transform;
+  inset: 0;
+  /* Panning happens via scrollTop (see Minimap.tsx): the host stays strip-sized
+     and clipped, so the document-sized clone never becomes a huge composited
+     layer that competes with the editor's tile painting during scrolls. */
+  overflow: hidden;
   /* The pan hosts a full clone of the document; containment keeps that large
      subtree from participating in (and amplifying) layout/style/paint work
      outside the strip. */

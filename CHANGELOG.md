@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every heading's position on every scroll frame — positions are now cached
   and per-scroll work is pure arithmetic — and the minimap's document clone is
   isolated with CSS containment so it can't amplify layout work.
+- **Less blanking (white flashes) while scrolling long documents.** The
+  minimap panned its thumbnail by transforming a document-sized
+  `will-change: transform` layer, forcing WebKit to revalidate a huge tiled
+  layer on every scroll frame — starving the editor's own tile painting. The
+  thumbnail now pans via native scrolling of the strip-sized clipped host, so
+  painting stays bounded by the strip.
 
 ## [0.4.0] — 2026-08-14
 
