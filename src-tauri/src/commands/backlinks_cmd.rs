@@ -15,6 +15,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use serde::Serialize;
+
 use crate::error::CommandResult;
 
 /// A link extracted from a note's text, tagged with how it should resolve.
@@ -25,24 +27,62 @@ struct Link {
     target: String,
 }
 
+/// Context lines are trimmed so the backlinks panel stays compact.
+const MAX_CONTEXT_CHARS: usize = 200;
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct BacklinkLine {
+    /// 1-based line number in the source note.
+    pub line: usize,
+    /// The (possibly trimmed) line containing the link(s).
+    pub text: String,
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct BacklinkSource {
+    pub path: String,
+    pub rel_path: String,
+    /// Number of individual links in this note resolving to the target.
+    pub link_count: usize,
+    pub lines: Vec<BacklinkLine>,
+}
+
 #[tauri::command]
 pub fn count_backlinks(vault_root: String, target: String) -> CommandResult<usize> {
-    let root = PathBuf::from(&vault_root);
+    Ok(scan_backlinks(&vault_root, &target)
+        .iter()
+        .map(|s| s.link_count)
+        .sum())
+}
+
+#[tauri::command]
+pub fn list_backlinks(vault_root: String, target: String) -> CommandResult<Vec<BacklinkSource>> {
+    Ok(scan_backlinks(&vault_root, &target))
+}
+
+/// Walk the vault and collect, per note, the lines whose links resolve to
+/// `target`. Links are extracted line-by-line (they never span lines in
+/// practice), which gives the panel line numbers and context for free.
+fn scan_backlinks(vault_root: &str, target: &str) -> Vec<BacklinkSource> {
+    let root = PathBuf::from(vault_root);
     if vault_root.is_empty() || target.is_empty() || !root.is_dir() {
-        return Ok(0);
+        return Vec::new();
     }
 
-    let target_canon = match norm_abs(&target) {
+    let target_canon = match norm_abs(target) {
         Some(c) => c,
-        None => return Ok(0),
+        None => return Vec::new(),
     };
-    let target_base = with_md_ext(basename(&target)).to_lowercase();
+    let target_base = with_md_ext(basename(target)).to_lowercase();
 
     let mut files: Vec<PathBuf> = Vec::new();
     collect_md(&root, &mut files);
+    files.sort();
 
     let root_str = root.to_string_lossy().to_string();
-    let mut count = 0usize;
+    let mut out: Vec<BacklinkSource> = Vec::new();
     for file in &files {
         // Skip the target itself — a note doesn't back-link to itself.
         if norm_abs(&file.to_string_lossy()).as_deref() == Some(target_canon.as_str()) {
@@ -56,13 +96,46 @@ pub fn count_backlinks(vault_root: String, target: String) -> CommandResult<usiz
             .parent()
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_default();
-        for link in extract_links(&content) {
-            if resolves_to(&link, &from_dir, &root_str, &target_canon, &target_base) {
-                count += 1;
+
+        let mut link_count = 0usize;
+        let mut lines: Vec<BacklinkLine> = Vec::new();
+        for (idx, line) in content.lines().enumerate() {
+            let hits = extract_links(line)
+                .iter()
+                .filter(|l| resolves_to(l, &from_dir, &root_str, &target_canon, &target_base))
+                .count();
+            if hits > 0 {
+                link_count += hits;
+                lines.push(BacklinkLine {
+                    line: idx + 1,
+                    text: trim_context(line.trim()),
+                });
             }
         }
+        if link_count > 0 {
+            let rel = file
+                .strip_prefix(&root)
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|_| file.to_string_lossy().to_string());
+            out.push(BacklinkSource {
+                path: file.to_string_lossy().to_string(),
+                rel_path: rel,
+                link_count,
+                lines,
+            });
+        }
     }
-    Ok(count)
+    out
+}
+
+/// Char-boundary-safe head truncation for context lines.
+fn trim_context(line: &str) -> String {
+    if line.chars().count() <= MAX_CONTEXT_CHARS {
+        return line.to_string();
+    }
+    let mut out: String = line.chars().take(MAX_CONTEXT_CHARS).collect();
+    out.push('…');
+    out
 }
 
 /// Recursively collect `.md`/`.markdown` files, skipping dotfiles/dot-dirs.
@@ -298,6 +371,31 @@ mod tests {
         )
         .unwrap();
         assert_eq!(count, 6);
+    }
+
+    #[test]
+    fn lists_sources_with_line_context() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(root, "notes/target.md", "# Target");
+        write(root, "a.md", "intro\nsee [[target|the goal]] and [[target]]\nend");
+        write(root, "notes/d.md", "[t](target.md)");
+
+        let target = root.join("notes/target.md");
+        let sources = list_backlinks(
+            root.to_string_lossy().to_string(),
+            target.to_string_lossy().to_string(),
+        )
+        .unwrap();
+
+        assert_eq!(sources.len(), 2);
+        let a = sources.iter().find(|s| s.rel_path == "a.md").unwrap();
+        assert_eq!(a.link_count, 2); // two links on one line
+        assert_eq!(a.lines.len(), 1);
+        assert_eq!(a.lines[0].line, 2);
+        assert!(a.lines[0].text.contains("the goal"));
+        let d = sources.iter().find(|s| s.rel_path == "notes/d.md").unwrap();
+        assert_eq!(d.link_count, 1);
     }
 
     #[test]

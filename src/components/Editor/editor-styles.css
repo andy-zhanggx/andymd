@@ -691,3 +691,51 @@
 .editor-build-error__reload:hover {
   opacity: 0.9;
 }
+
+/* GFM footnotes — the reference renders as sup[data-type], the definition as
+   a dl block (see preset-gfm's footnote schemas). Style the raw structure so
+   footnotes read like Typora's: a small accent superscript and a separated,
+   muted definition block with the label in front. */
+.editor-container .milkdown sup[data-type='footnote_reference'] {
+  color: var(--accent);
+  font-size: 0.75em;
+  font-weight: 600;
+  cursor: default;
+  padding: 0 1px;
+}
+.editor-container .milkdown sup[data-type='footnote_reference']::before {
+  content: '[';
+}
+.editor-container .milkdown sup[data-type='footnote_reference']::after {
+  content: ']';
+}
+
+.editor-container .milkdown dl[data-type='footnote_definition'] {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-top: 1px solid var(--border);
+  font-size: 0.9em;
+  color: var(--fg-secondary);
+}
+.editor-container .milkdown dl[data-type='footnote_definition'] > dt {
+  flex: none;
+  color: var(--accent);
+  font-weight: 600;
+}
+.editor-container .milkdown dl[data-type='footnote_definition'] > dt::before {
+  content: '[';
+}
+.editor-container .milkdown dl[data-type='footnote_definition'] > dt::after {
+  content: ']:';
+}
+.editor-container .milkdown dl[data-type='footnote_definition'] > dd {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+.editor-container .milkdown dl[data-type='footnote_definition'] > dd > p {
+  margin: 0;
+}

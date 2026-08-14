@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Search in Workspace (`⇧⌘F`).** Full-text search across every Markdown and
+  text file in the vault, with per-file grouping, highlighted matches, and
+  keyboard navigation. Opening a result jumps to the file with all matches
+  highlighted (`⌘G` steps through them). Also in Edit → Search in Workspace…
+- **Paste images from the clipboard.** Screenshots and images copied from
+  other apps paste straight into the document — they're saved into `assets/`
+  next to the note (screenshots get a timestamped name). Pastes that also
+  carry text (e.g. a spreadsheet range) still paste as text.
+- **Backlinks panel.** The status-bar backlinks count is now clickable: it
+  lists which notes link here, with the matching lines, and clicking one opens
+  that note.
+- **Table editing.** Right-click inside any table for Typora-style operations:
+  add row above/below, add column left/right, align a column left/center/right,
+  delete row/column/table.
+- **Footnotes.** GFM footnotes (`[^1]` references and `[^1]: …` definitions)
+  render styled in the editor, round-trip losslessly, and carry their styling
+  into HTML export.
+
 ## [0.3.2] — 2026-08-05
 
 ### Added

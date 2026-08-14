@@ -159,6 +159,11 @@ pub fn build_menu<R: Runtime>(
                 .accelerator("CmdOrCtrl+Alt+F")
                 .build(app)?,
         )
+        .item(
+            &MenuItemBuilder::with_id("global-search", "Search in Workspace…")
+                .accelerator("CmdOrCtrl+Shift+F")
+                .build(app)?,
+        )
         .separator()
         .item(
             &MenuItemBuilder::with_id("copy-as-markdown", "Copy as Markdown")

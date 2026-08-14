@@ -34,6 +34,8 @@ pub fn run() {
             commands::fs_cmd::import_image_bytes,
             commands::fs_cmd::find_vault_root,
             commands::backlinks_cmd::count_backlinks,
+            commands::backlinks_cmd::list_backlinks,
+            commands::search_cmd::search_workspace,
             commands::workspace_cmd::open_workspace,
             commands::workspace_cmd::pick_workspace_dir,
             commands::workspace_cmd::pick_markdown_file,
