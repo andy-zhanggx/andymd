@@ -58,7 +58,12 @@ function MinimapStrip({ scrollerRef }: { scrollerRef: React.RefObject<HTMLElemen
     const vp = viewportRef.current;
     if (!m || !pan || !vp) return;
     const layout = minimapLayout(m);
-    pan.style.transform = `translateY(${-layout.offset}px)`;
+    // Pan by scrolling the clipped strip-sized host rather than translating a
+    // document-sized layer: a `will-change: transform` pan as tall as the whole
+    // scaled clone forced WebKit to revalidate a huge tiled layer on every
+    // scroll frame, starving the editor's own tile painting (white flashes on
+    // long documents). Native scrollTop keeps painting clipped to the strip.
+    pan.scrollTop = layout.offset;
     vp.style.top = `${layout.viewportTop}px`;
     vp.style.height = `${Math.max(12, layout.viewportHeight)}px`;
     vp.style.display = m.scaledHeight > 0 ? '' : 'none';
