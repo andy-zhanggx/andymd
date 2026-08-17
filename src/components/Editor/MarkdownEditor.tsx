@@ -28,6 +28,11 @@ import { isImageFile, imagesFromPaste, pastedImageName } from '../../lib/image';
 import { EDITOR_COLUMN_WIDTH } from '../../lib/zoom';
 import './editor-styles.css';
 
+// Documents at least this long get the `long-doc` class, which turns on lazy
+// block rendering (`content-visibility: auto`, see editor-styles.css) so
+// scrolling only lays out and paints blocks near the viewport.
+export const LONG_DOC_CHARS = 20_000;
+
 function altFromPath(path: string): string {
   const base = path.split('/').pop() ?? path;
   const dot = base.lastIndexOf('.');
@@ -505,7 +510,7 @@ export function MarkdownEditor() {
       <div
         className={`editor-container${focusMode ? ' focus-mode' : ''}${
           typewriterMode ? ' typewriter-mode' : ''
-        }`}
+        }${doc.draft.length >= LONG_DOC_CHARS ? ' long-doc' : ''}`}
         style={{
           maxWidth: EDITOR_COLUMN_WIDTH[editorWidth] ?? 'none',
           margin: '0 auto',

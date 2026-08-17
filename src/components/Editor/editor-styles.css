@@ -29,6 +29,31 @@
   caret-color: var(--accent);
 }
 
+/* ── Lazy block rendering for long documents ─────────────────────────────
+ * Long documents (`.long-doc`, set by MarkdownEditor above ~20k chars) render
+ * top-level blocks with `content-visibility: auto`: blocks far from the
+ * viewport skip layout and paint entirely, so scrolling a huge article costs
+ * roughly what scrolling a short one does (PDF-reader-like smoothness).
+ * Off-screen blocks reserve space via `contain-intrinsic-size`; the `auto`
+ * keyword remembers each block's real size once it has rendered, keeping the
+ * scrollbar stable. The plain fallback declaration protects Safari < 17,
+ * where `auto` isn't parsed — without it, skipped blocks would collapse to
+ * zero height. */
+.editor-container.long-doc .milkdown .ProseMirror > * {
+  content-visibility: auto;
+  contain-intrinsic-size: 100px;
+  contain-intrinsic-size: auto 100px;
+}
+/* The minimap clones the editor DOM into its strip; there the whole thumbnail
+ * must render (its blocks are "off-screen" by design). Minimap.tsx strips the
+ * `long-doc` class from the clone; this rule is the backstop in case a clone
+ * ever carries it. The clone is laid out only on debounced rebuilds, never per
+ * scroll frame, so full rendering stays cheap. */
+.minimap-scale .editor-container .milkdown .ProseMirror > * {
+  content-visibility: visible;
+  contain-intrinsic-size: none;
+}
+
 .editor-container ::selection {
   background: var(--selection);
 }
