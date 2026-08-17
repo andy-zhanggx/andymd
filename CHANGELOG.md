@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] — 2026-08-14
+
+### Changed
+
+- **PDF-reader-like scrolling in long documents.** Documents over ~20k
+  characters now render lazily: content blocks far from the viewport skip
+  layout and painting entirely (`content-visibility`), so scrolling cost is
+  bounded by the window, not the article length. Editing, select-all,
+  outline jumps, the minimap thumbnail, and printing all behave exactly as
+  before — off-screen blocks simply stop costing anything until they come
+  into view.
+
 ## [0.4.1] — 2026-08-14
 
 ### Fixed
