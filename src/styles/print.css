@@ -23,6 +23,13 @@
     zoom: 1 !important;
   }
 
+  /* Lazy block rendering (long-doc) must not leave off-screen blocks out of
+     the printout — force everything to render on paper. */
+  .editor-container .milkdown .ProseMirror > * {
+    content-visibility: visible !important;
+    contain-intrinsic-size: none !important;
+  }
+
   .titlebar,
   .statusbar,
   aside,

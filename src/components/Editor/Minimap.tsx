@@ -109,6 +109,10 @@ function MinimapStrip({ scrollerRef }: { scrollerRef: React.RefObject<HTMLElemen
     clone.style.margin = '0';
     clone.style.maxWidth = 'none';
     clone.style.display = '';
+    // The live editor lazily skips off-screen blocks on long documents
+    // (`long-doc` → content-visibility, see editor-styles.css); the thumbnail
+    // must render all of them, so the clone drops that mode.
+    clone.classList.remove('long-doc');
     clone.querySelectorAll('[contenteditable]').forEach((el) =>
       el.setAttribute('contenteditable', 'false')
     );
