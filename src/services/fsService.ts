@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { FileNode, ImportImageResult, ReadFileResult, WriteFileResult } from '../types';
 import type { SearchResults } from '../lib/globalSearch';
+import type { IndexSearchResults } from '../lib/treeFilter';
 
 export interface BacklinkLine {
   line: number;
@@ -49,6 +50,10 @@ export const fsService = {
   searchWorkspace: (root: string, query: string) =>
     invoke<SearchResults>('search_workspace', { root, query }),
 
+  /** File-tree filter over the pre-built index (see `search_index.rs`). */
+  searchIndex: (root: string, query: string) =>
+    invoke<IndexSearchResults>('search_index', { root, query }),
+
   listBacklinks: (vaultRoot: string, target: string) =>
     invoke<BacklinkSource[]>('list_backlinks', { vaultRoot, target }),
 
@@ -71,6 +76,11 @@ export type FsEvent =
 
 export function onWorkspaceChanged(cb: (ev: FsEvent) => void): Promise<UnlistenFn> {
   return listen<FsEvent>('workspace-changed', (e) => cb(e.payload));
+}
+
+/** Fires (with the workspace root) once the file-tree search index is built. */
+export function onSearchIndexReady(cb: (root: string) => void): Promise<UnlistenFn> {
+  return listen<string>('search-index-ready', (e) => cb(e.payload));
 }
 
 export function onOpenFileRequest(cb: (path: string) => void): Promise<UnlistenFn> {

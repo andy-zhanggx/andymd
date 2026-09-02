@@ -16,6 +16,7 @@ Personal project by Andy Zhang.
 - Native spell-check, optional auto-save, and per-file version history
 - Lenient Chinese-friendly heading parsing (`##标题` without space still renders as H2)
 - File tree sidebar **+ document outline (TOC) panel**
+- **File-tree filter** — type in the box above the tree to narrow it to notes whose name *or text* matches; the vault is indexed when it opens (and kept fresh by the file watcher), so results are instant
 - **Find & Replace** (⌘F / ⌘G / ⌘⌥F) with live match highlights
 - **Search in Workspace** (⇧⌘F) — vault-wide full-text search with highlighted, clickable results
 - **Backlinks panel** — click the status-bar count to see (and open) the notes linking here

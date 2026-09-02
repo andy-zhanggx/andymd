@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **File-tree search with a pre-built index.** A filter box now sits above
+  the Files tree. Typing narrows the tree to the notes whose name or text
+  contains the query, expands the folders on the way to each hit, highlights
+  the matching part of the name, and marks notes that matched only by their
+  text. The vault is indexed in the background the moment a workspace opens
+  and the index is updated in place from file-watcher events, so every
+  keystroke answers from memory instead of re-reading the disk. While the
+  first build is still running the box says "Indexing…" and re-runs your
+  query automatically when the index is ready.
+
 ## [0.4.2] — 2026-08-14
 
 ### Changed

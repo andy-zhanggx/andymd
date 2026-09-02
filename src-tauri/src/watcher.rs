@@ -2,8 +2,9 @@ use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::Mutex;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
+use crate::commands::search_index::SearchIndexState;
 use crate::error::{CommandError, CommandResult};
 
 #[derive(Serialize, Clone)]
@@ -33,6 +34,15 @@ impl WatcherState {
             match res {
                 Ok(ev) => {
                     if let Some(fs_ev) = map_event(&ev) {
+                        // Keep the file-tree search index in step with the disk.
+                        let (path, removed) = match &fs_ev {
+                            FsEvent::Removed { path } => (path.clone(), true),
+                            FsEvent::Created { path } | FsEvent::Modified { path } => (path.clone(), false),
+                            FsEvent::Renamed { to, .. } => (to.clone(), false),
+                        };
+                        handle
+                            .state::<SearchIndexState>()
+                            .apply(std::path::Path::new(&path), removed);
                         let _ = handle.emit("workspace-changed", fs_ev);
                     }
                 }

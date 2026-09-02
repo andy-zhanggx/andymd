@@ -14,6 +14,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(WatcherState::new())
+        .manage(commands::search_index::SearchIndexState::new())
         .manage(commands::workspace_cmd::PendingOpensState::default())
         .setup(|app| {
             let menu_obj = menu::build_menu(app.handle(), &[], &[])?;
@@ -36,6 +37,7 @@ pub fn run() {
             commands::backlinks_cmd::count_backlinks,
             commands::backlinks_cmd::list_backlinks,
             commands::search_cmd::search_workspace,
+            commands::search_index::search_index,
             commands::workspace_cmd::open_workspace,
             commands::workspace_cmd::pick_workspace_dir,
             commands::workspace_cmd::pick_markdown_file,
