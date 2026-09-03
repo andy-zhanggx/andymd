@@ -4,6 +4,7 @@ import { fsService } from '../services/fsService';
 import { isPathInside } from '../lib/workspacePath';
 import { useConfigStore } from './configStore';
 import { menuService } from '../services/menuService';
+import { useSemanticStore } from './semanticStore';
 
 interface WorkspaceState {
   workspace: Workspace | null;
@@ -42,6 +43,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const name = tree.name;
     set({ workspace: { root, name, tree, expandedPaths: new Set([root]) } });
     await useConfigStore.getState().addRecentWorkspace(root);
+    // Build the semantic index ahead of time when the user has opted in.
+    if (useConfigStore.getState().config.semanticSearch) {
+      void useSemanticStore.getState().start(root);
+    }
   },
 
   // Switch the sidebar to follow a freshly opened file. No-op when the file is

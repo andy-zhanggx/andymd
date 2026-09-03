@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::commands::search_index::SearchIndexState;
+use crate::semantic::state::SemanticState;
 use crate::error::{CommandError, CommandResult};
 
 #[derive(Serialize, Clone)]
@@ -43,6 +44,9 @@ impl WatcherState {
                         handle
                             .state::<SearchIndexState>()
                             .apply(std::path::Path::new(&path), removed);
+                        handle
+                            .state::<SemanticState>()
+                            .apply(&handle, std::path::Path::new(&path));
                         let _ = handle.emit("workspace-changed", fs_ev);
                     }
                 }

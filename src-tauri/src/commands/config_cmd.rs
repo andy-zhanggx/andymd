@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use crate::error::{CommandError, CommandResult};
 
-fn config_dir() -> CommandResult<PathBuf> {
+pub(crate) fn config_dir() -> CommandResult<PathBuf> {
     let base = dirs::data_dir()
         .ok_or_else(|| CommandError::Other("no Application Support dir".into()))?;
     let d = base.join("com.andyz.andymd");

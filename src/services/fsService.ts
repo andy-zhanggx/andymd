@@ -3,6 +3,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { FileNode, ImportImageResult, ReadFileResult, WriteFileResult } from '../types';
 import type { SearchResults } from '../lib/globalSearch';
 import type { IndexSearchResults } from '../lib/treeFilter';
+import type { SemanticSearchResponse, SemanticStatus } from '../lib/semantic';
 
 export interface BacklinkLine {
   line: number;
@@ -54,6 +55,13 @@ export const fsService = {
   searchIndex: (root: string, query: string) =>
     invoke<IndexSearchResults>('search_index', { root, query }),
 
+  /** Semantic (local embedding) search — see `src-tauri/src/semantic/`. */
+  semanticStart: (root: string, endpoint: string | null) =>
+    invoke<void>('semantic_start', { root, endpoint }),
+  semanticStatus: () => invoke<SemanticStatus>('semantic_status'),
+  semanticSearch: (root: string, query: string, limit?: number) =>
+    invoke<SemanticSearchResponse>('semantic_search', { root, query, limit: limit ?? null }),
+
   listBacklinks: (vaultRoot: string, target: string) =>
     invoke<BacklinkSource[]>('list_backlinks', { vaultRoot, target }),
 
@@ -81,6 +89,11 @@ export function onWorkspaceChanged(cb: (ev: FsEvent) => void): Promise<UnlistenF
 /** Fires (with the workspace root) once the file-tree search index is built. */
 export function onSearchIndexReady(cb: (root: string) => void): Promise<UnlistenFn> {
   return listen<string>('search-index-ready', (e) => cb(e.payload));
+}
+
+/** Fires on every semantic-index phase change (model load, progress, ready, error). */
+export function onSemanticStatus(cb: (status: SemanticStatus) => void): Promise<UnlistenFn> {
+  return listen<SemanticStatus>('semantic-status', (e) => cb(e.payload));
 }
 
 export function onOpenFileRequest(cb: (path: string) => void): Promise<UnlistenFn> {

@@ -1,6 +1,7 @@
 mod commands;
 mod error;
 mod menu;
+mod semantic;
 mod watcher;
 
 use tauri::{Emitter, Manager, RunEvent};
@@ -15,6 +16,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .manage(WatcherState::new())
         .manage(commands::search_index::SearchIndexState::new())
+        .manage(semantic::state::SemanticState::new())
         .manage(commands::workspace_cmd::PendingOpensState::default())
         .setup(|app| {
             let menu_obj = menu::build_menu(app.handle(), &[], &[])?;
@@ -38,6 +40,9 @@ pub fn run() {
             commands::backlinks_cmd::list_backlinks,
             commands::search_cmd::search_workspace,
             commands::search_index::search_index,
+            semantic::state::semantic_start,
+            semantic::state::semantic_status,
+            semantic::state::semantic_search,
             commands::workspace_cmd::open_workspace,
             commands::workspace_cmd::pick_workspace_dir,
             commands::workspace_cmd::pick_markdown_file,

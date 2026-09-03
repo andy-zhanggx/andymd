@@ -311,7 +311,7 @@ pub fn is_searchable(path: &Path) -> bool {
 
 /// Recursively collect searchable files, skipping dotted entries
 /// (`.git`, `.obsidian`, …).
-fn collect_searchable(dir: &Path, out: &mut Vec<PathBuf>) {
+pub(crate) fn collect_searchable(dir: &Path, out: &mut Vec<PathBuf>) {
     let Ok(entries) = fs::read_dir(dir) else { return };
     for entry in entries.flatten() {
         let path = entry.path();
