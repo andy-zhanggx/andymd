@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **File-tree search with a pre-built index.** A filter box now sits above
+  the Files tree. Typing narrows the tree to the notes whose name or text
+  contains the query, expands the folders on the way to each hit, highlights
+  the matching part of the name, and marks notes that matched only by their
+  text. The vault is indexed in the background the moment a workspace opens
+  and the index is updated in place from file-watcher events, so every
+  keystroke answers from memory instead of re-reading the disk. While the
+  first build is still running the box says "Indexing…" and re-runs your
+  query automatically when the index is ready.
+- **Semantic search, entirely on-device.** The `≈` toggle in the same box
+  switches to searching by meaning: notes are split at their headings,
+  embedded with the small `bge-small-zh-v1.5` model (Chinese-first,
+  English-capable) through ONNX Runtime, and ranked by similarity, with the
+  heading, a snippet and a similarity bar per hit; clicking a hit opens the
+  note at that heading. The model (~95 MB) is downloaded once after an
+  explicit opt-in — a Hugging Face mirror can be given for restricted
+  networks — and the index is built in the background when the workspace
+  opens, saved between launches, and refreshed from file-watcher events, so
+  only edited notes are ever re-embedded.
+
 ## [0.4.2] — 2026-08-14
 
 ### Changed

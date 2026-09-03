@@ -1,5 +1,6 @@
 pub mod backlinks_cmd;
 pub mod search_cmd;
+pub mod search_index;
 pub mod fs_cmd;
 pub mod workspace_cmd;
 pub mod config_cmd;
