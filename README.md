@@ -17,6 +17,7 @@ Personal project by Andy Zhang.
 - Lenient Chinese-friendly heading parsing (`##标题` without space still renders as H2)
 - File tree sidebar **+ document outline (TOC) panel**
 - **File-tree filter** — type in the box above the tree to narrow it to notes whose name *or text* matches; the vault is indexed when it opens (and kept fresh by the file watcher), so results are instant
+- **Semantic search** (the `≈` toggle in that box) — find notes by *meaning* in Chinese and English, ranked by similarity with a snippet per hit; runs entirely on your Mac with a small local model (`bge-small-zh-v1.5`, ~95 MB, downloaded once after you opt in; a Hugging Face mirror can be set for restricted networks)
 - **Find & Replace** (⌘F / ⌘G / ⌘⌥F) with live match highlights
 - **Search in Workspace** (⇧⌘F) — vault-wide full-text search with highlighted, clickable results
 - **Backlinks panel** — click the status-bar count to see (and open) the notes linking here
