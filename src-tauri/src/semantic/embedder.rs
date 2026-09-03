@@ -125,6 +125,29 @@ mod tests {
         assert_eq!(z, vec![0.0, 0.0]);
     }
 
+    /// Downloads the real model into the app's model cache (so the app's
+    /// first run is instant afterwards) and checks it behaves. Needs network:
+    /// `cargo test -- --ignored real_model`.
+    #[test]
+    #[ignore]
+    fn real_model_loads_and_ranks_by_meaning() {
+        let cache = crate::commands::config_cmd::config_dir().unwrap().join("models");
+        let mut e = FastEmbedder::load(cache, std::env::var("HF_ENDPOINT").ok().as_deref()).unwrap();
+        let docs = vec![
+            "召回率下降\n上线后召回率下降了3%，原因是特征管道丢了一列。".to_string(),
+            "Recall regression\nRecall dropped after the release because the pipeline lost a column.".to_string(),
+            "周末菜谱\n西红柿炒鸡蛋，先炒鸡蛋再放西红柿。".to_string(),
+        ];
+        let v = e.embed(&docs).unwrap();
+        assert_eq!(v[0].len(), 512);
+        let q = e.embed_query("为什么召回效果变差了").unwrap();
+        let dot = |a: &[f32], b: &[f32]| a.iter().zip(b).map(|(x, y)| x * y).sum::<f32>();
+        let scores: Vec<f32> = v.iter().map(|d| dot(&q, d)).collect();
+        eprintln!("scores: {scores:?}");
+        assert!(scores[0] > scores[2], "Chinese note about recall should beat the recipe");
+        assert!(scores[1] > scores[2], "English note about recall should beat the recipe");
+    }
+
     #[test]
     fn fake_embedder_ranks_similar_text_closer() {
         let mut e = FakeEmbedder::new();
