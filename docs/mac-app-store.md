@@ -85,30 +85,40 @@ provisioning profile embedded, wrapped by `productbuild`.
 is only worth downloading if you prefer a drag-and-drop window.
 
 Authenticate with an [app-specific password](https://appleid.apple.com), never
-your real one. Stash it in the keychain once so it stays off your shell history
-and out of `ps`:
+your real one. Store it once, **with altool's own keychain command** — a
+`notarytool store-credentials` profile is a different format and altool cannot
+read it:
 
 ```bash
-xcrun notarytool store-credentials AC_UPLOAD \
-  --apple-id <your-apple-id> --team-id <TEAM_ID> --password <app-specific-password>
+xcrun altool --store-password-in-keychain-item "AC_UPLOAD" -u <your-apple-id> -p <app-specific-password>
 ```
+
+Mind the flags: `-u`/`--username` is the account, `-p`/`--app-password` is the
+password. **`--apple-id` is something else entirely** — the app's numeric App
+Store Connect ID — and passing your email to it fails with a confusing
+`AuthenticationFailure`.
 
 **Validate before uploading.** This is a full server-side check of the package —
 signature, entitlements, provisioning profile, Info.plist, privacy manifest —
 without consuming a build number. Most rejections surface here, in seconds,
-instead of 40 minutes later as a processing failure email:
+instead of 40 minutes later as a processing failure email. Note the file is a
+positional argument here, while `--upload-app` wants it after `-f`:
 
 ```bash
-xcrun altool --validate-app -f dist-mas/AndyMD-<version>.pkg -t macos \
-  --apple-id <your-apple-id> --password "@keychain:AC_UPLOAD"
+xcrun altool --validate-app dist-mas/AndyMD-<version>.pkg -t macos \
+  -u <your-apple-id> -p "@keychain:AC_UPLOAD"
 ```
 
 Then upload:
 
 ```bash
 xcrun altool --upload-app -f dist-mas/AndyMD-<version>.pkg -t macos \
-  --apple-id <your-apple-id> --password "@keychain:AC_UPLOAD"
+  -u <your-apple-id> -p "@keychain:AC_UPLOAD"
 ```
+
+If either complains that `--provider-public-id` is required (only when the
+account belongs to more than one team), get the id from
+`xcrun altool --list-providers -u <your-apple-id> -p "@keychain:AC_UPLOAD"`.
 
 Both need the app record to already exist in App Store Connect (setup step 4) —
 if it does not, validation fails with an unknown-bundle-ID error, which is a

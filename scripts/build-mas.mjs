@@ -167,9 +167,11 @@ console.log(`
 Next: validate it first — a full server-side check that costs nothing and
 catches most rejections in seconds:
 
-  xcrun altool --validate-app -f "${pkgPath}" -t macos \\
-    --apple-id <your-apple-id> --password "@keychain:AC_UPLOAD"
+  xcrun altool --validate-app "${pkgPath}" -t macos \\
+    -u <your-apple-id> -p "@keychain:AC_UPLOAD"
 
-then swap --validate-app for --upload-app. altool ships inside Xcode; see
-docs/mac-app-store.md for storing the app-specific password in the keychain.
+then upload with: --upload-app -f "${pkgPath}" (that one takes -f; validate does
+not). altool ships inside Xcode. Store the app-specific password first with
+altool's own command -- a notarytool profile is a different format it cannot
+read -- see docs/mac-app-store.md.
 `);
