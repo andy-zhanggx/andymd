@@ -36,32 +36,39 @@ const profile = process.env.MAS_PROVISION_PROFILE;
 if (!profile) die('MAS_PROVISION_PROFILE is not set. Download the Mac App Store provisioning profile for com.andyz.andymd and point this at the .provisionprofile file.');
 if (!existsSync(profile)) die(`MAS_PROVISION_PROFILE does not exist: ${profile}`);
 
-/** Pick a signing identity from the keychain by its prefix, unless pinned by env. */
-function identity(envVar, prefix, hint) {
+/**
+ * Pick a signing identity from the keychain, unless pinned by env.
+ *
+ * `prefixes` is tried in order and the first one that matches wins, because
+ * Apple renamed these certificate types: a modern account gets
+ * "Apple Distribution", older ones have "3rd Party Mac Developer Application".
+ * Both are valid for Mac App Store signing.
+ */
+function identity(envVar, prefixes, hint) {
   if (process.env[envVar]) return process.env[envVar];
-  const found = capture('security', ['find-identity', '-v'])
+  const names = capture('security', ['find-identity', '-v'])
     .split('\n')
     .map((l) => l.match(/"([^"]+)"/)?.[1])
-    .filter((name) => name?.startsWith(prefix));
-  if (found.length === 0) {
-    die(`No "${prefix}" certificate in your keychain.\n  ${hint}\n  Or pin one explicitly with ${envVar}="...".`);
+    .filter(Boolean);
+
+  for (const prefix of prefixes) {
+    const found = names.filter((name) => name.startsWith(prefix));
+    if (found.length === 1) return found[0];
+    if (found.length > 1) {
+      die(`Multiple "${prefix}" certificates found:\n${found.map((f) => `    ${f}`).join('\n')}\n  Pick one with ${envVar}="...".`);
+    }
   }
-  if (found.length > 1) {
-    die(`Multiple "${prefix}" certificates found:\n${found.map((f) => `    ${f}`).join('\n')}\n  Pick one with ${envVar}="...".`);
-  }
-  return found[0];
+  die(`No signing certificate in your keychain matching ${prefixes.map((p) => `"${p}"`).join(' or ')}.\n  ${hint}\n  Or pin one explicitly with ${envVar}="...".`);
 }
 
-// Apple renamed these certificate types; both spellings are still issued, so
-// match whichever this account has.
-const appCert = process.env.MAS_APP_CERT || identity(
+const appCert = identity(
   'MAS_APP_CERT',
-  '3rd Party Mac Developer Application',
-  'Create one in Xcode → Settings → Accounts → Manage Certificates → + → Mac App Distribution.',
+  ['Apple Distribution', '3rd Party Mac Developer Application'],
+  'Create one in Xcode → Settings → Accounts → Manage Certificates → + → Apple Distribution.',
 );
-const installerCert = process.env.MAS_INSTALLER_CERT || identity(
+const installerCert = identity(
   'MAS_INSTALLER_CERT',
-  '3rd Party Mac Developer Installer',
+  ['3rd Party Mac Developer Installer', 'Mac Developer Installer'],
   'Create one in Xcode → Settings → Accounts → Manage Certificates → + → Mac Installer Distribution.',
 );
 

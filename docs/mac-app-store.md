@@ -49,11 +49,21 @@ can be scripted; it is all account work.
    ticking — App Sandbox is an entitlement, not a capability.
 2. **Create the two certificates.** Easiest in Xcode → Settings → Accounts →
    your Apple ID → Manage Certificates → **+**:
-   - **Mac App Distribution** → gives `3rd Party Mac Developer Application: …`
+   - **Apple Distribution** → gives `Apple Distribution: …`. This is the modern
+     unified certificate; older accounts may instead have
+     `3rd Party Mac Developer Application: …`, which works the same.
+     `build-mas.mjs` accepts either.
    - **Mac Installer Distribution** → gives `3rd Party Mac Developer Installer: …`
-3. **Create the provisioning profile.** Profiles → **+** → **Mac App Store**
-   → App ID `com.andyz.andymd` → your Mac App Distribution certificate.
+3. **Create the provisioning profile.** Profiles → **+** → under *Distribution*
+   pick the macOS App Store type (the portal currently calls it **Mac App Store
+   Connect**) → App ID `com.andyz.andymd` → your distribution certificate.
    Download it; note where you put the `.provisionprofile`.
+
+   Two traps: the file must end in **`.provisionprofile`**, not
+   `.mobileprovision` — the latter is iOS and will be rejected. And Xcode's
+   auto-managed profiles in
+   `~/Library/Developer/Xcode/UserData/Provisioning Profiles/` are *development*
+   profiles for a wildcard App ID; they cannot be used here.
 4. **Create the app record** in [App Store Connect](https://appstoreconnect.apple.com)
    → Apps → **+** → New App. Platform macOS, bundle ID `com.andyz.andymd`,
    SKU anything (e.g. `andymd`), primary language English.
