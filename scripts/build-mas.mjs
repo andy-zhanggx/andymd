@@ -164,11 +164,12 @@ run('productbuild', [
 
 console.log(`\n✓ ${pkgPath}`);
 console.log(`
-Next: upload it. Either
+Next: validate it first — a full server-side check that costs nothing and
+catches most rejections in seconds:
 
-  xcrun altool --upload-app -f "${pkgPath}" -t macos \\
-    -u <your-apple-id> -p <app-specific-password>
+  xcrun altool --validate-app -f "${pkgPath}" -t macos \\
+    --apple-id <your-apple-id> --password "@keychain:AC_UPLOAD"
 
-or open Transporter.app and drop the .pkg in. Then submit the build for review
-in App Store Connect. Details in docs/mac-app-store.md.
+then swap --validate-app for --upload-app. altool ships inside Xcode; see
+docs/mac-app-store.md for storing the app-specific password in the keychain.
 `);

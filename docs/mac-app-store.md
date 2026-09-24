@@ -81,14 +81,38 @@ That produces `dist-mas/AndyMD-<version>.pkg`: a universal (arm64 + x86_64)
 sandboxed build, signed with your distribution certificate, with the
 provisioning profile embedded, wrapped by `productbuild`.
 
-Upload it with **Transporter.app** (free on the Mac App Store — drag the `.pkg`
-in), or:
+`altool` ships inside Xcode, so there is nothing to install — Transporter.app
+is only worth downloading if you prefer a drag-and-drop window.
+
+Authenticate with an [app-specific password](https://appleid.apple.com), never
+your real one. Stash it in the keychain once so it stays off your shell history
+and out of `ps`:
 
 ```bash
-xcrun altool --upload-app -f dist-mas/AndyMD-<version>.pkg -t macos -u <apple-id> -p <app-specific-password>
+xcrun notarytool store-credentials AC_UPLOAD \
+  --apple-id <your-apple-id> --team-id <TEAM_ID> --password <app-specific-password>
 ```
 
-Use an [app-specific password](https://appleid.apple.com), never your real one.
+**Validate before uploading.** This is a full server-side check of the package —
+signature, entitlements, provisioning profile, Info.plist, privacy manifest —
+without consuming a build number. Most rejections surface here, in seconds,
+instead of 40 minutes later as a processing failure email:
+
+```bash
+xcrun altool --validate-app -f dist-mas/AndyMD-<version>.pkg -t macos \
+  --apple-id <your-apple-id> --password "@keychain:AC_UPLOAD"
+```
+
+Then upload:
+
+```bash
+xcrun altool --upload-app -f dist-mas/AndyMD-<version>.pkg -t macos \
+  --apple-id <your-apple-id> --password "@keychain:AC_UPLOAD"
+```
+
+Both need the app record to already exist in App Store Connect (setup step 4) —
+if it does not, validation fails with an unknown-bundle-ID error, which is a
+useful early signal rather than a problem.
 
 The build appears in App Store Connect after processing (10–60 min), then you
 attach it to a version and submit.
