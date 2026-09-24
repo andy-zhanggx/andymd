@@ -90,8 +90,15 @@ your real one. Store it once, **with altool's own keychain command** — a
 read it:
 
 ```bash
-xcrun altool --store-password-in-keychain-item "AC_UPLOAD" -u <your-apple-id> -p <app-specific-password>
+xcrun altool --store-password-in-keychain-item --item "AC_UPLOAD" -u <your-apple-id> -p <app-specific-password>
 ```
+
+`--item` is required even though `altool --help` shows the name as a positional
+argument; without it you get `Expected item argument is missing`.
+
+The password must be a real app-specific password — four groups of four letters,
+`abcd-efgh-ijkl-mnop`. A six-digit number is a two-factor verification code and
+will not authenticate.
 
 Mind the flags: `-u`/`--username` is the account, `-p`/`--app-password` is the
 password. **`--apple-id` is something else entirely** — the app's numeric App
