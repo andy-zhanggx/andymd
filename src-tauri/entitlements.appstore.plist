@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Entitlements for the Mac App Store build. Applied by scripts/build-mas.mjs,
+  which substitutes __TEAM_ID__ from $APPLE_TEAM_ID before signing.
+
+  The App Sandbox is mandatory for the Mac App Store. AndyMD is an offline
+  editor over a folder the user picks, so it asks for as little as it can:
+  read/write on user-selected files, app-scoped bookmarks so the vault the user
+  picked last time is still reachable after a relaunch (see bookmarks.rs), and
+  network.client — which is not the app's choice, see below.
+
+  network.client is required by WKWebView itself, not by the app: without it a
+  sandboxed WebKit cannot bring up its networking process and the webview never
+  loads the page at all — the window comes up blank. Verified here: with only
+  the sandbox entitlement the frontend never executes; adding network.client
+  makes it render. AndyMD still issues no network requests of its own in this
+  flavor.
+
+  Deliberately absent: any temporary-exception entitlement, which App Review
+  treats as a red flag.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+
+	<key>com.apple.security.network.client</key>
+	<true/>
+
+	<key>com.apple.security.files.bookmarks.app-scope</key>
+	<true/>
+
+	<key>com.apple.application-identifier</key>
+	<string>__TEAM_ID__.com.andyz.andymd</string>
+
+	<key>com.apple.developer.team-identifier</key>
+	<string>__TEAM_ID__</string>
+</dict>
+</plist>

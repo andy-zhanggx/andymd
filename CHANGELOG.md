@@ -8,6 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Mac App Store build.** `pnpm build:mas` produces a sandboxed, universal,
+  signed `.pkg` ready to upload — a second distribution channel alongside the
+  existing `.dmg` on GitHub Releases. See [docs/mac-app-store.md](docs/mac-app-store.md).
+- Folders you pick are remembered across relaunches with macOS
+  security-scoped bookmarks, so the App Sandbox does not lose your vault when
+  the app restarts.
+
+### Changed
+
+- Moving a file to the Trash now goes through NSFileManager instead of driving
+  Finder over AppleScript, and "Reveal in Finder" goes through NSWorkspace
+  instead of spawning `open -R`. Both work in the sandbox; behavior is the same
+  outside it, minus the Finder delete sound.
+- The app no longer enables macOS private API. Nothing used it — the window was
+  already a plain decorated window — and App Review rejects it.
+
+### Notes
+
+- The App Store flavor omits the in-app updater (the App Store updates it) and
+  the pandoc-backed exports to Word/ePub/LaTeX/RTF (the sandbox forbids
+  subprocesses). The `.dmg` build keeps both.
+
 ## [0.4.2] — 2026-08-14
 
 ### Changed
