@@ -154,10 +154,19 @@ the open panel. Do this once on the signed build:
 4. Confirm there is no "Software Update…" in the Help menu and no "Export to"
    submenu under File.
 
+If the window comes up **blank white** with a working menu bar, the webview did
+not load: check that `com.apple.security.network.client` is still in the
+entitlements. WKWebView needs it even though AndyMD makes no network requests,
+and the failure is silent — no error, no sandbox denial in the log.
+
 ## Known review risks
 
-- **Guideline 2.4.5(i) — sandbox.** Covered: the app declares only
-  user-selected read/write plus app-scope bookmarks, no temporary exceptions.
+- **Guideline 2.4.5(i) — sandbox.** Covered: the app declares user-selected
+  read/write, app-scope bookmarks, and `network.client`, with no temporary
+  exceptions. `network.client` is WKWebView's requirement, not the app's — a
+  sandboxed WebKit cannot start its networking process without it and the
+  window comes up blank. It is an outbound-client entitlement and unremarkable
+  to review.
 - **Guideline 2.4.5(iv) — self-update.** Covered: no updater in this binary.
   Verified by `strings`: the release endpoint and minisign key are absent.
 - **Guideline 2.5.1 — private API.** Covered: `macOSPrivateApi` is off.
