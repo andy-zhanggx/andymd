@@ -33,3 +33,23 @@ export const ONLINE_COLLAB = import.meta.env.VITE_ENABLE_COLLAB === 'true';
  * gated branches out of a production build when it is disabled.
  */
 export const MULTI_TABS = import.meta.env.VITE_ENABLE_TABS !== 'false';
+
+/**
+ * `APP_STORE_BUILD` marks the Mac App Store flavor. It is **off by default**:
+ * the DMG built for direct download is the normal build.
+ *
+ * App Review forbids an app carrying its own update channel (guidelines 2.4.5 /
+ * 3.2.2), so this flag strips the in-app updater — the launch/interval check,
+ * the title-bar badge, and the Software Update sheet. The matching Rust build
+ * (`--no-default-features --features appstore`) leaves the updater plugin out of
+ * the binary altogether; this flag keeps the UI from reaching for a plugin that
+ * is not there.
+ *
+ * Set by `scripts/build-mas.mjs`; do not set it by hand for a DMG build:
+ *
+ *     VITE_APP_STORE=true pnpm build
+ *
+ * The literal-string compare lets Vite fold the constant and tree-shake the
+ * gated branches out of the App Store bundle.
+ */
+export const APP_STORE_BUILD = import.meta.env.VITE_APP_STORE === 'true';

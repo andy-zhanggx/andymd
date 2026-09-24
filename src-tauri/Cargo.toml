@@ -21,11 +21,27 @@ trash = "4"
 tokio = { version = "1", features = ["fs", "rt-multi-thread", "sync"] }
 dirs = "5"
 uuid = { version = "1", features = ["v4"] }
-tauri = { version = "2", features = ["macos-private-api", "protocol-asset"] }
+tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
-tauri-plugin-updater = "2"
-tauri-plugin-process = "2"
+tauri-plugin-updater = { version = "2", optional = true }
+tauri-plugin-process = { version = "2", optional = true }
+
+# Security-scoped bookmarks. Under App Sandbox a bare path grants no access
+# after relaunch, so every user-picked folder/file is re-authorized from
+# bookmark data via NSURL. Only needed on macOS.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", features = ["NSURL", "NSData", "NSString", "NSError", "NSArray", "NSDictionary"] }
+
+[features]
+default = ["self-update"]
+# Bundled auto-updater + relaunch. Must stay OFF for Mac App Store builds:
+# App Review forbids an app shipping its own update channel (2.4.5 / 3.2.2).
+self-update = ["dep:tauri-plugin-updater", "dep:tauri-plugin-process"]
+# Mac App Store flavor: no self-update, no subprocesses (pandoc), sandbox-safe
+# trash + reveal. Build with: --no-default-features --features appstore
+appstore = []
 
 [dev-dependencies]
 tempfile = "3"

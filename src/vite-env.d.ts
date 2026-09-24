@@ -5,6 +5,8 @@ interface ImportMetaEnv {
   readonly VITE_ENABLE_COLLAB?: string;
   /** Set to "false" to disable the multi-tab experience (on by default). See featureFlags.ts. */
   readonly VITE_ENABLE_TABS?: string;
+  /** Set to "true" for the Mac App Store flavor (drops the in-app updater). See featureFlags.ts. */
+  readonly VITE_APP_STORE?: string;
 }
 
 /**

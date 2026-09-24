@@ -4,7 +4,7 @@ import { UpdateButton } from './UpdateButton';
 import { useUIStore } from '../stores/uiStore';
 import { useCollabStore } from '../collab/collabStore';
 import { PresenceBar } from './Collab/PresenceBar';
-import { ONLINE_COLLAB } from '../featureFlags';
+import { ONLINE_COLLAB, APP_STORE_BUILD } from '../featureFlags';
 import { BUILD_LABEL } from '../buildInfo';
 
 function SidebarIcon() {
@@ -99,7 +99,7 @@ export function TitleBar() {
             {BUILD_LABEL}
           </span>
         )}
-        <UpdateButton />
+        {!APP_STORE_BUILD && <UpdateButton />}
         {ONLINE_COLLAB && <PresenceBar />}
         {ONLINE_COLLAB && doc && (
           <button
