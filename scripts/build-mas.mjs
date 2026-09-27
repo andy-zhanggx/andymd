@@ -164,14 +164,14 @@ run('productbuild', [
 
 console.log(`\n✓ ${pkgPath}`);
 console.log(`
-Next: validate it first — a full server-side check that costs nothing and
-catches most rejections in seconds:
+Next: validate it first -- a full server-side check that costs no build number
+and catches most rejections in seconds:
 
-  xcrun altool --validate-app "${pkgPath}" -t macos \\
-    -u <your-apple-id> -p "@keychain:AC_UPLOAD"
+  read -rs "PW?App-specific password: "; echo
+  xcrun altool --validate-app "${pkgPath}" -t macos -u <your-apple-id> -p "$PW"
 
-then upload with: --upload-app -f "${pkgPath}" (that one takes -f; validate does
-not). altool ships inside Xcode. Store the app-specific password first with
-altool's own command -- a notarytool profile is a different format it cannot
-read -- see docs/mac-app-store.md.
+then upload with --upload-app -f "${pkgPath}" (that one takes -f; validate does
+not). Do NOT use altool's @keychain: -- it is broken in 27.0.5. An App Store
+Connect API key (--apiKey/--apiIssuer) is the non-interactive alternative.
+See docs/mac-app-store.md.
 `);

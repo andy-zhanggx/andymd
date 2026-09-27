@@ -84,44 +84,50 @@ provisioning profile embedded, wrapped by `productbuild`.
 `altool` ships inside Xcode, so there is nothing to install — Transporter.app
 is only worth downloading if you prefer a drag-and-drop window.
 
-Authenticate with an [app-specific password](https://appleid.apple.com), never
-your real one. Store it once, **with altool's own keychain command** — a
-`notarytool store-credentials` profile is a different format and altool cannot
-read it:
+Authenticate with an [app-specific password](https://appleid.apple.com)
+(Sign-In and Security → App-Specific Passwords), never your real one. It looks
+like `abcd-efgh-ijkl-mnop`; a six-digit number is a two-factor code and will
+not authenticate.
+
+**Do not bother with `--store-password-in-keychain-item` / `@keychain:`.** It is
+broken in altool 27.0.5: the item it writes it cannot read back, failing with
+`Keychain item not found` even in the same process seconds later, with no
+keychain prompt. Pass the password on stdin instead so it stays out of your
+shell history:
 
 ```bash
-xcrun altool --store-password-in-keychain-item --item "AC_UPLOAD" -u <your-apple-id> -p <app-specific-password>
+read -rs "PW?App-specific password: "; echo
+xcrun altool --validate-app dist-mas/AndyMD-<version>.pkg -t macos -u <your-apple-id> -p "$PW"
 ```
 
-`--item` is required even though `altool --help` shows the name as a positional
-argument; without it you get `Expected item argument is missing`.
-
-The password must be a real app-specific password — four groups of four letters,
-`abcd-efgh-ijkl-mnop`. A six-digit number is a two-factor verification code and
-will not authenticate.
-
-Mind the flags: `-u`/`--username` is the account, `-p`/`--app-password` is the
-password. **`--apple-id` is something else entirely** — the app's numeric App
-Store Connect ID — and passing your email to it fails with a confusing
-`AuthenticationFailure`.
-
-**Validate before uploading.** This is a full server-side check of the package —
-signature, entitlements, provisioning profile, Info.plist, privacy manifest —
-without consuming a build number. Most rejections surface here, in seconds,
-instead of 40 minutes later as a processing failure email. Note the file is a
-positional argument here, while `--upload-app` wants it after `-f`:
+**Validate before uploading.** That is what the command above does: a full
+server-side check of signature, entitlements, provisioning profile, Info.plist
+and privacy manifest, without consuming a build number. Most rejections surface
+there in seconds instead of arriving 40 minutes later as a processing-failure
+email. Then upload — note `--upload-app` takes the file after `-f`, while
+`--validate-app` takes it positionally:
 
 ```bash
-xcrun altool --validate-app dist-mas/AndyMD-<version>.pkg -t macos \
-  -u <your-apple-id> -p "@keychain:AC_UPLOAD"
+xcrun altool --upload-app -f dist-mas/AndyMD-<version>.pkg -t macos -u <your-apple-id> -p "$PW"
+unset PW
 ```
 
-Then upload:
+### Better: an App Store Connect API key
+
+A `.p8` API key avoids passwords entirely and works non-interactively, so
+uploads can be scripted or run by an agent:
+
+App Store Connect → Users and Access → Integrations → Keys → generate one with
+the **App Manager** role. Put the downloaded `AuthKey_<KEY_ID>.p8` in
+`~/.appstoreconnect/private_keys/` (altool finds it there by name), then:
 
 ```bash
 xcrun altool --upload-app -f dist-mas/AndyMD-<version>.pkg -t macos \
-  -u <your-apple-id> -p "@keychain:AC_UPLOAD"
+  --apiKey <KEY_ID> --apiIssuer <ISSUER_ID>
 ```
+
+Neither `--apiKey` nor `--apiIssuer` is a secret; the `.p8` is, and it never
+appears on the command line.
 
 If either complains that `--provider-public-id` is required (only when the
 account belongs to more than one team), get the id from
