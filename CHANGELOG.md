@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-09-27
+
+First public release, and the first one on the Mac App Store.
+
 ### Added
 
 - **Mac App Store build.** `pnpm build:mas` produces a sandboxed, universal,
@@ -31,6 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The App Store flavor omits the in-app updater (the App Store updates it) and
   the pandoc-backed exports to Word/ePub/LaTeX/RTF (the sandbox forbids
   subprocesses). The `.dmg` build keeps both.
+- The interface is English-only. The welcome tour's Chinese sub-captions and a
+  few Chinese tooltips and alerts were removed; CJK *content* is unaffected and
+  still fully supported.
 
 ## [0.4.2] — 2026-08-14
 

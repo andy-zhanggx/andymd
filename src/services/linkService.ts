@@ -30,7 +30,7 @@ export async function openMarkdownLink(
       }
       return;
     case 'dead':
-      window.alert(`未找到: ${target.absPath}`);
+      window.alert(`Not found: ${target.absPath}`);
       return;
     case 'ignore':
       return;
@@ -44,7 +44,7 @@ export async function openMarkdownLink(
         else await docStore.open(target.absPath);
       } catch {
         // Out-of-vault link whose target doesn't actually exist.
-        window.alert(`未找到: ${target.absPath}`);
+        window.alert(`Not found: ${target.absPath}`);
       }
       return;
     }

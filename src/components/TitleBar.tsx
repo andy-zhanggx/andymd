@@ -106,7 +106,7 @@ export function TitleBar() {
             className={`titlebar-toggle${collabActive ? ' active' : ''}`}
             onClick={() => setCollabDialogOpen(true)}
             aria-label="Collaborate"
-            title="协作 / Share"
+            title="Share"
           >
             <ShareIcon />
           </button>

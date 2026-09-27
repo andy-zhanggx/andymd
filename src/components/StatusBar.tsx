@@ -97,7 +97,7 @@ export function StatusBar() {
           className="statusbar-help"
           onClick={startTour}
           aria-label="Show welcome tour"
-          title="Welcome tour / 使用教程"
+          title="Welcome tour"
         >
           ?
         </button>
