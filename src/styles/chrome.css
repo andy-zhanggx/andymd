@@ -2047,3 +2047,58 @@
   border-color: var(--accent);
   color: #fff;
 }
+
+/* Sidebar Tags tab. */
+.taglist {
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 33px);
+  min-height: 0;
+}
+.taglist-filter {
+  margin: 8px 10px 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-primary);
+}
+.taglist-items {
+  list-style: none;
+  margin: 0;
+  padding: 0 6px 12px;
+  overflow-y: auto;
+  flex: 1;
+}
+.taglist-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 5px;
+  background: none;
+  color: var(--fg-primary);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.taglist-item:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.taglist-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.taglist-count {
+  color: var(--fg-muted);
+  font-size: 11px;
+}
+.taglist-empty {
+  padding: 8px 16px;
+  color: var(--fg-muted);
+  font-size: 12px;
+}

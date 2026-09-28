@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { Release } from '../lib/changelog';
 import { clampZoom, stepZoom, ZoomMode } from '../lib/zoom';
 
-export type SidebarTab = 'files' | 'outline';
+export type SidebarTab = 'files' | 'outline' | 'tags';
 
 export type RelinkChoice = 'update' | 'skip' | 'cancel';
 
@@ -38,9 +38,18 @@ interface UIState {
   globalSearchOpen: boolean;
   setGlobalSearchOpen: (open: boolean) => void;
 
-  // Sidebar tab (file tree vs document outline)
+  // Sidebar tab (file tree vs document outline vs tags)
   sidebarTab: SidebarTab;
   setSidebarTab: (tab: SidebarTab) => void;
+
+  /**
+   * A query pushed into the file-tree search box from elsewhere (clicking a
+   * tag). `nonce` makes re-sending the same query take effect again.
+   */
+  treeQuery: { value: string; nonce: number } | null;
+  setTreeQuery: (value: string) => void;
+  /** The search box took the pushed query. */
+  clearTreeQuery: () => void;
 
   // Version history modal
   versionHistoryOpen: boolean;
@@ -119,6 +128,10 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   sidebarTab: 'files',
   setSidebarTab: (tab) => set({ sidebarTab: tab }),
+
+  treeQuery: null,
+  setTreeQuery: (value) => set((s) => ({ treeQuery: { value, nonce: (s.treeQuery?.nonce ?? 0) + 1 } })),
+  clearTreeQuery: () => set({ treeQuery: null }),
 
   versionHistoryOpen: false,
   setVersionHistoryOpen: (open) => set({ versionHistoryOpen: open }),

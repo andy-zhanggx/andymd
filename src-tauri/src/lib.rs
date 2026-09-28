@@ -57,6 +57,7 @@ pub fn run() {
             commands::backlinks_cmd::find_files_mentioning,
             commands::search_cmd::search_workspace,
             commands::search_index::search_index,
+            commands::search_index::list_tags,
             semantic::state::semantic_start,
             semantic::state::semantic_status,
             semantic::state::semantic_search,

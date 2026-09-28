@@ -17,6 +17,18 @@ export interface BacklinkSource {
   lines: BacklinkLine[];
 }
 
+export interface TagCount {
+  tag: string;
+  /** Notes carrying the tag. */
+  count: number;
+}
+
+export interface TagList {
+  /** False while the vault index is still building. */
+  ready: boolean;
+  tags: TagCount[];
+}
+
 export const fsService = {
   readFile: (path: string) => invoke<ReadFileResult>('read_file', { path }),
 
@@ -55,6 +67,8 @@ export const fsService = {
     invoke<SearchResults>('search_workspace', { root, query }),
 
   /** File-tree filter over the pre-built index (see `search_index.rs`). */
+  listTags: (root: string) => invoke<TagList>('list_tags', { root }),
+
   searchIndex: (root: string, query: string) =>
     invoke<IndexSearchResults>('search_index', { root, query }),
 

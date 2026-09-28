@@ -2,9 +2,23 @@ import { describe, expect, it } from 'vitest';
 import { lenifyHeadings } from './markdown';
 
 describe('lenifyHeadings', () => {
-  it('inserts space after leading #s for all levels H1-H6', () => {
-    const out = lenifyHeadings('#a\n##b\n###c\n####d\n#####e\n######f');
-    expect(out).toBe('# a\n## b\n### c\n#### d\n##### e\n###### f');
+  it('inserts space after leading #s for levels H2-H6', () => {
+    const out = lenifyHeadings('##b\n###c\n####d\n#####e\n######f\n##标题');
+    expect(out).toBe('## b\n### c\n#### d\n##### e\n###### f\n## 标题');
+  });
+
+  it('treats a single # before a tag character as an Obsidian tag, not H1', () => {
+    const src = '#project #idea\n#标签\n#a/b';
+    expect(lenifyHeadings(src)).toBe(src);
+    // Punctuation after a single # can't start a tag — still a heading.
+    expect(lenifyHeadings('#【注意】')).toBe('# 【注意】');
+  });
+
+  it('leaves fenced code and frontmatter alone', () => {
+    const src = '---\n#comment: yes\n---\n```c\n#include <stdio.h>\n```\n##after';
+    expect(lenifyHeadings(src)).toBe('---\n#comment: yes\n---\n```c\n#include <stdio.h>\n```\n## after');
+    const tilde = '~~~~\n##x\n~~~\n##y\n~~~~\n##z';
+    expect(lenifyHeadings(tilde)).toBe('~~~~\n##x\n~~~\n##y\n~~~~\n## z');
   });
 
   it('leaves already-spaced headings untouched', () => {

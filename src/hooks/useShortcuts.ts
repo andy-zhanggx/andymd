@@ -218,6 +218,10 @@ export async function handleMenuAction(id: string) {
       if (!cfg.config.showSidebar) await cfg.update({ showSidebar: true });
       break;
     }
+    case 'show-tags':
+      useUIStore.getState().setSidebarTab('tags');
+      if (!cfg.config.showSidebar) await cfg.update({ showSidebar: true });
+      break;
     case 'toggle-minimap':
       await cfg.update({ showMinimap: !cfg.config.showMinimap });
       break;

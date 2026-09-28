@@ -21,6 +21,7 @@ import { wikilink } from './wikilink';
 import { callout } from './callout';
 import { wikiEmbed } from './wikiEmbed';
 import { linkSuggestPlugin } from './linkSuggest';
+import { tag } from './tag';
 import { wikilinkDeadLinkPlugin } from './wikilinkDeadLink';
 import { linkTooltip } from './linkTooltip';
 import { searchPlugin } from './searchPlugin';
@@ -232,6 +233,7 @@ export function buildEditor(opts: BuildOpts) {
     .use(wikilink)
     .use(wikiEmbed)
     .use(linkSuggestPlugin)
+    .use(tag)
     .use(wikilinkDeadLinkPlugin)
     .use(linkTooltip)
     .use(highlight)

@@ -212,6 +212,7 @@ pub fn build_menu<R: Runtime>(
                 .accelerator("CmdOrCtrl+Shift+1")
                 .build(app)?,
         )
+        .item(&MenuItemBuilder::with_id("show-tags", "Tags").build(app)?)
         .item(
             &MenuItemBuilder::with_id("toggle-minimap", "Minimap")
                 .accelerator("CmdOrCtrl+Shift+M")

@@ -48,6 +48,7 @@ export const COMMANDS: Command[] = [
   { id: 'insert-embed', title: 'Embed Note or Image…', category: 'Insert', keywords: 'transclude ![[' },
   { id: 'insert-callout', title: 'Callout', category: 'Insert', keywords: 'admonition note tip warning' },
   { id: 'global-search', title: 'Search in Workspace…', category: 'Vault', shortcut: '⇧⌘F', keywords: 'find all' },
+  { id: 'show-tags', title: 'Show Tags', category: 'Vault', keywords: '#tag hashtags' },
   { id: 'toggle-sidebar', title: 'Toggle Sidebar', category: 'View', shortcut: '⇧⌘L' },
   { id: 'toggle-outline', title: 'Toggle Outline', category: 'View', shortcut: '⇧⌘1', keywords: 'toc headings' },
   { id: 'toggle-minimap', title: 'Toggle Minimap', category: 'View', shortcut: '⇧⌘M' },
