@@ -653,14 +653,6 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-.tour-sub {
-  display: block;
-  margin-top: 6px;
-  color: var(--fg-muted);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
 .tour-footer {
   display: flex;
   align-items: center;

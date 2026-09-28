@@ -207,6 +207,19 @@ pub fn rename_path(from: String, to: String) -> CommandResult<()> {
 
 #[tauri::command]
 pub fn delete_to_trash(path: String) -> CommandResult<()> {
+    // `trash` defaults to driving Finder over AppleScript on macOS, which the
+    // App Sandbox blocks (it needs an Apple Events entitlement Apple will not
+    // grant for this). NSFileManager's trashItem: works inside the sandbox for
+    // any URL we already have access to — it just skips the Finder whoosh.
+    #[cfg(target_os = "macos")]
+    {
+        use trash::macos::{DeleteMethod, TrashContextExtMacos};
+        let mut ctx = trash::TrashContext::default();
+        ctx.set_delete_method(DeleteMethod::NsFileManager);
+        ctx.delete(&path)
+            .map_err(|e| CommandError::Trash(e.to_string()))?;
+    }
+    #[cfg(not(target_os = "macos"))]
     trash::delete(&path).map_err(|e| CommandError::Trash(e.to_string()))?;
     Ok(())
 }
@@ -323,13 +336,11 @@ pub fn import_image_bytes(
 
 #[tauri::command]
 pub fn reveal_in_finder(path: String) -> CommandResult<()> {
-    let p = PathBuf::from(&path);
-    std::process::Command::new("open")
-        .arg("-R")
-        .arg(&p)
-        .status()
-        .map_err(|e| CommandError::Other(e.to_string()))?;
-    Ok(())
+    // Spawning `open -R` is a subprocess, which the App Sandbox forbids. The
+    // opener plugin goes through -[NSWorkspace activateFileViewerSelectingURLs:],
+    // which is the sanctioned route and needs no extra entitlement.
+    tauri_plugin_opener::reveal_item_in_dir(PathBuf::from(&path))
+        .map_err(|e| CommandError::Other(e.to_string()))
 }
 
 #[cfg(test)]

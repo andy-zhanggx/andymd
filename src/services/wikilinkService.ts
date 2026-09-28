@@ -21,7 +21,7 @@ export async function openWikilink(
     ws && ws.root === rootDir ? ws.tree : await fsService.listWorkspace(rootDir, false);
   const resolved = resolveWikilinkInTree(target, tree, fromPath);
   if (!resolved) {
-    window.alert(`未找到笔记: ${target}`);
+    window.alert(`Note not found: ${target}`);
     return;
   }
 
