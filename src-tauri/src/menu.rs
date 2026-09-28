@@ -213,6 +213,8 @@ pub fn build_menu<R: Runtime>(
                 .build(app)?,
         )
         .item(&MenuItemBuilder::with_id("show-tags", "Tags").build(app)?)
+        .item(&MenuItemBuilder::with_id("show-related", "Related Notes").build(app)?)
+        .item(&MenuItemBuilder::with_id("find-duplicates", "Find Duplicate Notes…").build(app)?)
         .item(
             &MenuItemBuilder::with_id("toggle-minimap", "Minimap")
                 .accelerator("CmdOrCtrl+Shift+M")

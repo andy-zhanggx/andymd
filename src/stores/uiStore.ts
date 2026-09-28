@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { Release } from '../lib/changelog';
 import { clampZoom, stepZoom, ZoomMode } from '../lib/zoom';
 
-export type SidebarTab = 'files' | 'outline' | 'tags';
+export type SidebarTab = 'files' | 'outline' | 'tags' | 'related';
 
 export type RelinkChoice = 'update' | 'skip' | 'cancel';
 
@@ -23,6 +23,10 @@ interface UIState {
   // Command palette (⇧⌘P)
   commandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
+
+  // Near-duplicate notes report
+  duplicatesOpen: boolean;
+  setDuplicatesOpen: (open: boolean) => void;
 
   // Update-links-after-rename confirmation
   relinkPrompt: RelinkPrompt | null;
@@ -114,6 +118,9 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   commandPaletteOpen: false,
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
+
+  duplicatesOpen: false,
+  setDuplicatesOpen: (open) => set({ duplicatesOpen: open }),
 
   relinkPrompt: null,
   setRelinkPrompt: (p) => set({ relinkPrompt: p }),

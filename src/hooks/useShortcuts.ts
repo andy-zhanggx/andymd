@@ -218,6 +218,14 @@ export async function handleMenuAction(id: string) {
       if (!cfg.config.showSidebar) await cfg.update({ showSidebar: true });
       break;
     }
+    case 'show-related':
+    case 'suggest-links':
+      useUIStore.getState().setSidebarTab('related');
+      if (!cfg.config.showSidebar) await cfg.update({ showSidebar: true });
+      break;
+    case 'find-duplicates':
+      useUIStore.getState().setDuplicatesOpen(true);
+      break;
     case 'show-tags':
       useUIStore.getState().setSidebarTab('tags');
       if (!cfg.config.showSidebar) await cfg.update({ showSidebar: true });

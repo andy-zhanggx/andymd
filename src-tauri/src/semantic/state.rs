@@ -17,7 +17,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
 use super::embedder::{Embedder, FastEmbedder, MODEL_ID};
-use super::index::{Hit, SemanticIndex};
+use super::index::{DuplicatePair, Hit, SemanticIndex};
 
 /// Event carrying a `Status` on every phase change.
 pub const STATUS_EVENT: &str = "semantic-status";
@@ -72,6 +72,17 @@ pub struct SearchResponse {
     pub status: Status,
     pub hits: Vec<Hit>,
 }
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct DuplicatesResponse {
+    pub status: Status,
+    pub pairs: Vec<DuplicatePair>,
+}
+
+/// Default cut-off for "near-duplicate" notes (cosine of mean vectors).
+const DEFAULT_DUPLICATE_THRESHOLD: f32 = 0.92;
+const MAX_DUPLICATE_PAIRS: usize = 200;
 
 /// Locks the shared model per call so a long build and a query interleave.
 struct SharedEmbedder(Arc<Mutex<Option<FastEmbedder>>>);
@@ -222,6 +233,33 @@ impl SemanticState {
             .unwrap()
             .as_ref()
             .map(|i| i.search(&qvec, limit.clamp(1, MAX_LIMIT)))
+            .unwrap_or_default();
+        SearchResponse { status, hits }
+    }
+}
+
+impl SemanticState {
+    /// Is the index ready and built for `root`? Returns the status either way.
+    fn ready_for(&self, root: &Path) -> (bool, Status) {
+        let status = self.status();
+        let ok = status.phase == Phase::Ready
+            && status.root.as_deref() == Some(root.to_string_lossy().as_ref());
+        (ok, status)
+    }
+
+    /// Notes related to `path` (or to its section at `line`), from vectors
+    /// already in the index — nothing is embedded.
+    pub fn related(&self, root: &Path, path: &Path, line: Option<usize>, limit: usize) -> SearchResponse {
+        let (ok, status) = self.ready_for(root);
+        if !ok {
+            return SearchResponse { status, hits: Vec::new() };
+        }
+        let hits = self
+            .index
+            .lock()
+            .unwrap()
+            .as_ref()
+            .map(|i| i.related(path, line, limit.clamp(1, MAX_LIMIT)))
             .unwrap_or_default();
         SearchResponse { status, hits }
     }
@@ -421,6 +459,46 @@ pub fn semantic_search(
     state.search(Path::new(&root), &query, limit.unwrap_or(DEFAULT_LIMIT))
 }
 
+#[tauri::command]
+pub fn semantic_related(
+    root: String,
+    path: String,
+    line: Option<usize>,
+    limit: Option<usize>,
+    state: State<'_, SemanticState>,
+) -> SearchResponse {
+    state.related(Path::new(&root), Path::new(&path), line, limit.unwrap_or(DEFAULT_LIMIT))
+}
+
+/// Near-duplicate note pairs. Quadratic in the note count, so it runs on a
+/// blocking worker instead of the command thread.
+#[tauri::command]
+pub async fn semantic_duplicates(
+    root: String,
+    threshold: Option<f32>,
+    limit: Option<usize>,
+    state: State<'_, SemanticState>,
+) -> Result<DuplicatesResponse, String> {
+    let (ok, status) = state.ready_for(Path::new(&root));
+    if !ok {
+        return Ok(DuplicatesResponse { status, pairs: Vec::new() });
+    }
+    let index = Arc::clone(&state.index);
+    let threshold = threshold.unwrap_or(DEFAULT_DUPLICATE_THRESHOLD);
+    let limit = limit.unwrap_or(MAX_DUPLICATE_PAIRS).clamp(1, MAX_DUPLICATE_PAIRS);
+    let pairs = tauri::async_runtime::spawn_blocking(move || {
+        index
+            .lock()
+            .unwrap()
+            .as_ref()
+            .map(|i| i.duplicates(threshold, limit))
+            .unwrap_or_default()
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(DuplicatesResponse { status, pairs })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -439,6 +517,14 @@ mod tests {
     fn search_before_ready_returns_status_only() {
         let state = SemanticState::new();
         let res = state.search(Path::new("/v"), "hello", 10);
+        assert_eq!(res.status.phase, Phase::Off);
+        assert!(res.hits.is_empty());
+    }
+
+    #[test]
+    fn related_before_ready_returns_status_only() {
+        let state = SemanticState::new();
+        let res = state.related(Path::new("/v"), Path::new("/v/a.md"), None, 10);
         assert_eq!(res.status.phase, Phase::Off);
         assert!(res.hits.is_empty());
     }

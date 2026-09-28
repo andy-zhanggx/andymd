@@ -61,6 +61,8 @@ pub fn run() {
             semantic::state::semantic_start,
             semantic::state::semantic_status,
             semantic::state::semantic_search,
+            semantic::state::semantic_related,
+            semantic::state::semantic_duplicates,
             commands::workspace_cmd::open_workspace,
             commands::workspace_cmd::pick_workspace_dir,
             commands::workspace_cmd::pick_markdown_file,
