@@ -72,6 +72,8 @@ export interface AppConfig {
   zoomMode: 'custom' | 'fit-width'; // Acrobat-style reading mode
   zoomLevel: number;               // multiplier, 1 = 100% (used in 'custom' mode)
   showMinimap: boolean;            // document thumbnail strip beside the editor
+  semanticSearch: boolean;         // local-embedding search in the file tree (downloads a model once)
+  semanticModelEndpoint: string;   // Hugging Face mirror for the model download ('' = default host)
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -101,6 +103,8 @@ export const DEFAULT_CONFIG: AppConfig = {
   zoomMode: 'custom',
   zoomLevel: 1,
   showMinimap: true,
+  semanticSearch: false,
+  semanticModelEndpoint: '',
 };
 
 export const SESSION_CAP = 200; // LRU limit for sessions map

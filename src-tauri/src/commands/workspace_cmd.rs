@@ -4,6 +4,7 @@ use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 
 use crate::bookmarks;
+use crate::commands::search_index::{rebuild_for, SearchIndexState};
 use crate::error::CommandResult;
 use crate::watcher::WatcherState;
 
@@ -21,8 +22,12 @@ pub fn open_workspace(
     root: String,
     app: AppHandle,
     state: State<'_, WatcherState>,
+    index: State<'_, SearchIndexState>,
 ) -> CommandResult<()> {
-    state.start(app, PathBuf::from(root))?;
+    let root = PathBuf::from(root);
+    state.start(app.clone(), root.clone())?;
+    // Index the vault ahead of time so the file-tree search is instant.
+    rebuild_for(&app, &index, root);
     Ok(())
 }
 
