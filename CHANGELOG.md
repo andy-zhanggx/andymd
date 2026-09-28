@@ -29,6 +29,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   networks — and the index is built in the background when the workspace
   opens, saved between launches, and refreshed from file-watcher events, so
   only edited notes are ever re-embedded.
+- **Callouts.** Obsidian callouts (`> [!note] Title`, `> [!warning]- Folded`)
+  render as coloured boxes with a title and icon per kind, and foldable ones
+  get a chevron. Typing `[!tip] ` at the start of a quote turns it into a
+  callout; Enter in the title moves to the body.
+- **Embeds.** `![[pic.png|300]]` shows the image, and `![[note]]` or
+  `![[note#Heading]]` shows a read-only preview of the note or section,
+  rendered with the same styles as the note itself. Click the header to open
+  the note.
+- **`[[` autocomplete.** Typing `[[` (or `![[`) lists matching notes and files.
+  `[[note#` lists that note's headings, and `[[#` lists this note's.
+  Enter inserts the link; an unmatched name makes a link to a new note.
+- **Command palette (`⇧⌘P`).** Every command, view mode and export in one
+  searchable list with its shortcut. Recently used commands come first.
+  Also in View → Command Palette….
+- **Links are updated when you rename.** Renaming or moving a note or folder
+  lists the links in other notes that would break and offers to rewrite them.
+  This covers wikilinks, embeds, relative links, Markdown links and images,
+  and keeps headings, aliases and encoding.
+- **Tags.** `#tags` (nested `#a/b` and any script included) show as chips.
+  Clicking one filters the file tree to the notes carrying it. A new **Tags**
+  sidebar tab lists every tag with its note count, including tags from
+  frontmatter. Typing `#project` in the tree filter matches by tag.
+- **Related notes.** A new **Related** sidebar tab lists the notes closest in
+  meaning to the open note, or to the section under the caret, using the
+  local semantic index.
+- **Link suggestions.** While you write, AndyMD suggests up to three notes the
+  current paragraph could link to. One click inserts the link, and a
+  dismissed suggestion stays dismissed.
+- **Find Duplicate Notes….** Lists pairs of notes that say nearly the same
+  thing, at three strictness levels, and opens both side by side.
+
+### Changed
+
+- Headings without a space after the `#` are still recognised for `##标题`
+  and deeper. A single `#` followed by a word (`#project`) is now a tag, as
+  in Obsidian, not an H1.
+
+### Fixed
+
+- Callouts, embeds, tags at the start of a line, and `[[links]]` typed in the
+  editor were saved back escaped (`> \[!note]`, `!\[\[pic.png]]`, `\#tag`,
+  `\[\[x]]`), which broke them in Obsidian. They now round-trip unchanged.
+- Lines starting with `#` inside code blocks (`#include <stdio.h>`) or
+  frontmatter were rewritten as headings (`# include`) when the file was
+  opened, and saved that way.
+- `[[note#Heading]]` links showed as dead links; they now resolve, and
+  clicking one scrolls to the heading.
+- After renaming an open note, its tab kept the old path, so the next save
+  recreated the old file.
 
 ## [1.0.0] — 2026-09-27
 

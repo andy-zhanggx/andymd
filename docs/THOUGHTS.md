@@ -68,6 +68,17 @@ We ask three questions about every candidate:
   sync is probably the biggest growth lever. It is also the most expensive,
   and security-scoped bookmarks work differently on iOS.
 
+### Update — after building 1.1 and 1.2
+
+All of the gaps above are closed, along with the two proposed differentiators
+(related notes and link suggestions, plus a duplicate finder). Building them
+turned up something the observations missed: **the vault syntax wasn't just
+unrendered, it was being corrupted on save.** The serializer escaped
+callouts, embeds, line-leading tags and typed `[[links]]`, and lenient
+headings rewrote `#include` lines inside code and Obsidian tag lines. So the
+"round-trip losslessly" principle below should be tested against a real vault
+before each release, not only through unit fixtures.
+
 ## Principles we're holding to
 
 - **Local by default.** Any feature that sends content off the Mac, such as
