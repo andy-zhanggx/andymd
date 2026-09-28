@@ -20,7 +20,7 @@ import { GlobalSearch } from './components/GlobalSearch';
 import { VersionHistory } from './components/VersionHistory';
 import { ConflictDialog } from './components/ConflictDialog';
 import { ShareDialog } from './components/Collab/ShareDialog';
-import { ONLINE_COLLAB, MULTI_TABS } from './featureFlags';
+import { ONLINE_COLLAB, MULTI_TABS, APP_STORE_BUILD } from './featureFlags';
 import { Tour } from './components/Tour';
 import { WhatsNew } from './components/WhatsNew';
 import { runWhatsNewCheck } from './lib/whatsNew';
@@ -78,8 +78,11 @@ export default function App() {
     if (configLoaded) void runWhatsNewCheck();
   }, [configLoaded]);
 
-  // Auto-update: check on launch + on an interval while the app runs.
+  // Auto-update: check on launch + on an interval while the app runs. The App
+  // Store flavor updates through the App Store, and its binary has no updater
+  // plugin to call, so the whole cycle is compiled out there.
   useEffect(() => {
+    if (APP_STORE_BUILD) return;
     if (!configLoaded) return;
     void runUpdateCheck();
     const id = window.setInterval(() => void runUpdateCheck(), UPDATE_CHECK_INTERVAL_MS);
@@ -186,7 +189,7 @@ export default function App() {
       {ONLINE_COLLAB && <ShareDialog />}
       <Tour />
       <WhatsNew />
-      <UpdateSettings />
+      {!APP_STORE_BUILD && <UpdateSettings />}
     </div>
   );
 }

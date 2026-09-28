@@ -9,9 +9,8 @@ interface Step {
   body: ReactNode;
 }
 
-// Bilingual (EN + 中文) so the tour is approachable for first-time / novice
-// users. Selectors point at real UI; missing targets fall back to a centered
-// card, so the tour never breaks if an element isn't on screen yet.
+// Selectors point at real UI; missing targets fall back to a centered card, so
+// the tour never breaks if an element isn't on screen yet.
 const STEPS: Step[] = [
   {
     title: 'Welcome to AndyMD 👋',
@@ -19,7 +18,6 @@ const STEPS: Step[] = [
       <>
         A calm, distraction-free Markdown editor. This 30-second tour shows you
         the essentials.
-        <span className="tour-sub">欢迎使用 AndyMD —— 一个简洁的 Markdown 编辑器。这个 30 秒小教程带你快速上手。</span>
       </>
     ),
   },
@@ -30,7 +28,6 @@ const STEPS: Step[] = [
       <>
         Pick a folder to use as your notes workspace. Every Markdown file in it
         shows up in the sidebar on the left.
-        <span className="tour-sub">打开一个文件夹作为你的笔记库，里面的 Markdown 文件会显示在左侧。</span>
       </>
     ),
   },
@@ -41,7 +38,6 @@ const STEPS: Step[] = [
       <>
         Click here (or press <kbd>⌘N</kbd>) to make a new note. It appears in the
         sidebar and opens for editing right away.
-        <span className="tour-sub">点这里（或按 ⌘N）新建笔记，会自动出现在侧边栏并立即打开编辑。</span>
       </>
     ),
   },
@@ -52,7 +48,6 @@ const STEPS: Step[] = [
       <>
         Click any file to open it. <strong>Right-click</strong> a file or folder
         for New File, Rename, Reveal in Finder, and Move to Trash.
-        <span className="tour-sub">点击文件即可打开；右键文件或文件夹可新建、重命名、在访达中显示、移到废纸篓。</span>
       </>
     ),
   },
@@ -64,7 +59,6 @@ const STEPS: Step[] = [
         It’s a live editor — type <code># </code> for a heading,
         <code> **bold** </code>, or <code>- </code> for a list, and it renders as
         you go. No Markdown knowledge needed.
-        <span className="tour-sub">所见即所得：输入 # 变标题、**加粗**、- 列表，边写边渲染，零基础也能用。</span>
       </>
     ),
   },
@@ -74,7 +68,6 @@ const STEPS: Step[] = [
       <>
         Press <kbd>⌘/</kbd> anytime to flip into <strong>Source Code Mode</strong>
         and edit the raw Markdown. Press it again to flip back.
-        <span className="tour-sub">随时按 ⌘/ 切换“源码模式”，直接编辑原始 Markdown，再按一次切回。</span>
       </>
     ),
   },
@@ -85,7 +78,6 @@ const STEPS: Step[] = [
       <>
         You’re ready to write. Click the <strong>?</strong> here to replay this
         tour whenever you like.
-        <span className="tour-sub">完成啦！想再看一遍教程，点这里的 ? 即可。</span>
       </>
     ),
   },

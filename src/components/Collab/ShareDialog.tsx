@@ -90,7 +90,7 @@ export function ShareDialog() {
         onKeyDown={onKeyDown}
       >
         <div className="collab-header">
-          <span className="collab-title">协作 · Collaborate</span>
+          <span className="collab-title">Collaborate</span>
           <button className="collab-close" onClick={close} aria-label="Close">
             ✕
           </button>
