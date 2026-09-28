@@ -109,3 +109,46 @@ describe('resolveWikilinkInTree', () => {
     expect(resolveWikilinkInTree('./organic-vs-ads-pcoc-label-semantics', vault, null)).toBeNull();
   });
 });
+
+describe('splitWikilinkTarget / resolveVaultFile', () => {
+  const tree: FileNode = {
+    path: '/v',
+    name: 'v',
+    kind: 'dir',
+    children: [
+      { path: '/v/Note.md', name: 'Note.md', kind: 'file' },
+      {
+        path: '/v/img',
+        name: 'img',
+        kind: 'dir',
+        children: [
+          { path: '/v/img/Pic.PNG', name: 'Pic.PNG', kind: 'file' },
+          { path: '/v/img/doc.pdf', name: 'doc.pdf', kind: 'file' },
+        ],
+      },
+    ],
+  };
+
+  it('splits heading and block parts', async () => {
+    const { splitWikilinkTarget } = await import('./wikilink');
+    expect(splitWikilinkTarget('Note#My Heading')).toEqual({ path: 'Note', heading: 'My Heading', block: null });
+    expect(splitWikilinkTarget('Note#^abc123')).toEqual({ path: 'Note', heading: null, block: 'abc123' });
+    expect(splitWikilinkTarget('#Local')).toEqual({ path: '', heading: 'Local', block: null });
+    expect(splitWikilinkTarget(' Note ')).toEqual({ path: 'Note', heading: null, block: null });
+  });
+
+  it('resolves notes with a heading suffix, and same-note links', () => {
+    expect(resolveWikilinkInTree('note#Heading', tree)).toBe('/v/Note.md');
+    expect(resolveWikilinkInTree('#Heading', tree, '/v/Note.md')).toBe('/v/Note.md');
+    expect(resolveWikilinkInTree('#Heading', tree)).toBeNull();
+  });
+
+  it('resolves attachments by exact name or path', async () => {
+    const { resolveVaultFile } = await import('./wikilink');
+    expect(resolveVaultFile('pic.png', tree)).toBe('/v/img/Pic.PNG');
+    expect(resolveVaultFile('img/doc.pdf', tree)).toBe('/v/img/doc.pdf');
+    expect(resolveVaultFile('./img/doc.pdf', tree, '/v/Note.md')).toBe('/v/img/doc.pdf');
+    expect(resolveVaultFile('missing.png', tree)).toBeNull();
+    expect(resolveVaultFile('Note', tree)).toBe('/v/Note.md');
+  });
+});

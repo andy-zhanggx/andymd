@@ -2,7 +2,7 @@ import { $prose } from '@milkdown/utils';
 import { Plugin, PluginKey } from '@milkdown/prose/state';
 import { Decoration, DecorationSet } from '@milkdown/prose/view';
 import type { Node as PMNode } from '@milkdown/prose/model';
-import { resolveWikilinkInTree } from '../../lib/wikilink';
+import { resolveVaultFile } from '../../lib/wikilink';
 import { resolveLinkTarget } from '../../lib/linkTarget';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useDocumentStore } from '../../stores/documentStore';
@@ -32,7 +32,7 @@ function vaultContext() {
 function isDeadWikilink(target: string): boolean {
   const { tree, fromPath } = vaultContext();
   if (!tree) return false; // no vault context — don't flag anything
-  return resolveWikilinkInTree(target, tree, fromPath) === null;
+  return resolveVaultFile(target, tree, fromPath) === null;
 }
 
 function isDeadMarkdownLink(href: string): boolean {

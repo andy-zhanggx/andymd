@@ -1,6 +1,7 @@
 import { $prose } from '@milkdown/utils';
 import { Plugin, TextSelection } from '@milkdown/prose/state';
 import { decidePair } from '../../lib/autoPair';
+import { applyBracketLink } from './bracketLinks';
 
 /**
  * Auto-pair brackets and quotes as you type:
@@ -25,7 +26,10 @@ export const autoPairPlugin = $prose(
           if (!decision) return false;
 
           if (decision.kind === 'skip') {
-            view.dispatch(state.tr.setSelection(TextSelection.create(state.doc, to + 1)));
+            // Typing over the final `]` of `[[x]]` / `![[x]]` completes a link.
+            const tr = state.tr.setSelection(TextSelection.create(state.doc, to + 1));
+            if (text === ']') applyBracketLink(tr, to + 1);
+            view.dispatch(tr);
             return true;
           }
 

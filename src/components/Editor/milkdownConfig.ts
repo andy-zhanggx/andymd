@@ -19,6 +19,7 @@ import { fencedMath } from './fencedMath';
 import { emojiGuardProtect, emojiGuardRestore } from './emojiGuard';
 import { wikilink } from './wikilink';
 import { callout } from './callout';
+import { wikiEmbed } from './wikiEmbed';
 import { wikilinkDeadLinkPlugin } from './wikilinkDeadLink';
 import { linkTooltip } from './linkTooltip';
 import { searchPlugin } from './searchPlugin';
@@ -228,6 +229,7 @@ export function buildEditor(opts: BuildOpts) {
     // claims `> [!type]` blockquotes before they reach it.
     .use(callout)
     .use(wikilink)
+    .use(wikiEmbed)
     .use(wikilinkDeadLinkPlugin)
     .use(linkTooltip)
     .use(highlight)

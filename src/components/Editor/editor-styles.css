@@ -839,3 +839,57 @@
 .callout-danger, .callout-error, .callout-bug { --callout: 233, 49, 71; --callout-icon: '⚡︎'; }
 .callout-example { --callout: 120, 82, 238; --callout-icon: '☷'; }
 .callout-quote, .callout-cite { --callout: 158, 158, 158; --callout-icon: '❝'; }
+
+/*
+ * Obsidian embeds (`![[pic.png]]`, `![[note#Heading]]`). Note embeds render a
+ * read-only preview inside a framed box; the header opens the note.
+ */
+.editor-container .milkdown .wiki-embed-image img {
+  max-width: 100%;
+  vertical-align: bottom;
+}
+.editor-container .milkdown .wiki-embed-note {
+  display: block;
+  margin: 0.4em 0;
+  padding: 6px 14px 10px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  white-space: normal;
+  cursor: default;
+}
+.editor-container .milkdown .wiki-embed-header {
+  display: block;
+  font-size: 0.8em;
+  color: var(--fg-muted);
+  cursor: pointer;
+  margin-bottom: 0.3em;
+}
+.editor-container .milkdown .wiki-embed-header:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.editor-container .milkdown .wiki-embed-header::before {
+  content: '↪ ';
+}
+.editor-container .milkdown .wiki-embed-body {
+  display: block;
+}
+.editor-container .milkdown .wiki-embed-body > :last-child {
+  margin-bottom: 0;
+}
+.editor-container .milkdown .wiki-embed-empty,
+.editor-container .milkdown .wiki-embed-dead {
+  color: var(--fg-muted);
+  font-style: italic;
+}
+.editor-container .milkdown .wiki-embed-dead {
+  text-decoration: underline dotted;
+}
+.editor-container .milkdown .wiki-embed-file {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.9em;
+}
