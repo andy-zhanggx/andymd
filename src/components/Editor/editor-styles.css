@@ -764,3 +764,78 @@
 .editor-container .milkdown dl[data-type='footnote_definition'] > dd > p {
   margin: 0;
 }
+
+/*
+ * Obsidian callouts (`> [!note] Title`). Each kind picks an accent colour;
+ * unknown kinds fall back to the note colour. HTML export carries its own
+ * copy of these rules (see lib/exportHtml.ts).
+ */
+.editor-container .milkdown .callout,
+.markdown-body .callout {
+  --callout: 8, 109, 221;
+  position: relative;
+  margin: 0 0 1em;
+  padding: 10px 14px;
+  border-left: 3px solid rgb(var(--callout));
+  border-radius: 6px;
+  background: rgba(var(--callout), 0.08);
+}
+.editor-container .milkdown .callout-title,
+.markdown-body .callout-title {
+  font-weight: 600;
+  color: rgb(var(--callout));
+  min-height: 1.5em;
+  padding-right: 1.6em;
+}
+.editor-container .milkdown .callout-title::before,
+.markdown-body .callout-title::before {
+  content: var(--callout-icon, 'ℹ︎');
+  display: inline-block;
+  width: 1.4em;
+}
+/* An empty title shows the kind, like Obsidian (`[!tip]` → "Tip"). */
+.editor-container .milkdown .callout-title:empty::after,
+.editor-container .milkdown .callout-title:has(> br:only-child)::after {
+  content: var(--callout-label);
+  opacity: 0.6;
+}
+.editor-container .milkdown .callout-content > :last-child,
+.markdown-body .callout > :last-child {
+  margin-bottom: 0;
+}
+.editor-container .milkdown .callout-content > .callout-title + * {
+  margin-top: 0.4em;
+}
+.editor-container .milkdown .callout-collapsed .callout-content > :not(.callout-title) {
+  display: none;
+}
+.editor-container .milkdown .callout-fold {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 1.4em;
+  height: 1.4em;
+  padding: 0;
+  border: none;
+  background: none;
+  color: rgb(var(--callout));
+  cursor: pointer;
+  font-size: 0.9em;
+  line-height: 1;
+}
+.editor-container .milkdown .callout-fold::before {
+  content: '▾';
+}
+.editor-container .milkdown .callout-collapsed .callout-fold::before {
+  content: '▸';
+}
+.callout-info, .callout-todo { --callout: 8, 109, 221; }
+.callout-abstract, .callout-summary, .callout-tldr { --callout: 0, 176, 205; --callout-icon: '☰'; }
+.callout-tip, .callout-hint, .callout-important { --callout: 0, 170, 150; --callout-icon: '✦'; }
+.callout-success, .callout-check, .callout-done { --callout: 8, 185, 78; --callout-icon: '✓'; }
+.callout-question, .callout-help, .callout-faq { --callout: 236, 117, 0; --callout-icon: '?'; }
+.callout-warning, .callout-caution, .callout-attention { --callout: 236, 117, 0; --callout-icon: '⚠︎'; }
+.callout-failure, .callout-fail, .callout-missing { --callout: 233, 49, 71; --callout-icon: '✕'; }
+.callout-danger, .callout-error, .callout-bug { --callout: 233, 49, 71; --callout-icon: '⚡︎'; }
+.callout-example { --callout: 120, 82, 238; --callout-icon: '☷'; }
+.callout-quote, .callout-cite { --callout: 158, 158, 158; --callout-icon: '❝'; }

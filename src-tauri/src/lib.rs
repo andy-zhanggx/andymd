@@ -5,6 +5,7 @@ mod menu;
 mod semantic;
 mod watcher;
 
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 use tauri::{Emitter, Manager, RunEvent};
 use watcher::WatcherState;
 
@@ -78,6 +79,12 @@ pub fn run() {
         .expect("error while building tauri application");
 
     app.run(|handle, event| {
+        // Finder "Open With" / file association. `RunEvent::Opened` only exists
+        // on Apple platforms; elsewhere (e.g. Linux CI running `cargo test`)
+        // there is nothing to handle.
+        #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+        let _ = (handle, event);
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
         if let RunEvent::Opened { urls } = event {
             let paths: Vec<String> = urls
                 .into_iter()
