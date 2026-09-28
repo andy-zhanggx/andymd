@@ -17,6 +17,7 @@ import { MarkdownEditor } from './components/Editor/MarkdownEditor';
 import { Minimap } from './components/Editor/Minimap';
 import { OpenFileDialog } from './components/OpenFileDialog';
 import { GlobalSearch } from './components/GlobalSearch';
+import { CommandPalette } from './components/CommandPalette';
 import { VersionHistory } from './components/VersionHistory';
 import { ConflictDialog } from './components/ConflictDialog';
 import { ShareDialog } from './components/Collab/ShareDialog';
@@ -184,6 +185,7 @@ export default function App() {
       <div style={{ gridArea: 'statusbar' }}><StatusBar /></div>
       <OpenFileDialog />
       <GlobalSearch />
+      <CommandPalette />
       <VersionHistory />
       <ConflictDialog />
       {ONLINE_COLLAB && <ShareDialog />}

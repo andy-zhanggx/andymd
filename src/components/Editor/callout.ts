@@ -1,6 +1,6 @@
-import { $nodeSchema, $remark, $inputRule, $view } from '@milkdown/utils';
+import { $nodeSchema, $remark, $inputRule, $view, $prose } from '@milkdown/utils';
 import { InputRule } from '@milkdown/prose/inputrules';
-import { TextSelection } from '@milkdown/prose/state';
+import { Plugin, TextSelection } from '@milkdown/prose/state';
 import type { Node as PMNode } from '@milkdown/prose/model';
 
 /**
@@ -333,4 +333,64 @@ export const calloutInputRule = $inputRule((ctx) =>
   }),
 );
 
-export const callout = [remarkCallout, calloutTitleSchema, calloutSchema, calloutView, calloutInputRule].flat();
+/**
+ * Enter in a callout title moves to the first body block, creating an empty
+ * paragraph when the callout has no body yet (the title is a single line).
+ */
+export const calloutKeymap = $prose(
+  () =>
+    new Plugin({
+      props: {
+        handleKeyDown(view, event) {
+          if (event.key !== 'Enter' || event.shiftKey || event.metaKey || event.ctrlKey || event.altKey) {
+            return false;
+          }
+          const { $from, empty } = view.state.selection;
+          if (!empty || $from.parent.type.name !== 'callout_title') return false;
+          const afterTitle = $from.after();
+          const callout = $from.node($from.depth - 1);
+          let tr = view.state.tr;
+          if (callout.childCount < 2) {
+            tr = tr.insert(afterTitle, view.state.schema.nodes.paragraph.create());
+          }
+          tr.setSelection(TextSelection.near(tr.doc.resolve(afterTitle + 1)));
+          view.dispatch(tr.scrollIntoView());
+          return true;
+        },
+      },
+    }),
+);
+
+export const callout = [remarkCallout, calloutTitleSchema, calloutSchema, calloutView, calloutInputRule, calloutKeymap].flat();
+
+/**
+ * Insert an empty callout after the caret's top-level block (or in place of
+ * it when that block is an empty paragraph) and put the caret in its title.
+ */
+export function insertCallout(view: import('@milkdown/prose/view').EditorView, kind = 'note'): boolean {
+  const { state } = view;
+  const { nodes } = state.schema;
+  if (!nodes.callout || !nodes.callout_title || !nodes.paragraph) return false;
+  const node = nodes.callout.create({ kind, fold: '', gap: false }, [nodes.callout_title.create()]);
+  const $from = state.selection.$from;
+  let tr;
+  let pos: number;
+  if ($from.depth < 1) {
+    pos = state.doc.content.size;
+    tr = state.tr.insert(pos, node);
+  } else {
+    const top = $from.node(1);
+    const start = $from.before(1);
+    if (top.type === nodes.paragraph && top.content.size === 0) {
+      pos = start;
+      tr = state.tr.replaceWith(start, $from.after(1), node);
+    } else {
+      pos = $from.after(1);
+      tr = state.tr.insert(pos, node);
+    }
+  }
+  tr.setSelection(TextSelection.create(tr.doc, pos + 2));
+  view.dispatch(tr.scrollIntoView());
+  view.focus();
+  return true;
+}

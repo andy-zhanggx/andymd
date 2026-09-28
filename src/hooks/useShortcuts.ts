@@ -12,6 +12,8 @@ import { buildExportHtml } from '../lib/exportHtml';
 import { openWhatsNewForCurrent } from '../lib/whatsNew';
 import { MULTI_TABS } from '../featureFlags';
 import { invoke } from '@tauri-apps/api/core';
+import { TextSelection } from '@milkdown/prose/state';
+import { insertCallout } from '../components/Editor/callout';
 
 // Inside a workspace, open the in-app file selector (which also creates new
 // files); otherwise fall back to the native file picker.
@@ -102,6 +104,26 @@ export async function handleMenuAction(id: string) {
   }
 
   switch (id) {
+    case 'command-palette':
+      useUIStore.getState().setCommandPaletteOpen(true);
+      break;
+    case 'insert-link':
+    case 'insert-embed': {
+      // Type the brackets; the `[[` autocomplete takes it from there.
+      const view = getActiveView();
+      if (!view) break;
+      const open = id === 'insert-embed' ? '![[' : '[[';
+      const { from, to } = view.state.selection;
+      const tr = view.state.tr.insertText(`${open}]]`, from, to);
+      view.dispatch(tr.setSelection(TextSelection.create(tr.doc, from + open.length)));
+      view.focus();
+      break;
+    }
+    case 'insert-callout': {
+      const view = getActiveView();
+      if (view) insertCallout(view, 'note');
+      break;
+    }
     case 'clear-recent':
       await cfg.clearRecent();
       break;
@@ -320,6 +342,12 @@ export function useShortcuts() {
             e.preventDefault();
             await cfgStore.update({ showSidebar: !cfgStore.config.showSidebar });
           }
+          break;
+        case 'p':
+          // ⌘P prints (menu accelerator); ⇧⌘P opens the command palette.
+          if (!e.shiftKey) break;
+          e.preventDefault();
+          useUIStore.getState().setCommandPaletteOpen(true);
           break;
         case 'f':
           e.preventDefault();

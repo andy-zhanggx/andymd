@@ -1953,3 +1953,39 @@
   align-items: center;
   gap: 12px;
 }
+
+/* Command palette (reuses the quick-open dialog chrome). */
+.command-palette .quickopen-item {
+  align-items: center;
+}
+.command-category {
+  flex: none;
+  width: 44px;
+  color: var(--fg-muted);
+  font-size: 11px;
+}
+.command-palette .quickopen-name {
+  flex: 1 1 auto;
+}
+.command-recent {
+  flex: none;
+  color: var(--fg-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.command-shortcut {
+  flex: none;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+.quickopen-item.active .command-category,
+.quickopen-item.active .command-recent,
+.quickopen-item.active .command-shortcut {
+  color: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255, 255, 255, 0.4);
+}

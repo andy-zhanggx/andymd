@@ -97,4 +97,20 @@ describe('callouts', () => {
     expect(e.action(getMarkdown())).toBe('> [!tip] Hello\n');
     await e.destroy();
   });
+
+  it('insertCallout replaces an empty paragraph and puts the caret in the title', async () => {
+    const { insertCallout } = await import('./callout');
+    const e = await mount('Intro\n\n\n');
+    const view = e.ctx.get(editorViewCtx);
+    const { TextSelection } = await import('@milkdown/prose/state');
+    view.dispatch(view.state.tr.setSelection(TextSelection.atStart(view.state.doc)));
+    expect(insertCallout(view, 'tip')).toBe(true);
+    view.dispatch(view.state.tr.insertText('Heads up'));
+    expect(e.action(getMarkdown())).toBe('Intro\n\n> [!tip] Heads up\n');
+    // Enter leaves the title for a fresh body paragraph.
+    view.dom.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    view.dispatch(view.state.tr.insertText('Body'));
+    expect(e.action(getMarkdown())).toBe('Intro\n\n> [!tip] Heads up\n> Body\n');
+    await e.destroy();
+  });
 });

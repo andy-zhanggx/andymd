@@ -197,6 +197,12 @@ pub fn build_menu<R: Runtime>(
 
     let mut view_builder = SubmenuBuilder::new(app, "View")
         .item(
+            &MenuItemBuilder::with_id("command-palette", "Command Palette…")
+                .accelerator("CmdOrCtrl+Shift+P")
+                .build(app)?,
+        )
+        .separator()
+        .item(
             &MenuItemBuilder::with_id("toggle-sidebar", "Toggle Sidebar")
                 .accelerator("CmdOrCtrl+Shift+L")
                 .build(app)?,

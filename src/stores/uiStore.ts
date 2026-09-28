@@ -9,6 +9,10 @@ interface UIState {
   openFileDialog: boolean;
   setOpenFileDialog: (open: boolean) => void;
 
+  // Command palette (⇧⌘P)
+  commandPaletteOpen: boolean;
+  setCommandPaletteOpen: (open: boolean) => void;
+
   // Find / Replace bar
   findOpen: boolean;
   replaceMode: boolean;
@@ -83,6 +87,9 @@ function emitZoom(mode: ZoomMode, level: number) {
 export const useUIStore = create<UIState>((set, get) => ({
   openFileDialog: false,
   setOpenFileDialog: (open) => set({ openFileDialog: open }),
+
+  commandPaletteOpen: false,
+  setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
 
   findOpen: false,
   replaceMode: false,
