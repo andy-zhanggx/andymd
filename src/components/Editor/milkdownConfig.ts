@@ -20,6 +20,7 @@ import { emojiGuardProtect, emojiGuardRestore } from './emojiGuard';
 import { wikilink } from './wikilink';
 import { callout } from './callout';
 import { wikiEmbed } from './wikiEmbed';
+import { linkSuggestPlugin } from './linkSuggest';
 import { wikilinkDeadLinkPlugin } from './wikilinkDeadLink';
 import { linkTooltip } from './linkTooltip';
 import { searchPlugin } from './searchPlugin';
@@ -230,6 +231,7 @@ export function buildEditor(opts: BuildOpts) {
     .use(callout)
     .use(wikilink)
     .use(wikiEmbed)
+    .use(linkSuggestPlugin)
     .use(wikilinkDeadLinkPlugin)
     .use(linkTooltip)
     .use(highlight)
