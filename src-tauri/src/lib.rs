@@ -54,6 +54,7 @@ pub fn run() {
             commands::fs_cmd::find_vault_root,
             commands::backlinks_cmd::count_backlinks,
             commands::backlinks_cmd::list_backlinks,
+            commands::backlinks_cmd::find_files_mentioning,
             commands::search_cmd::search_workspace,
             commands::search_index::search_index,
             semantic::state::semantic_start,

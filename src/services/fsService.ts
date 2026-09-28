@@ -33,6 +33,9 @@ export const fsService = {
 
   renamePath: (from: string, to: string) => invoke<void>('rename_path', { from, to }),
 
+  findFilesMentioning: (vaultRoot: string, needles: string[]) =>
+    invoke<string[]>('find_files_mentioning', { vaultRoot, needles }),
+
   deleteToTrash: (path: string) => invoke<void>('delete_to_trash', { path }),
 
   revealInFinder: (path: string) => invoke<void>('reveal_in_finder', { path }),

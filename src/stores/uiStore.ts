@@ -4,6 +4,17 @@ import { clampZoom, stepZoom, ZoomMode } from '../lib/zoom';
 
 export type SidebarTab = 'files' | 'outline';
 
+export type RelinkChoice = 'update' | 'skip' | 'cancel';
+
+/** Pending "update links after rename?" question. */
+export interface RelinkPrompt {
+  /** Old and new name, for the dialog title. */
+  fromName: string;
+  toName: string;
+  files: { relPath: string; changes: number }[];
+  resolve: (choice: RelinkChoice) => void;
+}
+
 interface UIState {
   // Open / quick-open file dialog
   openFileDialog: boolean;
@@ -12,6 +23,10 @@ interface UIState {
   // Command palette (⇧⌘P)
   commandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
+
+  // Update-links-after-rename confirmation
+  relinkPrompt: RelinkPrompt | null;
+  setRelinkPrompt: (p: RelinkPrompt | null) => void;
 
   // Find / Replace bar
   findOpen: boolean;
@@ -90,6 +105,9 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   commandPaletteOpen: false,
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
+
+  relinkPrompt: null,
+  setRelinkPrompt: (p) => set({ relinkPrompt: p }),
 
   findOpen: false,
   replaceMode: false,

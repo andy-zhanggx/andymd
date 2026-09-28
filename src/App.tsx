@@ -18,6 +18,7 @@ import { Minimap } from './components/Editor/Minimap';
 import { OpenFileDialog } from './components/OpenFileDialog';
 import { GlobalSearch } from './components/GlobalSearch';
 import { CommandPalette } from './components/CommandPalette';
+import { RelinkDialog } from './components/RelinkDialog';
 import { VersionHistory } from './components/VersionHistory';
 import { ConflictDialog } from './components/ConflictDialog';
 import { ShareDialog } from './components/Collab/ShareDialog';
@@ -186,6 +187,7 @@ export default function App() {
       <OpenFileDialog />
       <GlobalSearch />
       <CommandPalette />
+      <RelinkDialog />
       <VersionHistory />
       <ConflictDialog />
       {ONLINE_COLLAB && <ShareDialog />}

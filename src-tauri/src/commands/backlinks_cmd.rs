@@ -62,6 +62,41 @@ pub fn list_backlinks(vault_root: String, target: String) -> CommandResult<Vec<B
     Ok(scan_backlinks(&vault_root, &target))
 }
 
+/// Notes (absolute paths) whose text contains any of `needles`, compared
+/// case-insensitively. A cheap prefilter for link rewriting after a rename:
+/// only these notes can possibly mention the renamed file or folder, so the
+/// frontend reads and parses just them instead of the whole vault.
+#[tauri::command]
+pub fn find_files_mentioning(vault_root: String, needles: Vec<String>) -> CommandResult<Vec<String>> {
+    Ok(files_mentioning(Path::new(&vault_root), &needles))
+}
+
+fn files_mentioning(root: &Path, needles: &[String]) -> Vec<String> {
+    let needles: Vec<String> = needles
+        .iter()
+        .map(|n| n.to_lowercase())
+        .filter(|n| !n.is_empty())
+        .collect();
+    if needles.is_empty() || !root.is_dir() {
+        return Vec::new();
+    }
+    let mut files = Vec::new();
+    collect_md(root, &mut files);
+    files.sort();
+    files
+        .into_iter()
+        .filter(|f| {
+            fs::read_to_string(f)
+                .map(|c| {
+                    let lower = c.to_lowercase();
+                    needles.iter().any(|n| lower.contains(n.as_str()))
+                })
+                .unwrap_or(false)
+        })
+        .map(|f| f.to_string_lossy().into_owned())
+        .collect()
+}
+
 /// Walk the vault and collect, per note, the lines whose links resolve to
 /// `target`. Links are extracted line-by-line (they never span lines in
 /// practice), which gives the panel line numbers and context for free.
@@ -404,5 +439,23 @@ mod tests {
         let root = dir.path().to_string_lossy().to_string();
         assert_eq!(count_backlinks(String::new(), "x".into()).unwrap(), 0);
         assert_eq!(count_backlinks(root, String::new()).unwrap(), 0);
+    }
+
+    #[test]
+    fn files_mentioning_matches_any_needle_case_insensitively() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::write(root.join("a.md"), "See [[Old Name]] here").unwrap();
+        fs::create_dir_all(root.join("sub")).unwrap();
+        fs::write(root.join("sub/b.md"), "[x](../old%20name.md)").unwrap();
+        fs::write(root.join("c.md"), "unrelated").unwrap();
+        fs::write(root.join("d.txt"), "old name").unwrap();
+        let hits = files_mentioning(root, &["old name".into(), "old%20name".into()]);
+        let rel: Vec<String> = hits
+            .iter()
+            .map(|p| Path::new(p).strip_prefix(root).unwrap().to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(rel, vec!["a.md", "sub/b.md"]);
+        assert!(files_mentioning(root, &["".into()]).is_empty());
     }
 }

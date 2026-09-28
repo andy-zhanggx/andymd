@@ -1989,3 +1989,61 @@
   color: rgba(255, 255, 255, 0.8);
   border-color: rgba(255, 255, 255, 0.4);
 }
+
+/* Update-links-after-rename dialog. */
+.relink-body {
+  padding: 16px 18px 8px;
+  overflow-y: auto;
+}
+.relink-title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.relink-text {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--fg-secondary);
+}
+.relink-files {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 30vh;
+  overflow-y: auto;
+  font-size: 12px;
+}
+.relink-files li {
+  display: flex;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border);
+}
+.relink-file {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.relink-count {
+  color: var(--fg-muted);
+}
+.relink-actions {
+  gap: 8px;
+}
+.relink-btn {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--fg-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+.relink-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
