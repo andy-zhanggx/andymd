@@ -33,6 +33,12 @@ Personal project by Andy Zhang.
 - `.md` / `.markdown` file association (Finder → Open With)
 - External-modification detection on save
 
+## Roadmap
+
+What's next (1.1 vault completeness, 1.2 on-device intelligence) is in
+[docs/ROADMAP.md](docs/ROADMAP.md); the product reasoning behind it is in
+[docs/THOUGHTS.md](docs/THOUGHTS.md).
+
 ## Develop
 
 ```bash

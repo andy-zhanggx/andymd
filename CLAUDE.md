@@ -8,6 +8,14 @@ Guidance for Claude Code when working in this repository.
 tuned for Obsidian-style vaults (wikilinks, fenced math, inline HTML, directory
 links). Frontend lives in `src/`, the native shell in `src-tauri/`.
 
+## Planning
+
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — what ships in which release; update item
+  status when you start or finish one, and move shipped work to `CHANGELOG.md`.
+- [`docs/THOUGHTS.md`](docs/THOUGHTS.md) — positioning and the principles for
+  choosing features (local by default, lossless round-trip, gaps before flourishes).
+- New features get a `docs/features-<name>/spec.md` before implementation.
+
 ## Key commands
 
 - `pnpm dev` — Vite dev server only (web preview).
