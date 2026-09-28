@@ -2056,11 +2056,16 @@
   min-height: 0;
 }
 .taglist-filter {
+  flex: none;
+  height: 26px;
   margin: 8px 10px 6px;
-  padding: 4px 8px;
+  padding: 0 8px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg-primary);
+  color: var(--fg-primary);
+  font-size: 12px;
+  outline: none;
 }
 .taglist-items {
   list-style: none;

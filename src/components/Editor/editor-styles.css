@@ -770,9 +770,7 @@
  * unknown kinds fall back to the note colour. HTML export carries its own
  * copy of these rules (see lib/exportHtml.ts).
  */
-.editor-container .milkdown .callout,
-.markdown-body .callout {
-  --callout: 8, 109, 221;
+.editor-container .milkdown .callout {
   position: relative;
   margin: 0 0 1em;
   padding: 10px 14px;
@@ -780,15 +778,13 @@
   border-radius: 6px;
   background: rgba(var(--callout), 0.08);
 }
-.editor-container .milkdown .callout-title,
-.markdown-body .callout-title {
+.editor-container .milkdown .callout-title {
   font-weight: 600;
   color: rgb(var(--callout));
   min-height: 1.5em;
   padding-right: 1.6em;
 }
-.editor-container .milkdown .callout-title::before,
-.markdown-body .callout-title::before {
+.editor-container .milkdown .callout-title::before {
   content: var(--callout-icon, 'ℹ︎');
   display: inline-block;
   width: 1.4em;
@@ -799,8 +795,7 @@
   content: var(--callout-label);
   opacity: 0.6;
 }
-.editor-container .milkdown .callout-content > :last-child,
-.markdown-body .callout > :last-child {
+.editor-container .milkdown .callout-content > :last-child {
   margin-bottom: 0;
 }
 .editor-container .milkdown .callout-content > .callout-title + * {
@@ -829,6 +824,8 @@
 .editor-container .milkdown .callout-collapsed .callout-fold::before {
   content: '▸';
 }
+/* Kind colours: the variable lives on the callout itself (default = note). */
+.callout { --callout: 8, 109, 221; }
 .callout-info, .callout-todo { --callout: 8, 109, 221; }
 .callout-abstract, .callout-summary, .callout-tldr { --callout: 0, 176, 205; --callout-icon: '☰'; }
 .callout-tip, .callout-hint, .callout-important { --callout: 0, 170, 150; --callout-icon: '✦'; }

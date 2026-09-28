@@ -65,7 +65,7 @@ export function TagList() {
   return (
     <div className="taglist">
       <input
-        className="treesearch-input taglist-filter"
+        className="taglist-filter"
         type="search"
         placeholder="Filter tags…"
         aria-label="Filter tags"
