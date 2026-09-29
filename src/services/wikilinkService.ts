@@ -1,5 +1,7 @@
 import { fsService } from './fsService';
-import { resolveWikilinkInTree } from '../lib/wikilink';
+import { resolveWikilinkInTree, splitWikilinkTarget } from '../lib/wikilink';
+import { getActiveView } from '../components/Editor/activeView';
+import { revealHeading } from '../components/Editor/reveal';
 import { useDocumentStore } from '../stores/documentStore';
 import { useWorkspaceStore } from '../stores/workspaceStore';
 
@@ -24,10 +26,19 @@ export async function openWikilink(
     window.alert(`Note not found: ${target}`);
     return;
   }
+  const { heading } = splitWikilinkTarget(target);
+  const prevView = getActiveView();
+
+  // `[[#Heading]]` (or a link back into this note) only scrolls.
+  if (resolved === fromPath) {
+    if (heading) revealHeading(heading, null);
+    return;
+  }
 
   // Unsaved edits survive navigation (the store stashes/restores drafts), so
   // open straight through — into a new tab when requested.
   const docStore = useDocumentStore.getState();
   if (opts.newTab) await docStore.openInNewTab(resolved);
   else await docStore.open(resolved);
+  if (heading) revealHeading(heading, prevView);
 }

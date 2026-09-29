@@ -18,6 +18,10 @@ import { obsidianMath } from './obsidianMath';
 import { fencedMath } from './fencedMath';
 import { emojiGuardProtect, emojiGuardRestore } from './emojiGuard';
 import { wikilink } from './wikilink';
+import { callout } from './callout';
+import { wikiEmbed } from './wikiEmbed';
+import { linkSuggestPlugin } from './linkSuggest';
+import { tag } from './tag';
 import { wikilinkDeadLinkPlugin } from './wikilinkDeadLink';
 import { linkTooltip } from './linkTooltip';
 import { searchPlugin } from './searchPlugin';
@@ -223,7 +227,13 @@ export function buildEditor(opts: BuildOpts) {
     // of the $$-repair's way.
     .use(obsidianMath)
     .use(fencedMath)
+    // After commonmark so its blockquote schema exists; the callout transform
+    // claims `> [!type]` blockquotes before they reach it.
+    .use(callout)
     .use(wikilink)
+    .use(wikiEmbed)
+    .use(linkSuggestPlugin)
+    .use(tag)
     .use(wikilinkDeadLinkPlugin)
     .use(linkTooltip)
     .use(highlight)

@@ -32,6 +32,20 @@ export interface SemanticSearchResponse {
   hits: SemanticHit[];
 }
 
+export interface DuplicatePair {
+  a: string;
+  aRel: string;
+  b: string;
+  bRel: string;
+  /** Cosine similarity of the two notes' overall vectors. */
+  score: number;
+}
+
+export interface SemanticDuplicatesResponse {
+  status: SemanticStatus;
+  pairs: DuplicatePair[];
+}
+
 export const OFF_STATUS: SemanticStatus = {
   root: null,
   phase: 'off',

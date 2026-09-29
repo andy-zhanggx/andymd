@@ -8,6 +8,14 @@ Guidance for Claude Code when working in this repository.
 tuned for Obsidian-style vaults (wikilinks, fenced math, inline HTML, directory
 links). Frontend lives in `src/`, the native shell in `src-tauri/`.
 
+## Planning
+
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — what ships in which release; update item
+  status when you start or finish one, and move shipped work to `CHANGELOG.md`.
+- [`docs/THOUGHTS.md`](docs/THOUGHTS.md) — positioning and the principles for
+  choosing features (local by default, lossless round-trip, gaps before flourishes).
+- New features get a `docs/features-<name>/spec.md` before implementation.
+
 ## Key commands
 
 - `pnpm dev` — Vite dev server only (web preview).
@@ -18,6 +26,11 @@ links). Frontend lives in `src/`, the native shell in `src-tauri/`.
   quick unsigned `.app` to try locally.
 - `pnpm test` — Vitest. Typecheck with **`tsc -b`** (root tsconfig has `files: []`,
   so plain `tsc --noEmit` checks nothing).
+- `cd src-tauri && cargo test` — Rust. On Linux it needs the GTK/WebKit dev
+  packages (`libgtk-3-dev libwebkit2gtk-4.1-dev`). If `ort` can't download ONNX
+  Runtime (restricted network), point it at a local copy, for example the
+  `libonnxruntime.so` from the matching `onnxruntime` PyPI wheel:
+  `ORT_LIB_LOCATION=<dir> ORT_PREFER_DYNAMIC_LINK=1 LD_LIBRARY_PATH=<dir> cargo test`.
 
 ## Build labels — know which build you're running
 

@@ -2,12 +2,35 @@ import { create } from 'zustand';
 import type { Release } from '../lib/changelog';
 import { clampZoom, stepZoom, ZoomMode } from '../lib/zoom';
 
-export type SidebarTab = 'files' | 'outline';
+export type SidebarTab = 'files' | 'outline' | 'tags' | 'related';
+
+export type RelinkChoice = 'update' | 'skip' | 'cancel';
+
+/** Pending "update links after rename?" question. */
+export interface RelinkPrompt {
+  /** Old and new name, for the dialog title. */
+  fromName: string;
+  toName: string;
+  files: { relPath: string; changes: number }[];
+  resolve: (choice: RelinkChoice) => void;
+}
 
 interface UIState {
   // Open / quick-open file dialog
   openFileDialog: boolean;
   setOpenFileDialog: (open: boolean) => void;
+
+  // Command palette (⇧⌘P)
+  commandPaletteOpen: boolean;
+  setCommandPaletteOpen: (open: boolean) => void;
+
+  // Near-duplicate notes report
+  duplicatesOpen: boolean;
+  setDuplicatesOpen: (open: boolean) => void;
+
+  // Update-links-after-rename confirmation
+  relinkPrompt: RelinkPrompt | null;
+  setRelinkPrompt: (p: RelinkPrompt | null) => void;
 
   // Find / Replace bar
   findOpen: boolean;
@@ -19,9 +42,18 @@ interface UIState {
   globalSearchOpen: boolean;
   setGlobalSearchOpen: (open: boolean) => void;
 
-  // Sidebar tab (file tree vs document outline)
+  // Sidebar tab (file tree vs document outline vs tags)
   sidebarTab: SidebarTab;
   setSidebarTab: (tab: SidebarTab) => void;
+
+  /**
+   * A query pushed into the file-tree search box from elsewhere (clicking a
+   * tag). `nonce` makes re-sending the same query take effect again.
+   */
+  treeQuery: { value: string; nonce: number } | null;
+  setTreeQuery: (value: string) => void;
+  /** The search box took the pushed query. */
+  clearTreeQuery: () => void;
 
   // Version history modal
   versionHistoryOpen: boolean;
@@ -84,6 +116,15 @@ export const useUIStore = create<UIState>((set, get) => ({
   openFileDialog: false,
   setOpenFileDialog: (open) => set({ openFileDialog: open }),
 
+  commandPaletteOpen: false,
+  setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
+
+  duplicatesOpen: false,
+  setDuplicatesOpen: (open) => set({ duplicatesOpen: open }),
+
+  relinkPrompt: null,
+  setRelinkPrompt: (p) => set({ relinkPrompt: p }),
+
   findOpen: false,
   replaceMode: false,
   openFind: (replace) => set({ findOpen: true, replaceMode: replace }),
@@ -94,6 +135,10 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   sidebarTab: 'files',
   setSidebarTab: (tab) => set({ sidebarTab: tab }),
+
+  treeQuery: null,
+  setTreeQuery: (value) => set((s) => ({ treeQuery: { value, nonce: (s.treeQuery?.nonce ?? 0) + 1 } })),
+  clearTreeQuery: () => set({ treeQuery: null }),
 
   versionHistoryOpen: false,
   setVersionHistoryOpen: (open) => set({ versionHistoryOpen: open }),

@@ -49,6 +49,25 @@ struct IndexedDoc {
     rel_path: String,
     rel_lower: String,
     content_lower: String,
+    /// Obsidian `#tags` in the note (inline and frontmatter), original case,
+    /// deduplicated case-insensitively.
+    tags: Vec<String>,
+}
+
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct TagCount {
+    /// Display form (the first spelling seen).
+    pub tag: String,
+    /// Number of notes carrying the tag.
+    pub count: usize,
+}
+
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct TagList {
+    pub ready: bool,
+    pub tags: Vec<TagCount>,
 }
 
 struct SearchIndex {
@@ -188,6 +207,32 @@ impl SearchIndexState {
                 truncated: false,
             };
         }
+        // `#tag` matches notes carrying the tag (or a nested `tag/…`), not
+        // the literal text — so `#ai` doesn't match `#air` or `#aim`.
+        if let Some(tag) = needle.strip_prefix('#').filter(|t| is_tag_body(t)) {
+            let nested = format!("{tag}/");
+            for (path, doc) in &index.docs {
+                if doc.tags.iter().any(|t| {
+                    let t = t.to_lowercase();
+                    t == tag || t.starts_with(&nested)
+                }) {
+                    files.push(IndexHit {
+                        path: path.to_string_lossy().into_owned(),
+                        rel_path: doc.rel_path.clone(),
+                        name_hit: false,
+                        content_hit: true,
+                    });
+                }
+            }
+            files.sort_by(|a, b| a.rel_path.cmp(&b.rel_path));
+            let truncated = files.len() > MAX_HITS;
+            files.truncate(MAX_HITS);
+            return IndexSearchResults {
+                ready: true,
+                files,
+                truncated,
+            };
+        }
         for (path, doc) in &index.docs {
             let name_hit = doc.rel_lower.contains(&needle);
             let content_hit = doc.content_lower.contains(&needle);
@@ -209,6 +254,163 @@ impl SearchIndexState {
             truncated,
         }
     }
+}
+
+impl SearchIndexState {
+    /// Every tag in the vault with the number of notes carrying it, most
+    /// used first. `ready: false` while the index is building or belongs to
+    /// another root.
+    pub fn tags(&self, root: &Path) -> TagList {
+        let guard = self.inner.lock().unwrap();
+        let index = match guard.as_ref() {
+            Some(i) if i.root == root && i.ready => i,
+            _ => {
+                return TagList {
+                    ready: false,
+                    tags: Vec::new(),
+                }
+            }
+        };
+        let mut by_key: HashMap<String, TagCount> = HashMap::new();
+        for doc in index.docs.values() {
+            for tag in &doc.tags {
+                by_key
+                    .entry(tag.to_lowercase())
+                    .or_insert_with(|| TagCount {
+                        tag: tag.clone(),
+                        count: 0,
+                    })
+                    .count += 1;
+            }
+        }
+        let mut tags: Vec<TagCount> = by_key.into_values().collect();
+        tags.sort_by(|a, b| {
+            b.count
+                .cmp(&a.count)
+                .then_with(|| a.tag.to_lowercase().cmp(&b.tag.to_lowercase()))
+        });
+        TagList { ready: true, tags }
+    }
+}
+
+/// A tag body (after `#`): letters of any script, digits, `_`, `-`, `/`,
+/// with at least one non-digit (`#2024` is not a tag in Obsidian).
+pub fn is_tag_body(s: &str) -> bool {
+    !s.is_empty()
+        && s.chars().all(is_tag_char)
+        && s.chars().any(|c| !c.is_ascii_digit())
+        && !s.starts_with('/')
+        && !s.ends_with('/')
+}
+
+fn is_tag_char(c: char) -> bool {
+    c.is_alphanumeric() || c == '_' || c == '-' || c == '/'
+}
+
+/// Tags in a note: inline `#tag`s outside code, plus the frontmatter `tags:`
+/// / `tag:` field (list or inline form). Deduplicated case-insensitively,
+/// first spelling wins, in order of appearance.
+pub fn extract_tags(content: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    let mut seen: HashSet<String> = HashSet::new();
+    let mut push = |t: &str| {
+        let t = t.trim().trim_start_matches('#').trim_matches(|c| c == '"' || c == '\'');
+        if is_tag_body(t) && seen.insert(t.to_lowercase()) {
+            out.push(t.to_string());
+        }
+    };
+
+    let mut lines = content.lines().peekable();
+    // Frontmatter.
+    if lines.peek().map(|l| l.trim_end() == "---").unwrap_or(false) {
+        lines.next();
+        let mut in_tags = false;
+        for line in lines.by_ref() {
+            let t = line.trim_end();
+            if t == "---" || t == "..." {
+                break;
+            }
+            if let Some(rest) = t
+                .strip_prefix("tags:")
+                .or_else(|| t.strip_prefix("tag:"))
+            {
+                let rest = rest.trim();
+                in_tags = rest.is_empty();
+                let rest = rest.trim_start_matches('[').trim_end_matches(']');
+                for part in rest.split([',', ' ']) {
+                    push(part);
+                }
+                continue;
+            }
+            if in_tags {
+                if let Some(item) = t.trim_start().strip_prefix("- ") {
+                    push(item);
+                    continue;
+                }
+                in_tags = false;
+            }
+        }
+    }
+
+    // Body.
+    let mut fence: Option<(char, usize)> = None;
+    for line in lines {
+        let trimmed = line.trim_start();
+        let ticks = trimmed.chars().take_while(|c| *c == '`').count();
+        let tildes = trimmed.chars().take_while(|c| *c == '~').count();
+        let (ch, n) = if ticks >= 3 { ('`', ticks) } else if tildes >= 3 { ('~', tildes) } else { (' ', 0) };
+        if n >= 3 && line.len() - trimmed.len() <= 3 {
+            match fence {
+                None => fence = Some((ch, n)),
+                Some((fc, fnum)) if fc == ch && n >= fnum && trimmed.trim_end().len() == n => fence = None,
+                _ => {}
+            }
+            continue;
+        }
+        if fence.is_some() {
+            continue;
+        }
+        let chars: Vec<char> = line.chars().collect();
+        let mut i = 0;
+        let mut in_code = false;
+        while i < chars.len() {
+            let c = chars[i];
+            if c == '`' {
+                in_code = !in_code;
+            } else if c == '#' && !in_code && (i == 0 || chars[i - 1].is_whitespace()) {
+                let start = i + 1;
+                let mut end = start;
+                while end < chars.len() && is_tag_char(chars[end]) {
+                    end += 1;
+                }
+                // Trailing `/` isn't part of a tag.
+                let mut body: String = chars[start..end].iter().collect();
+                while body.ends_with('/') {
+                    body.pop();
+                }
+                push(&body);
+                i = end;
+                continue;
+            }
+            i += 1;
+        }
+    }
+    out
+}
+
+/// Tags of the vault at `root`; kicks off a build (and answers `ready:
+/// false`) when the index belongs to another root, like `search_index`.
+#[tauri::command]
+pub fn list_tags(
+    root: String,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, SearchIndexState>,
+) -> TagList {
+    let root_path = PathBuf::from(&root);
+    if state.root().as_deref() != Some(root_path.as_path()) {
+        rebuild_for(&app, &state, root_path.clone());
+    }
+    state.tags(&root_path)
 }
 
 /// Event emitted (payload: the root path) once a background build finishes.
@@ -295,6 +497,7 @@ fn read_doc(root: &Path, path: &Path) -> Option<IndexedDoc> {
         rel_lower: rel_path.to_lowercase(),
         rel_path,
         content_lower: content.to_lowercase(),
+        tags: extract_tags(&content),
     })
 }
 
@@ -513,5 +716,52 @@ mod tests {
         assert_eq!(res.files.len(), MAX_HITS);
         assert!(res.truncated);
         assert!(!state.query(root, "n00001").truncated);
+    }
+
+    #[test]
+    fn extract_tags_inline_frontmatter_and_code() {
+        let md = "---\ntitle: x\ntags: [Project, \"idea\"]\naliases:\n  - y\n---\n\
+#project #todo/later and #标签, not a#b or #2024 or `#code`\n\
+# Heading\n##lenient\n```\n#include <x>\n```\nend #todo/";
+        assert_eq!(
+            extract_tags(md),
+            vec!["Project", "idea", "todo/later", "标签", "todo"]
+        );
+        let list = "---\ntags:\n  - a\n  - b/c\nother: 1\n---\nbody";
+        assert_eq!(extract_tags(list), vec!["a", "b/c"]);
+    }
+
+    #[test]
+    fn tag_queries_and_tag_list() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::write(root.join("a.md"), "#ai notes #Project/alpha").unwrap();
+        fs::write(root.join("b.md"), "#air and #project").unwrap();
+        fs::write(root.join("c.md"), "no tags, just text #").unwrap();
+        let state = SearchIndexState::new();
+        state.rebuild_blocking(root.to_path_buf());
+
+        let hits = |q: &str| -> Vec<String> {
+            state.query(root, q).files.into_iter().map(|f| f.rel_path).collect()
+        };
+        assert_eq!(hits("#ai"), vec!["a.md"]);
+        assert_eq!(hits("#project"), vec!["a.md", "b.md"]);
+        assert_eq!(hits("#project/alpha"), vec!["a.md"]);
+        // Not a tag query → plain substring search.
+        assert_eq!(hits("#"), vec!["a.md", "b.md", "c.md"]);
+
+        let tags = state.tags(root);
+        assert!(tags.ready);
+        let flat: Vec<(String, usize)> = tags.tags.into_iter().map(|t| (t.tag, t.count)).collect();
+        assert_eq!(
+            flat,
+            vec![
+                ("ai".to_string(), 1),
+                ("air".to_string(), 1),
+                ("project".to_string(), 1),
+                ("Project/alpha".to_string(), 1)
+            ]
+        );
+        assert!(!state.tags(Path::new("/elsewhere")).ready);
     }
 }

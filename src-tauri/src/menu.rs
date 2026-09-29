@@ -197,6 +197,12 @@ pub fn build_menu<R: Runtime>(
 
     let mut view_builder = SubmenuBuilder::new(app, "View")
         .item(
+            &MenuItemBuilder::with_id("command-palette", "Command Palette…")
+                .accelerator("CmdOrCtrl+Shift+P")
+                .build(app)?,
+        )
+        .separator()
+        .item(
             &MenuItemBuilder::with_id("toggle-sidebar", "Toggle Sidebar")
                 .accelerator("CmdOrCtrl+Shift+L")
                 .build(app)?,
@@ -206,6 +212,9 @@ pub fn build_menu<R: Runtime>(
                 .accelerator("CmdOrCtrl+Shift+1")
                 .build(app)?,
         )
+        .item(&MenuItemBuilder::with_id("show-tags", "Tags").build(app)?)
+        .item(&MenuItemBuilder::with_id("show-related", "Related Notes").build(app)?)
+        .item(&MenuItemBuilder::with_id("find-duplicates", "Find Duplicate Notes…").build(app)?)
         .item(
             &MenuItemBuilder::with_id("toggle-minimap", "Minimap")
                 .accelerator("CmdOrCtrl+Shift+M")

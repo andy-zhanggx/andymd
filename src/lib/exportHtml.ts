@@ -105,4 +105,25 @@ body {
 @media print {
   .markdown-body { max-width: none; padding: 0; }
 }
+.markdown-body .callout {
+  --callout: 8, 109, 221;
+  margin: 0.8em 0;
+  padding: 10px 14px;
+  border-left: 3px solid rgb(var(--callout));
+  border-radius: 6px;
+  background: rgba(var(--callout), 0.08);
+}
+.markdown-body .callout-title { font-weight: 600; color: rgb(var(--callout)); }
+.markdown-body .callout-content > :last-child { margin-bottom: 0; }
+.markdown-body .callout-fold { display: none; }
+.markdown-body .callout-collapsed .callout-content > :not(.callout-title) { display: none; }
+.markdown-body .callout-abstract, .markdown-body .callout-summary, .markdown-body .callout-tldr { --callout: 0, 176, 205; }
+.markdown-body .callout-tip, .markdown-body .callout-hint, .markdown-body .callout-important { --callout: 0, 170, 150; }
+.markdown-body .callout-success, .markdown-body .callout-check, .markdown-body .callout-done { --callout: 8, 185, 78; }
+.markdown-body .callout-question, .markdown-body .callout-help, .markdown-body .callout-faq,
+.markdown-body .callout-warning, .markdown-body .callout-caution, .markdown-body .callout-attention { --callout: 236, 117, 0; }
+.markdown-body .callout-failure, .markdown-body .callout-fail, .markdown-body .callout-missing,
+.markdown-body .callout-danger, .markdown-body .callout-error, .markdown-body .callout-bug { --callout: 233, 49, 71; }
+.markdown-body .callout-example { --callout: 120, 82, 238; }
+.markdown-body .callout-quote, .markdown-body .callout-cite { --callout: 158, 158, 158; }
 `;

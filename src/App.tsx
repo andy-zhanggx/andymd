@@ -17,6 +17,10 @@ import { MarkdownEditor } from './components/Editor/MarkdownEditor';
 import { Minimap } from './components/Editor/Minimap';
 import { OpenFileDialog } from './components/OpenFileDialog';
 import { GlobalSearch } from './components/GlobalSearch';
+import { CommandPalette } from './components/CommandPalette';
+import { RelinkDialog } from './components/RelinkDialog';
+import { DuplicatesDialog } from './components/DuplicatesDialog';
+import { useRelatedAutoRefresh } from './hooks/useRelatedAutoRefresh';
 import { VersionHistory } from './components/VersionHistory';
 import { ConflictDialog } from './components/ConflictDialog';
 import { ShareDialog } from './components/Collab/ShareDialog';
@@ -36,6 +40,7 @@ export default function App() {
   useShortcuts();
   useOpenFileRequest();
   useWorkspaceWatcher();
+  useRelatedAutoRefresh();
   const { showSidebar, sidebarWidth, editorWidth, showMinimap } = useConfigStore((s) => s.config);
   const update = useConfigStore((s) => s.update);
   const [dragWidth, setDragWidth] = useState<number | null>(null);
@@ -184,6 +189,9 @@ export default function App() {
       <div style={{ gridArea: 'statusbar' }}><StatusBar /></div>
       <OpenFileDialog />
       <GlobalSearch />
+      <CommandPalette />
+      <RelinkDialog />
+      <DuplicatesDialog />
       <VersionHistory />
       <ConflictDialog />
       {ONLINE_COLLAB && <ShareDialog />}

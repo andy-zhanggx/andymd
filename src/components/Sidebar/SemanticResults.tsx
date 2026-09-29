@@ -2,32 +2,12 @@ import { useMemo } from 'react';
 import { useSemanticStore } from '../../stores/semanticStore';
 import { useDocumentStore } from '../../stores/documentStore';
 import { getActiveView } from '../Editor/activeView';
+import { revealHeading } from '../Editor/reveal';
 import { groupHits, scoreToBar, type SemanticStatus } from '../../lib/semantic';
 
 interface Props {
   root: string;
   height: number;
-}
-
-/**
- * After a hit opens, scroll the (possibly rebuilt) editor to the chunk's
- * heading. Mirrors `revealInEditor` in GlobalSearch: the view is re-created
- * asynchronously when the document changes, so poll briefly for it.
- */
-function revealHeading(heading: string, prevView: unknown) {
-  if (!heading) return;
-  const deadline = Date.now() + 2000;
-  const tick = () => {
-    const view = getActiveView();
-    if (view && (view !== prevView || Date.now() > deadline - 1500)) {
-      const els = Array.from(view.dom.querySelectorAll<HTMLElement>('h1,h2,h3,h4,h5,h6'));
-      const el = els.find((h) => (h.textContent ?? '').trim() === heading);
-      el?.scrollIntoView({ block: 'start' });
-      return;
-    }
-    if (Date.now() < deadline) requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
 }
 
 /** Progress / error / empty states for the results area. */

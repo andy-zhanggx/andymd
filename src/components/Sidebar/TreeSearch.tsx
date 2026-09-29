@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { fsService, onSearchIndexReady } from '../../services/fsService';
 import { useSemanticStore } from '../../stores/semanticStore';
+import { useUIStore } from '../../stores/uiStore';
 import type { TreeFilter } from '../../lib/treeFilter';
 
 const DEBOUNCE_MS = 150;
@@ -30,7 +31,9 @@ interface Props {
  * `search-index-ready` event arrives.
  */
 export function TreeSearch({ root, onFilter, hint, mode, onModeChange, semanticReady }: Props) {
-  const [query, setQuery] = useState('');
+  // Start from a pending pushed query (the box remounts per workspace, and a
+  // tag click may switch the sidebar to this tab in the same render).
+  const [query, setQuery] = useState(() => useUIStore.getState().treeQuery?.value ?? '');
   // Bumped when the index announces readiness so the query effect re-runs.
   const [indexEpoch, setIndexEpoch] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,6 +41,18 @@ export function TreeSearch({ root, onFilter, hint, mode, onModeChange, semanticR
   const versionRef = useRef(0);
   const semanticSearch = useSemanticStore((s) => s.search);
   const semanticClear = useSemanticStore((s) => s.clear);
+  const pushed = useUIStore((s) => s.treeQuery);
+
+  // A query pushed from outside (clicking a #tag) replaces the box's text and
+  // switches back to the plain filter.
+  useEffect(() => {
+    if (!pushed) return;
+    setQuery(pushed.value);
+    if (mode !== 'filter') onModeChange('filter');
+    useUIStore.getState().clearTreeQuery();
+    // Only react to new pushes, not to mode changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pushed?.nonce]);
 
   useEffect(() => {
     let off: (() => void) | null = null;

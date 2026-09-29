@@ -5,6 +5,7 @@ mod menu;
 mod semantic;
 mod watcher;
 
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 use tauri::{Emitter, Manager, RunEvent};
 use watcher::WatcherState;
 
@@ -53,11 +54,15 @@ pub fn run() {
             commands::fs_cmd::find_vault_root,
             commands::backlinks_cmd::count_backlinks,
             commands::backlinks_cmd::list_backlinks,
+            commands::backlinks_cmd::find_files_mentioning,
             commands::search_cmd::search_workspace,
             commands::search_index::search_index,
+            commands::search_index::list_tags,
             semantic::state::semantic_start,
             semantic::state::semantic_status,
             semantic::state::semantic_search,
+            semantic::state::semantic_related,
+            semantic::state::semantic_duplicates,
             commands::workspace_cmd::open_workspace,
             commands::workspace_cmd::pick_workspace_dir,
             commands::workspace_cmd::pick_markdown_file,
@@ -78,6 +83,12 @@ pub fn run() {
         .expect("error while building tauri application");
 
     app.run(|handle, event| {
+        // Finder "Open With" / file association. `RunEvent::Opened` only exists
+        // on Apple platforms; elsewhere (e.g. Linux CI running `cargo test`)
+        // there is nothing to handle.
+        #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+        let _ = (handle, event);
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
         if let RunEvent::Opened { urls } = event {
             let paths: Vec<String> = urls
                 .into_iter()

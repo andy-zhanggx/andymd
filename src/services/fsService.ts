@@ -3,7 +3,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { FileNode, ImportImageResult, ReadFileResult, WriteFileResult } from '../types';
 import type { SearchResults } from '../lib/globalSearch';
 import type { IndexSearchResults } from '../lib/treeFilter';
-import type { SemanticSearchResponse, SemanticStatus } from '../lib/semantic';
+import type { SemanticDuplicatesResponse, SemanticSearchResponse, SemanticStatus } from '../lib/semantic';
 
 export interface BacklinkLine {
   line: number;
@@ -15,6 +15,18 @@ export interface BacklinkSource {
   relPath: string;
   linkCount: number;
   lines: BacklinkLine[];
+}
+
+export interface TagCount {
+  tag: string;
+  /** Notes carrying the tag. */
+  count: number;
+}
+
+export interface TagList {
+  /** False while the vault index is still building. */
+  ready: boolean;
+  tags: TagCount[];
 }
 
 export const fsService = {
@@ -32,6 +44,9 @@ export const fsService = {
   createDir: (parent: string, name: string) => invoke<FileNode>('create_dir', { parent, name }),
 
   renamePath: (from: string, to: string) => invoke<void>('rename_path', { from, to }),
+
+  findFilesMentioning: (vaultRoot: string, needles: string[]) =>
+    invoke<string[]>('find_files_mentioning', { vaultRoot, needles }),
 
   deleteToTrash: (path: string) => invoke<void>('delete_to_trash', { path }),
 
@@ -51,6 +66,9 @@ export const fsService = {
   searchWorkspace: (root: string, query: string) =>
     invoke<SearchResults>('search_workspace', { root, query }),
 
+  /** Every `#tag` in the vault, from the pre-built index. */
+  listTags: (root: string) => invoke<TagList>('list_tags', { root }),
+
   /** File-tree filter over the pre-built index (see `search_index.rs`). */
   searchIndex: (root: string, query: string) =>
     invoke<IndexSearchResults>('search_index', { root, query }),
@@ -61,6 +79,11 @@ export const fsService = {
   semanticStatus: () => invoke<SemanticStatus>('semantic_status'),
   semanticSearch: (root: string, query: string, limit?: number) =>
     invoke<SemanticSearchResponse>('semantic_search', { root, query, limit: limit ?? null }),
+  /** Notes related to `path` (or to its section containing `line`); no embedding. */
+  semanticRelated: (root: string, path: string, line: number | null, limit?: number) =>
+    invoke<SemanticSearchResponse>('semantic_related', { root, path, line, limit: limit ?? null }),
+  semanticDuplicates: (root: string, threshold?: number) =>
+    invoke<SemanticDuplicatesResponse>('semantic_duplicates', { root, threshold: threshold ?? null, limit: null }),
 
   listBacklinks: (vaultRoot: string, target: string) =>
     invoke<BacklinkSource[]>('list_backlinks', { vaultRoot, target }),

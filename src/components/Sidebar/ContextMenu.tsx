@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { useDocumentStore } from '../../stores/documentStore';
 import { fsService } from '../../services/fsService';
+import { renameWithLinks } from '../../services/relinkService';
 import { findNode, uniqueChildName } from '../../lib/workspacePath';
 import { MULTI_TABS } from '../../featureFlags';
 
@@ -16,7 +17,6 @@ export interface Props {
 export function ContextMenu({ x, y, path, kind, onClose }: Props) {
   const createFile = useWorkspaceStore((s) => s.createFile);
   const createFolder = useWorkspaceStore((s) => s.createFolder);
-  const rename = useWorkspaceStore((s) => s.rename);
   const deleteEntry = useWorkspaceStore((s) => s.deleteEntry);
   const tree = useWorkspaceStore((s) => s.workspace?.tree ?? null);
   const root = useWorkspaceStore((s) => s.workspace?.root ?? null);
@@ -160,7 +160,11 @@ export function ContextMenu({ x, y, path, kind, onClose }: Props) {
               const next = window.prompt('New name', current);
               if (next && next !== current) {
                 const to = path.split('/').slice(0, -1).concat(next).join('/');
-                await rename(path, to);
+                try {
+                  await renameWithLinks(path, to);
+                } catch (err) {
+                  window.alert((err as Error)?.message ?? String(err));
+                }
               }
             },
           },

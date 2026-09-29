@@ -8,6 +8,8 @@ import { FileTree } from './FileTree';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import { ContextMenu } from './ContextMenu';
 import { Outline } from './Outline';
+import { TagList } from './TagList';
+import { RelatedPanel } from './RelatedPanel';
 import { TreeSearch, TREE_SEARCH_HEIGHT, type SearchMode } from './TreeSearch';
 import { SemanticConsent } from './SemanticConsent';
 import { SemanticResults } from './SemanticResults';
@@ -133,9 +135,30 @@ export function Sidebar() {
         >
           Outline
         </button>
+        <button
+          role="tab"
+          aria-selected={tab === 'tags'}
+          className={`sidebar-tab${tab === 'tags' ? ' active' : ''}`}
+          onClick={() => setTab('tags')}
+        >
+          Tags
+        </button>
+        <button
+          role="tab"
+          aria-selected={tab === 'related'}
+          className={`sidebar-tab${tab === 'related' ? ' active' : ''}`}
+          onClick={() => setTab('related')}
+          title="Notes related by meaning, and link suggestions"
+        >
+          Related
+        </button>
       </div>
       {tab === 'outline' ? (
         <Outline />
+      ) : tab === 'tags' ? (
+        <TagList />
+      ) : tab === 'related' ? (
+        <RelatedPanel />
       ) : (
         <>
           <WorkspaceSwitcher

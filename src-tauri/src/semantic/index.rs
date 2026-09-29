@@ -8,7 +8,7 @@ use std::time::UNIX_EPOCH;
 use serde::{Deserialize, Serialize};
 
 use super::chunk::chunk_markdown;
-use super::embedder::Embedder;
+use super::embedder::{normalize, Embedder};
 use crate::commands::search_index::{collect_searchable, is_searchable};
 
 /// Bump when the on-disk layout changes.
@@ -225,6 +225,126 @@ impl SemanticIndex {
     }
 }
 
+/// Two notes whose overall meaning is nearly the same.
+#[derive(Serialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct DuplicatePair {
+    pub a: String,
+    pub a_rel: String,
+    pub b: String,
+    pub b_rel: String,
+    /// Cosine similarity of the two notes' mean vectors.
+    pub score: f32,
+}
+
+fn dot(a: &[f32], b: &[f32]) -> f32 {
+    a.iter().zip(b).map(|(x, y)| x * y).sum()
+}
+
+impl SemanticIndex {
+    fn rel(&self, path: &Path) -> String {
+        path.strip_prefix(&self.root)
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_else(|_| path.to_string_lossy().into_owned())
+    }
+
+    /// A note's overall vector: the normalised mean of its chunk vectors.
+    fn note_vector(entry: &FileEntry) -> Option<Vec<f32>> {
+        let first = entry.chunks.first()?;
+        let mut acc = vec![0.0f32; first.vec.len()];
+        for c in &entry.chunks {
+            if c.vec.len() != acc.len() {
+                continue;
+            }
+            acc.iter_mut().zip(&c.vec).for_each(|(a, v)| *a += v);
+        }
+        normalize(&mut acc);
+        Some(acc)
+    }
+
+    /// Notes closest in meaning to `path` — the whole note, or, with `line`,
+    /// just the section containing that (1-based) line. One hit per note (its
+    /// best-matching section), best first, `path` itself excluded. Empty when
+    /// `path` is not indexed.
+    pub fn related(&self, path: &Path, line: Option<usize>, limit: usize) -> Vec<Hit> {
+        let Some(entry) = self.files.get(path) else { return Vec::new() };
+        let query = match line {
+            Some(l) => entry
+                .chunks
+                .iter()
+                .rev()
+                .find(|c| c.line <= l)
+                .or_else(|| entry.chunks.first())
+                .map(|c| c.vec.clone()),
+            None => Self::note_vector(entry),
+        };
+        let Some(query) = query else { return Vec::new() };
+        let mut best: Vec<(f32, &PathBuf, &StoredChunk)> = Vec::new();
+        for (p, e) in &self.files {
+            if p == path {
+                continue;
+            }
+            let top = e
+                .chunks
+                .iter()
+                .filter(|c| c.vec.len() == query.len())
+                .map(|c| (dot(&c.vec, &query), c))
+                .max_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+            if let Some((score, chunk)) = top {
+                best.push((score, p, chunk));
+            }
+        }
+        best.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+        best.truncate(limit);
+        best.into_iter()
+            .map(|(score, p, chunk)| Hit {
+                path: p.to_string_lossy().into_owned(),
+                rel_path: self.rel(p),
+                heading: chunk.heading.clone(),
+                line: chunk.line,
+                snippet: chunk.snippet.clone(),
+                score,
+            })
+            .collect()
+    }
+
+    /// Pairs of notes whose mean vectors are at least `threshold` similar,
+    /// most similar first, at most `limit`. Quadratic in the note count, but
+    /// only dot products over vectors already in memory.
+    pub fn duplicates(&self, threshold: f32, limit: usize) -> Vec<DuplicatePair> {
+        let mut notes: Vec<(&PathBuf, Vec<f32>)> = self
+            .files
+            .iter()
+            .filter_map(|(p, e)| Self::note_vector(e).map(|v| (p, v)))
+            .collect();
+        notes.sort_by(|a, b| a.0.cmp(b.0));
+        let mut pairs = Vec::new();
+        for i in 0..notes.len() {
+            for j in (i + 1)..notes.len() {
+                if notes[i].1.len() != notes[j].1.len() {
+                    continue;
+                }
+                let score = dot(&notes[i].1, &notes[j].1);
+                if score >= threshold {
+                    pairs.push((score, i, j));
+                }
+            }
+        }
+        pairs.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+        pairs.truncate(limit);
+        pairs
+            .into_iter()
+            .map(|(score, i, j)| DuplicatePair {
+                a: notes[i].0.to_string_lossy().into_owned(),
+                a_rel: self.rel(notes[i].0),
+                b: notes[j].0.to_string_lossy().into_owned(),
+                b_rel: self.rel(notes[j].0),
+                score,
+            })
+            .collect()
+    }
+}
+
 fn mtime_ms(path: &Path) -> Option<u64> {
     let m = fs::metadata(path).ok()?.modified().ok()?;
     Some(m.duration_since(UNIX_EPOCH).ok()?.as_millis() as u64)
@@ -361,5 +481,50 @@ mod tests {
         assert!(SemanticIndex::load(&file, root, "other-model").is_none());
         assert!(SemanticIndex::load(&file, Path::new("/elsewhere"), "fake").is_none());
         assert!(SemanticIndex::load(&dir.path().join("nope.idx"), root, "fake").is_none());
+    }
+
+    const NOTE_C: &str = "# Recall notes\n\nRecall dropped after the release; the pipeline lost a column.\n\n## 菜谱\n\n西红柿炒鸡蛋，先炒鸡蛋再放西红柿，最后加一点糖。\n";
+
+    #[test]
+    fn related_ranks_by_meaning_excludes_self_and_supports_sections() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(root, "a.md", NOTE_A);
+        write(root, "food/b.md", NOTE_B);
+        write(root, "c.md", NOTE_C);
+        let mut e = FakeEmbedder::new();
+        let mut idx = SemanticIndex::new(root.to_path_buf(), "fake");
+        idx.sync(&mut e, &mut |_, _| true).unwrap();
+
+        let whole = idx.related(&root.join("a.md"), None, 10);
+        assert_eq!(whole.len(), 2);
+        assert_eq!(whole[0].rel_path, "c.md");
+        assert_eq!(whole[0].heading, "Recall notes");
+        assert!(whole.iter().all(|h| h.rel_path != "a.md"));
+
+        // The recipe section of c.md relates to the recipe note.
+        let section = idx.related(&root.join("c.md"), Some(7), 10);
+        assert_eq!(section[0].rel_path, "food/b.md");
+        assert!(idx.related(&root.join("missing.md"), None, 10).is_empty());
+        assert_eq!(idx.related(&root.join("a.md"), None, 1).len(), 1);
+    }
+
+    #[test]
+    fn duplicates_finds_near_identical_notes_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(root, "a.md", NOTE_A);
+        write(root, "a copy.md", NOTE_A);
+        write(root, "food/b.md", NOTE_B);
+        let mut e = FakeEmbedder::new();
+        let mut idx = SemanticIndex::new(root.to_path_buf(), "fake");
+        idx.sync(&mut e, &mut |_, _| true).unwrap();
+
+        let pairs = idx.duplicates(0.95, 10);
+        assert_eq!(pairs.len(), 1);
+        assert_eq!((pairs[0].a_rel.as_str(), pairs[0].b_rel.as_str()), ("a copy.md", "a.md"));
+        assert!(pairs[0].score > 0.99);
+        assert_eq!(idx.duplicates(-1.0, 10).len(), 3);
+        assert_eq!(idx.duplicates(-1.0, 2).len(), 2);
     }
 }
