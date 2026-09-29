@@ -2,20 +2,28 @@ import { Tree, NodeRendererProps } from 'react-arborist';
 import { FileNode } from '../../types';
 import { useDocumentStore } from '../../stores/documentStore';
 import { MULTI_TABS } from '../../featureFlags';
+import { highlightSegments } from '../../lib/globalSearch';
+import type { TreeFilter } from '../../lib/treeFilter';
 
 interface Props {
+  /** Already pruned to the hits when `filter` is set (see `pruneTree`). */
   root: FileNode;
   height: number;
   width: number;
   activePath: string | null;
+  /** Active search: highlights matches and expands every folder. */
+  filter?: TreeFilter | null;
   onContextMenu: (path: string, kind: 'file' | 'dir', x: number, y: number) => void;
 }
 
-export function FileTree({ root, height, width, activePath, onContextMenu }: Props) {
+export function FileTree({ root, height, width, activePath, filter, onContextMenu }: Props) {
   const data = root.children ?? [];
 
   return (
     <Tree<FileNode>
+      // Remount per result so `openByDefault` re-applies to the new hit set;
+      // clearing the filter restores the user's collapsed state.
+      key={filter ? `filter:${filter.version}` : 'tree'}
       data={data}
       idAccessor={(n) => n.path}
       childrenAccessor={(n) => n.children ?? null}
@@ -23,15 +31,18 @@ export function FileTree({ root, height, width, activePath, onContextMenu }: Pro
       width={width}
       rowHeight={24}
       indent={16}
-      openByDefault={false}
+      openByDefault={!!filter}
     >
-      {(props) => <Node {...props} activePath={activePath} onContextMenu={onContextMenu} />}
+      {(props) => (
+        <Node {...props} activePath={activePath} filter={filter ?? null} onContextMenu={onContextMenu} />
+      )}
     </Tree>
   );
 }
 
 interface NodeProps extends NodeRendererProps<FileNode> {
   activePath: string | null;
+  filter: TreeFilter | null;
   onContextMenu: (path: string, kind: 'file' | 'dir', x: number, y: number) => void;
 }
 
@@ -62,11 +73,42 @@ function Chevron({ open }: { open: boolean }) {
   );
 }
 
-function Node({ node, style, dragHandle, activePath, onContextMenu }: NodeProps) {
+/** Marks a file listed only because its text (not its name) matched. */
+function TextMatchBadge() {
+  return (
+    <span className="filetree-textmatch" title="Matches in text" aria-label="matches in text">
+      <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M2 4h12M2 8h12M2 12h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    </span>
+  );
+}
+
+/** File/folder name with the active query highlighted. */
+export function NodeName({ name, query }: { name: string; query: string | null }) {
+  if (!query) return <span className="filetree-name">{name}</span>;
+  return (
+    <span className="filetree-name">
+      {highlightSegments(name, query).map((seg, k) =>
+        seg.hit ? (
+          <mark key={k} className="filetree-hit">
+            {seg.text}
+          </mark>
+        ) : (
+          <span key={k}>{seg.text}</span>
+        ),
+      )}
+    </span>
+  );
+}
+
+function Node({ node, style, dragHandle, activePath, filter, onContextMenu }: NodeProps) {
   const openDoc = useDocumentStore((s) => s.open);
   const openDocInNewTab = useDocumentStore((s) => s.openInNewTab);
   const isFile = node.data.kind === 'file';
   const isActive = activePath === node.data.path;
+  const hit = isFile && filter ? filter.hits.get(node.data.path) : undefined;
+  const textOnly = !!hit && hit.contentHit && !hit.nameHit;
 
   return (
     <div
@@ -94,7 +136,8 @@ function Node({ node, style, dragHandle, activePath, onContextMenu }: NodeProps)
       <span className="filetree-glyph">
         {isFile ? <FileIcon /> : <Chevron open={node.isOpen} />}
       </span>
-      <span className="filetree-name">{node.data.name}</span>
+      <NodeName name={node.data.name} query={filter?.query ?? null} />
+      {textOnly && <TextMatchBadge />}
     </div>
   );
 }

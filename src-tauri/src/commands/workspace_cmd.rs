@@ -3,16 +3,31 @@ use std::sync::Mutex;
 use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 
+use crate::bookmarks;
+use crate::commands::search_index::{rebuild_for, SearchIndexState};
 use crate::error::CommandResult;
 use crate::watcher::WatcherState;
+
+/// Persist a security-scoped bookmark for a path the powerbox just handed us,
+/// so the next launch can reach it again under the App Sandbox.
+fn remember(picked: Option<String>) -> Option<String> {
+    if let Some(p) = picked.as_deref() {
+        bookmarks::store(PathBuf::from(p).as_path());
+    }
+    picked
+}
 
 #[tauri::command]
 pub fn open_workspace(
     root: String,
     app: AppHandle,
     state: State<'_, WatcherState>,
+    index: State<'_, SearchIndexState>,
 ) -> CommandResult<()> {
-    state.start(app, PathBuf::from(root))?;
+    let root = PathBuf::from(root);
+    state.start(app.clone(), root.clone())?;
+    // Index the vault ahead of time so the file-tree search is instant.
+    rebuild_for(&app, &index, root);
     Ok(())
 }
 
@@ -23,7 +38,7 @@ pub async fn pick_workspace_dir(app: AppHandle) -> CommandResult<Option<String>>
         .file()
         .set_title("Select Workspace Folder")
         .blocking_pick_folder();
-    Ok(picked.map(|p| p.to_string()))
+    Ok(remember(picked.map(|p| p.to_string())))
 }
 
 #[tauri::command]
@@ -36,7 +51,7 @@ pub async fn pick_markdown_file(app: AppHandle) -> CommandResult<Option<String>>
         .add_filter("Markdown", &["md", "markdown", "mdown", "mkd", "txt"])
         .add_filter("All Files", &["*"])
         .blocking_pick_file();
-    Ok(picked.map(|p| p.to_string()))
+    Ok(remember(picked.map(|p| p.to_string())))
 }
 
 #[tauri::command]
@@ -51,7 +66,7 @@ pub async fn pick_image_file(app: AppHandle) -> CommandResult<Option<String>> {
         )
         .add_filter("All Files", &["*"])
         .blocking_pick_file();
-    Ok(picked.map(|p| p.to_string()))
+    Ok(remember(picked.map(|p| p.to_string())))
 }
 
 #[tauri::command]
@@ -66,7 +81,7 @@ pub async fn save_markdown_dialog(
         .add_filter("Markdown", &["md"])
         .set_file_name(&default_name)
         .blocking_save_file();
-    Ok(picked.map(|p| p.to_string()))
+    Ok(remember(picked.map(|p| p.to_string())))
 }
 
 #[tauri::command]
@@ -83,11 +98,12 @@ pub async fn save_export_dialog(
         .add_filter(extension.to_uppercase(), &[ext.as_str()])
         .set_file_name(&default_name)
         .blocking_save_file();
-    Ok(picked.map(|p| p.to_string()))
+    Ok(remember(picked.map(|p| p.to_string())))
 }
 
 /// Locate the pandoc binary. A Finder-launched .app has a minimal PATH that
 /// usually excludes Homebrew / conda, so fall back to common install dirs.
+#[cfg(not(feature = "appstore"))]
 fn resolve_pandoc() -> Option<String> {
     use std::process::{Command, Stdio};
     let on_path = Command::new("pandoc")
@@ -113,8 +129,23 @@ fn resolve_pandoc() -> Option<String> {
 
 /// Export markdown to `to` (a pandoc writer name, e.g. docx/epub/latex/rtf/odt)
 /// at `out_path`, piping the document through pandoc's stdin.
+///
+/// Inert in Mac App Store builds: the App Sandbox forbids spawning a
+/// subprocess, and pandoc is GPL so it cannot be bundled either. The menu
+/// entries are hidden in that flavor (see `menu.rs`), so this stays unreachable
+/// there — the error text is a backstop, not a user-facing path.
 #[tauri::command]
 pub fn export_via_pandoc(markdown: String, to: String, out_path: String) -> Result<(), String> {
+    export_impl(markdown, to, out_path)
+}
+
+#[cfg(feature = "appstore")]
+fn export_impl(_markdown: String, _to: String, _out_path: String) -> Result<(), String> {
+    Err("Export via pandoc is not available in the Mac App Store build.".to_string())
+}
+
+#[cfg(not(feature = "appstore"))]
+fn export_impl(markdown: String, to: String, out_path: String) -> Result<(), String> {
     use std::io::Write;
     use std::process::{Command, Stdio};
 

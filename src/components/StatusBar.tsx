@@ -7,6 +7,7 @@ import { docStats } from '../lib/docStats';
 import { frontmatterKeyCount } from '../lib/frontmatter';
 import { fsService, onWorkspaceChanged, type BacklinkSource } from '../services/fsService';
 import { ZoomControl } from './ZoomControl';
+import { useRelatedStore } from '../stores/relatedStore';
 
 export function StatusBar() {
   const doc = useDocumentStore((s) => s.doc);
@@ -16,6 +17,10 @@ export function StatusBar() {
   const startTour = useUIStore((s) => s.startTour);
   const showMinimap = useConfigStore((s) => s.config.showMinimap);
   const updateConfig = useConfigStore((s) => s.update);
+
+  const suggestionCount = useRelatedStore((s) => (s.suggestionsFor === doc?.path ? s.suggestions.length : 0));
+  const sidebarTab = useUIStore((s) => s.sidebarTab);
+  const showSidebar = useConfigStore((s) => s.config.showSidebar);
 
   const text = doc?.draft ?? '';
   const stats = docStats(text);
@@ -39,6 +44,18 @@ export function StatusBar() {
     <div className="statusbar">
       <div className="statusbar-left">{doc && <ZoomControl />}</div>
       <div className="statusbar-right">
+        {doc && suggestionCount > 0 && !(showSidebar && sidebarTab === 'related') && (
+          <button
+            className="statusbar-mode"
+            onClick={() => {
+              useUIStore.getState().setSidebarTab('related');
+              if (!showSidebar) void updateConfig({ showSidebar: true });
+            }}
+            title="Notes this paragraph could link to — click to review"
+          >
+            {suggestionCount} link {suggestionCount === 1 ? 'suggestion' : 'suggestions'}
+          </button>
+        )}
         {doc && backlinks !== null && (
           <BacklinksMetric
             count={backlinks}
@@ -97,7 +114,7 @@ export function StatusBar() {
           className="statusbar-help"
           onClick={startTour}
           aria-label="Show welcome tour"
-          title="Welcome tour / 使用教程"
+          title="Welcome tour"
         >
           ?
         </button>

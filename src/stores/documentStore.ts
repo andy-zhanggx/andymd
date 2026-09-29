@@ -54,6 +54,17 @@ interface DocumentState {
   resolveConflict: (path: string, resolution: 'keepMine' | 'useTheirs' | 'merge') => Promise<void>;
   /** Put the decision off; the next save re-detects and re-prompts. */
   dismissConflict: (path: string) => void;
+  /**
+   * A file or folder moved on disk: point open tabs, their history, stashed
+   * drafts and pending conflicts at the new paths.
+   */
+  retargetPaths: (rename: { from: string; to: string }) => void;
+  /**
+   * The file behind an open tab was rewritten from outside the editor (e.g.
+   * link updates after a rename): adopt `content` as the on-disk snapshot and
+   * `draft` as the buffer, and make the editor rebuild.
+   */
+  replaceBuffer: (path: string, content: string, draft: string) => void;
 
   open: (path: string) => Promise<void>;
   openInNewTab: (path: string) => Promise<void>;
@@ -213,6 +224,42 @@ export const useDocumentStore = create<DocumentState>((set, get) => {
 
     stashDraft(path, draft) {
       set({ drafts: { ...get().drafts, [path]: draft } });
+    },
+
+    retargetPaths(rename) {
+      const map = (p: string) =>
+        p === rename.from ? rename.to : p.startsWith(`${rename.from}/`) ? rename.to + p.slice(rename.from.length) : p;
+      const { tabs, activeId, drafts, conflicts } = get();
+      let touched = false;
+      const next = tabs.map((t) => {
+        const path = t.doc.path ? map(t.doc.path) : null;
+        const history = t.history.map(map);
+        if (path === t.doc.path && history.every((h, i) => h === t.history[i])) return t;
+        touched = true;
+        return { ...t, doc: { ...t.doc, path }, history };
+      });
+      const remap = <T,>(rec: Record<string, T>) =>
+        Object.fromEntries(Object.entries(rec).map(([k, v]) => [map(k), v])) as Record<string, T>;
+      set({ drafts: remap(drafts), conflicts: remap(conflicts) });
+      if (touched) {
+        commit(next, activeId);
+        persist();
+      }
+    },
+
+    replaceBuffer(path, content, draft) {
+      patchByPath(path, (t) => ({
+        ...t,
+        doc: {
+          ...t.doc,
+          content,
+          draft,
+          isDirty: draft !== content,
+          revision: (t.doc.revision ?? 0) + 1,
+        },
+      }));
+      if (draft !== content) set({ drafts: { ...get().drafts, [path]: draft } });
+      else clearDraft(path);
     },
 
     // Called by the workspace watcher when `path` changed on disk (and by

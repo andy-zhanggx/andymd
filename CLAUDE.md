@@ -8,6 +8,14 @@ Guidance for Claude Code when working in this repository.
 tuned for Obsidian-style vaults (wikilinks, fenced math, inline HTML, directory
 links). Frontend lives in `src/`, the native shell in `src-tauri/`.
 
+## Planning
+
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — what ships in which release; update item
+  status when you start or finish one, and move shipped work to `CHANGELOG.md`.
+- [`docs/THOUGHTS.md`](docs/THOUGHTS.md) — positioning and the principles for
+  choosing features (local by default, lossless round-trip, gaps before flourishes).
+- New features get a `docs/features-<name>/spec.md` before implementation.
+
 ## Key commands
 
 - `pnpm dev` — Vite dev server only (web preview).
@@ -18,6 +26,11 @@ links). Frontend lives in `src/`, the native shell in `src-tauri/`.
   quick unsigned `.app` to try locally.
 - `pnpm test` — Vitest. Typecheck with **`tsc -b`** (root tsconfig has `files: []`,
   so plain `tsc --noEmit` checks nothing).
+- `cd src-tauri && cargo test` — Rust. On Linux it needs the GTK/WebKit dev
+  packages (`libgtk-3-dev libwebkit2gtk-4.1-dev`). If `ort` can't download ONNX
+  Runtime (restricted network), point it at a local copy, for example the
+  `libonnxruntime.so` from the matching `onnxruntime` PyPI wheel:
+  `ORT_LIB_LOCATION=<dir> ORT_PREFER_DYNAMIC_LINK=1 LD_LIBRARY_PATH=<dir> cargo test`.
 
 ## Build labels — know which build you're running
 
@@ -87,6 +100,33 @@ git push origin main
 git tag v0.2.0 && git push origin v0.2.0   # ← triggers the build
 git branch -d release/v0.2.0
 ```
+
+### Mac App Store (second channel)
+
+`pnpm build:mas` builds a **different flavor** of the same source: sandboxed,
+universal, no in-app updater, no pandoc export. It is driven by the `appstore`
+Cargo feature (`--no-default-features --features appstore`) plus
+`VITE_APP_STORE=true`, and packaged by
+[`scripts/build-mas.mjs`](scripts/build-mas.mjs) into an uploadable `.pkg`.
+
+Things to know when touching this:
+
+- **Any new Rust code must be sandbox-safe.** No `std::process::Command`, no
+  AppleScript. Paths outside the user-picked folder are unreachable.
+- **A newly reachable folder needs a bookmark.** `bookmarks::store()` on every
+  path the powerbox hands back, or the app loses it on relaunch. See
+  [`src-tauri/src/bookmarks.rs`](src-tauri/src/bookmarks.rs).
+- **Updater/process plugin permissions live in
+  `capabilities/self-update.json`**, separate from `default.json`. The store
+  build does not link those plugins, and Tauri validates every file in
+  `capabilities/` regardless of which are enabled — so the build script parks
+  that file for the duration of the build. Do not merge it back into
+  `default.json`.
+- **The `tauri` dependency's feature list is compared literally against
+  `tauri.conf.json`**, so it cannot vary per flavor. That is why
+  `macos-private-api` was removed outright rather than made conditional.
+
+Full Apple-side procedure: [docs/mac-app-store.md](docs/mac-app-store.md).
 
 ### Long-lived branches (e.g. collab): pre-release tags
 

@@ -10,6 +10,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **File-tree search with a pre-built index.** A filter box now sits above
+  the Files tree. Typing narrows the tree to the notes whose name or text
+  contains the query, expands the folders on the way to each hit, highlights
+  the matching part of the name, and marks notes that matched only by their
+  text. The vault is indexed in the background the moment a workspace opens
+  and the index is updated in place from file-watcher events, so every
+  keystroke answers from memory instead of re-reading the disk. While the
+  first build is still running the box says "Indexing…" and re-runs your
+  query automatically when the index is ready.
+- **Semantic search, entirely on-device.** The `≈` toggle in the same box
+  switches to searching by meaning: notes are split at their headings,
+  embedded with the small `bge-small-zh-v1.5` model (Chinese-first,
+  English-capable) through ONNX Runtime, and ranked by similarity, with the
+  heading, a snippet and a similarity bar per hit; clicking a hit opens the
+  note at that heading. The model (~95 MB) is downloaded once after an
+  explicit opt-in — a Hugging Face mirror can be given for restricted
+  networks — and the index is built in the background when the workspace
+  opens, saved between launches, and refreshed from file-watcher events, so
+  only edited notes are ever re-embedded.
+- **Callouts.** Obsidian callouts (`> [!note] Title`, `> [!warning]- Folded`)
+  render as coloured boxes with a title and icon per kind, and foldable ones
+  get a chevron. Typing `[!tip] ` at the start of a quote turns it into a
+  callout; Enter in the title moves to the body.
+- **Embeds.** `![[pic.png|300]]` shows the image, and `![[note]]` or
+  `![[note#Heading]]` shows a read-only preview of the note or section,
+  rendered with the same styles as the note itself. Click the header to open
+  the note.
+- **`[[` autocomplete.** Typing `[[` (or `![[`) lists matching notes and files.
+  `[[note#` lists that note's headings, and `[[#` lists this note's.
+  Enter inserts the link; an unmatched name makes a link to a new note.
+- **Command palette (`⇧⌘P`).** Every command, view mode and export in one
+  searchable list with its shortcut. Recently used commands come first.
+  Also in View → Command Palette….
+- **Links are updated when you rename.** Renaming or moving a note or folder
+  lists the links in other notes that would break and offers to rewrite them.
+  This covers wikilinks, embeds, relative links, Markdown links and images,
+  and keeps headings, aliases and encoding.
+- **Tags.** `#tags` (nested `#a/b` and any script included) show as chips.
+  Clicking one filters the file tree to the notes carrying it. A new **Tags**
+  sidebar tab lists every tag with its note count, including tags from
+  frontmatter. Typing `#project` in the tree filter matches by tag.
+- **Related notes.** A new **Related** sidebar tab lists the notes closest in
+  meaning to the open note, or to the section under the caret, using the
+  local semantic index.
+- **Link suggestions.** While you write, AndyMD suggests up to three notes the
+  current paragraph could link to. One click inserts the link, and a
+  dismissed suggestion stays dismissed.
+- **Find Duplicate Notes….** Lists pairs of notes that say nearly the same
+  thing, at three strictness levels, and opens both side by side.
 - **Font settings.** A new *Settings…* dialog (⌘, or View → Font…) lets you
   switch the editor's body font between curated Latin + CJK pairings (Book:
   Charter + Songti, Kai: Kaiti / LXGW WenKai, System: San Francisco +
@@ -25,6 +74,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the Book pairing — Charter for Latin text and Songti SC for CJK — instead of
   the system sans-serif, for a calmer, book-like reading experience.
   Existing configs keep whatever font they already had.
+- Headings without a space after the `#` are still recognised for `##标题`
+  and deeper. A single `#` followed by a word (`#project`) is now a tag, as
+  in Obsidian, not an H1.
+
+### Fixed
+
+- Callouts, embeds, tags at the start of a line, and `[[links]]` typed in the
+  editor were saved back escaped (`> \[!note]`, `!\[\[pic.png]]`, `\#tag`,
+  `\[\[x]]`), which broke them in Obsidian. They now round-trip unchanged.
+- Lines starting with `#` inside code blocks (`#include <stdio.h>`) or
+  frontmatter were rewritten as headings (`# include`) when the file was
+  opened, and saved that way.
+- `[[note#Heading]]` links showed as dead links; they now resolve, and
+  clicking one scrolls to the heading.
+- After renaming an open note, its tab kept the old path, so the next save
+  recreated the old file.
+
+## [1.0.0] — 2026-09-27
+
+First public release, and the first one on the Mac App Store.
+
+### Added
+
+- **Mac App Store build.** `pnpm build:mas` produces a sandboxed, universal,
+  signed `.pkg` ready to upload — a second distribution channel alongside the
+  existing `.dmg` on GitHub Releases. See [docs/mac-app-store.md](docs/mac-app-store.md).
+- Folders you pick are remembered across relaunches with macOS
+  security-scoped bookmarks, so the App Sandbox does not lose your vault when
+  the app restarts.
+
+### Changed
+
+- Moving a file to the Trash now goes through NSFileManager instead of driving
+  Finder over AppleScript, and "Reveal in Finder" goes through NSWorkspace
+  instead of spawning `open -R`. Both work in the sandbox; behavior is the same
+  outside it, minus the Finder delete sound.
+- The app no longer enables macOS private API. Nothing used it — the window was
+  already a plain decorated window — and App Review rejects it.
+
+### Notes
+
+- The App Store flavor omits the in-app updater (the App Store updates it) and
+  the pandoc-backed exports to Word/ePub/LaTeX/RTF (the sandbox forbids
+  subprocesses). The `.dmg` build keeps both.
+- The interface is English-only. The welcome tour's Chinese sub-captions and a
+  few Chinese tooltips and alerts were removed; CJK *content* is unaffected and
+  still fully supported.
 
 ## [0.4.2] — 2026-08-14
 

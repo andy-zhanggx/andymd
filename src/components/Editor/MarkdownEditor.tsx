@@ -10,6 +10,7 @@ import { cursorBuilder, selectionBuilder } from '../../collab/cursor';
 import { insertImageNode } from './insertImage';
 import { Toolbar } from './Toolbar';
 import { FindReplace } from './FindReplace';
+import { LinkSuggest } from './LinkSuggest';
 import { LinkContextMenu, LinkMenuTarget } from './LinkContextMenu';
 import { TableContextMenu, TableMenuTarget } from './TableContextMenu';
 import { TextSelection } from '@milkdown/prose/state';
@@ -491,6 +492,7 @@ export function MarkdownEditor() {
     <>
       <Toolbar getEditor={() => editorRef.current} />
       <FindReplace getView={() => viewRef.current} />
+      <LinkSuggest />
       {linkMenu && <LinkContextMenu {...linkMenu} onClose={() => setLinkMenu(null)} />}
       {tableMenu && (
         <TableContextMenu

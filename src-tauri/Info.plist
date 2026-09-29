@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Merged into the generated bundle Info.plist by tauri-bundler, for every
+  flavor. Keys here are ones Tauri's config has no field for.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Required by App Store Connect; also what the Mac App Store files the
+	     app under. -->
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
+
+	<!-- AndyMD uses no encryption beyond what macOS itself provides, so it is
+	     exempt. Declaring it here skips the export-compliance question on every
+	     upload. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2026 Andy Zhang. All rights reserved.</string>
+</dict>
+</plist>

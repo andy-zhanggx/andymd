@@ -16,6 +16,13 @@ Personal project by Andy Zhang.
 - Native spell-check, optional auto-save, and per-file version history
 - Lenient Chinese-friendly heading parsing (`##标题` without space still renders as H2)
 - File tree sidebar **+ document outline (TOC) panel**
+- **File-tree filter** — type in the box above the tree to narrow it to notes whose name *or text* matches; the vault is indexed when it opens (and kept fresh by the file watcher), so results are instant
+- **Semantic search** (the `≈` toggle in that box) — find notes by *meaning* in Chinese and English, ranked by similarity with a snippet per hit; runs entirely on your Mac with a small local model (`bge-small-zh-v1.5`, ~95 MB, downloaded once after you opt in; a Hugging Face mirror can be set for restricted networks)
+- **Obsidian vault syntax** — callouts (`> [!note]`, foldable), embeds (`![[note#Heading]]`, `![[pic.png|300]]`), `#tags` (with a **Tags** sidebar tab and tag filtering), and `[[note#Heading]]` links, all saved back byte-for-byte
+- **`[[` autocomplete** — link to notes, headings (`[[note#`) and attachments as you type
+- **Links follow renames** — renaming or moving a note or folder offers to rewrite every link that would break
+- **Command palette** (⇧⌘P) — every command and view mode, with its shortcut
+- **Related notes & link suggestions** — a **Related** sidebar tab shows notes close in meaning to the open note or section, suggests notes the current paragraph could link to, and can **find duplicate notes**; all on-device, from the semantic index
 - **Find & Replace** (⌘F / ⌘G / ⌘⌥F) with live match highlights
 - **Search in Workspace** (⇧⌘F) — vault-wide full-text search with highlighted, clickable results
 - **Backlinks panel** — click the status-bar count to see (and open) the notes linking here
@@ -30,6 +37,12 @@ Personal project by Andy Zhang.
 - Light / dark / system theme
 - `.md` / `.markdown` file association (Finder → Open With)
 - External-modification detection on save
+
+## Roadmap
+
+What's next (1.1 vault completeness, 1.2 on-device intelligence) is in
+[docs/ROADMAP.md](docs/ROADMAP.md); the product reasoning behind it is in
+[docs/THOUGHTS.md](docs/THOUGHTS.md).
 
 ## Develop
 

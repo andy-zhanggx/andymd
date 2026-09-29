@@ -1,0 +1,22 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "app": {
+    "security": {
+      "capabilities": ["default"]
+    }
+  },
+  "bundle": {
+    "createUpdaterArtifacts": false,
+    "targets": ["app"],
+    "resources": ["PrivacyInfo.xcprivacy"],
+    "macOS": {
+      "entitlements": "entitlements.appstore.plist"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "endpoints": []
+    }
+  }
+}

@@ -1,7 +1,6 @@
 node_modules/
 dist/
 src-tauri/target/
-src-tauri/Cargo.lock
 .DS_Store
 *.log
 .worktrees/
@@ -17,3 +16,6 @@ src-tauri/Cargo.lock
 # Compiled vite config artifacts (source is vite.config.ts)
 vite.config.js
 vite.config.d.ts
+
+# Mac App Store package output (scripts/build-mas.mjs)
+dist-mas/

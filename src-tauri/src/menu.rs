@@ -117,12 +117,22 @@ pub fn build_menu<R: Runtime>(
                 .accelerator("CmdOrCtrl+Shift+E")
                 .build(app)?,
         )
+        ;
+
+    // The docx/epub/latex/rtf writers shell out to pandoc, which the App Sandbox
+    // forbids — so the Mac App Store flavor ships without the submenu entirely
+    // rather than offering entries that always fail. Export to HTML is ours and
+    // stays in both flavors.
+    #[cfg(not(feature = "appstore"))]
+    let file_menu = file_menu
         .item(&SubmenuBuilder::new(app, "Export to")
             .item(&MenuItemBuilder::with_id("export-docx", "Word (.docx)…").build(app)?)
             .item(&MenuItemBuilder::with_id("export-epub", "ePub…").build(app)?)
             .item(&MenuItemBuilder::with_id("export-latex", "LaTeX (.tex)…").build(app)?)
             .item(&MenuItemBuilder::with_id("export-rtf", "Rich Text (.rtf)…").build(app)?)
-            .build()?)
+            .build()?);
+
+    let file_menu = file_menu
         .item(
             &MenuItemBuilder::with_id("print", "Print…")
                 .accelerator("CmdOrCtrl+P")
@@ -193,6 +203,12 @@ pub fn build_menu<R: Runtime>(
 
     let mut view_builder = SubmenuBuilder::new(app, "View")
         .item(
+            &MenuItemBuilder::with_id("command-palette", "Command Palette…")
+                .accelerator("CmdOrCtrl+Shift+P")
+                .build(app)?,
+        )
+        .separator()
+        .item(
             &MenuItemBuilder::with_id("toggle-sidebar", "Toggle Sidebar")
                 .accelerator("CmdOrCtrl+Shift+L")
                 .build(app)?,
@@ -202,6 +218,9 @@ pub fn build_menu<R: Runtime>(
                 .accelerator("CmdOrCtrl+Shift+1")
                 .build(app)?,
         )
+        .item(&MenuItemBuilder::with_id("show-tags", "Tags").build(app)?)
+        .item(&MenuItemBuilder::with_id("show-related", "Related Notes").build(app)?)
+        .item(&MenuItemBuilder::with_id("find-duplicates", "Find Duplicate Notes…").build(app)?)
         .item(
             &MenuItemBuilder::with_id("toggle-minimap", "Minimap")
                 .accelerator("CmdOrCtrl+Shift+M")
@@ -263,8 +282,14 @@ pub fn build_menu<R: Runtime>(
         .build()?;
 
     let help_menu = SubmenuBuilder::new(app, "Help")
-        .item(&MenuItemBuilder::with_id("show-tour", "Welcome Tour").build(app)?)
-        .item(&MenuItemBuilder::with_id("software-update", "Software Update…").build(app)?)
+        .item(&MenuItemBuilder::with_id("show-tour", "Welcome Tour").build(app)?);
+
+    // App Store builds update through the App Store, so no in-app channel.
+    #[cfg(not(feature = "appstore"))]
+    let help_menu =
+        help_menu.item(&MenuItemBuilder::with_id("software-update", "Software Update…").build(app)?);
+
+    let help_menu = help_menu
         .item(&MenuItemBuilder::with_id("show-whats-new", "What's New in AndyMD").build(app)?)
         .build()?;
 

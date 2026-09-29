@@ -1,21 +1,40 @@
+mod bookmarks;
 mod commands;
 mod error;
 mod menu;
+mod semantic;
 mod watcher;
 
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 use tauri::{Emitter, Manager, RunEvent};
 use watcher::WatcherState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let app = tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_opener::init());
+
+    // The bundled updater ships only in the direct-download (DMG) flavor. Mac
+    // App Store builds must not carry their own update channel.
+    #[cfg(feature = "self-update")]
+    let builder = builder
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_process::init());
+
+    let app = builder
         .manage(WatcherState::new())
+        .manage(commands::search_index::SearchIndexState::new())
+        .manage(semantic::state::SemanticState::new())
         .manage(commands::workspace_cmd::PendingOpensState::default())
         .setup(|app| {
+            // Re-authorize sandbox access to previously picked folders before
+            // the frontend gets a chance to reopen `lastWorkspace`.
+            let restored = bookmarks::restore_all();
+            if !restored.is_empty() {
+                eprintln!("[bookmarks] restored {} path(s)", restored.len());
+            }
+
             let menu_obj = menu::build_menu(app.handle(), &[], &[])?;
             app.set_menu(menu_obj)?;
             app.on_menu_event(|h, event| menu::on_menu_event(h, event));
@@ -35,7 +54,15 @@ pub fn run() {
             commands::fs_cmd::find_vault_root,
             commands::backlinks_cmd::count_backlinks,
             commands::backlinks_cmd::list_backlinks,
+            commands::backlinks_cmd::find_files_mentioning,
             commands::search_cmd::search_workspace,
+            commands::search_index::search_index,
+            commands::search_index::list_tags,
+            semantic::state::semantic_start,
+            semantic::state::semantic_status,
+            semantic::state::semantic_search,
+            semantic::state::semantic_related,
+            semantic::state::semantic_duplicates,
             commands::workspace_cmd::open_workspace,
             commands::workspace_cmd::pick_workspace_dir,
             commands::workspace_cmd::pick_markdown_file,
@@ -56,6 +83,12 @@ pub fn run() {
         .expect("error while building tauri application");
 
     app.run(|handle, event| {
+        // Finder "Open With" / file association. `RunEvent::Opened` only exists
+        // on Apple platforms; elsewhere (e.g. Linux CI running `cargo test`)
+        // there is nothing to handle.
+        #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+        let _ = (handle, event);
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
         if let RunEvent::Opened { urls } = event {
             let paths: Vec<String> = urls
                 .into_iter()

@@ -1,5 +1,7 @@
 import { fsService } from './fsService';
-import { resolveWikilinkInTree } from '../lib/wikilink';
+import { resolveWikilinkInTree, splitWikilinkTarget } from '../lib/wikilink';
+import { getActiveView } from '../components/Editor/activeView';
+import { revealHeading } from '../components/Editor/reveal';
 import { useDocumentStore } from '../stores/documentStore';
 import { useWorkspaceStore } from '../stores/workspaceStore';
 
@@ -21,7 +23,15 @@ export async function openWikilink(
     ws && ws.root === rootDir ? ws.tree : await fsService.listWorkspace(rootDir, false);
   const resolved = resolveWikilinkInTree(target, tree, fromPath);
   if (!resolved) {
-    window.alert(`未找到笔记: ${target}`);
+    window.alert(`Note not found: ${target}`);
+    return;
+  }
+  const { heading } = splitWikilinkTarget(target);
+  const prevView = getActiveView();
+
+  // `[[#Heading]]` (or a link back into this note) only scrolls.
+  if (resolved === fromPath) {
+    if (heading) revealHeading(heading, null);
     return;
   }
 
@@ -30,4 +40,5 @@ export async function openWikilink(
   const docStore = useDocumentStore.getState();
   if (opts.newTab) await docStore.openInNewTab(resolved);
   else await docStore.open(resolved);
+  if (heading) revealHeading(heading, prevView);
 }
