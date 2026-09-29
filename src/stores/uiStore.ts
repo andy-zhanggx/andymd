@@ -40,6 +40,10 @@ interface UIState {
   updateSettingsOpen: boolean;
   setUpdateSettingsOpen: (open: boolean) => void;
 
+  // Font & typography settings dialog
+  fontSettingsOpen: boolean;
+  setFontSettingsOpen: (open: boolean) => void;
+
   // "What's New" release-notes popup
   whatsNewOpen: boolean;
   whatsNewReleases: Release[];
@@ -107,6 +111,9 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   updateSettingsOpen: false,
   setUpdateSettingsOpen: (open) => set({ updateSettingsOpen: open }),
+
+  fontSettingsOpen: false,
+  setFontSettingsOpen: (open) => set({ fontSettingsOpen: open }),
 
   whatsNewOpen: false,
   whatsNewReleases: [],

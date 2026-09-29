@@ -230,6 +230,10 @@ export async function handleMenuAction(id: string) {
     case 'software-update':
       useUIStore.getState().setUpdateSettingsOpen(true);
       break;
+    case 'preferences':
+    case 'font-settings':
+      useUIStore.getState().setFontSettingsOpen(true);
+      break;
     case 'show-whats-new':
       void openWhatsNewForCurrent();
       break;
@@ -286,6 +290,13 @@ export function useShortcuts() {
       const wsStore = useWorkspaceStore.getState();
 
       switch (key) {
+        case ',':
+          // ⌘, — Settings (font & typography). preventDefault also keeps the
+          // matching menu accelerator from firing a second time.
+          if (e.shiftKey || e.altKey || e.ctrlKey) break;
+          e.preventDefault();
+          useUIStore.getState().setFontSettingsOpen(true);
+          break;
         case 's':
           e.preventDefault();
           if (e.shiftKey) await docStore.saveAs();

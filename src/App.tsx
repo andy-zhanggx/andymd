@@ -25,6 +25,7 @@ import { Tour } from './components/Tour';
 import { WhatsNew } from './components/WhatsNew';
 import { runWhatsNewCheck } from './lib/whatsNew';
 import { UpdateSettings } from './components/UpdateSettings';
+import { FontSettings } from './components/FontSettings';
 import { runUpdateCheck, UPDATE_CHECK_INTERVAL_MS } from './lib/updater';
 
 const SIDEBAR_MIN = 180;
@@ -187,6 +188,7 @@ export default function App() {
       <Tour />
       <WhatsNew />
       <UpdateSettings />
+      <FontSettings />
     </div>
   );
 }

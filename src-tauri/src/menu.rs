@@ -53,6 +53,12 @@ pub fn build_menu<R: Runtime>(
     let app_menu = SubmenuBuilder::new(app, "AndyMD")
         .item(&PredefinedMenuItem::about(app, None, None)?)
         .separator()
+        .item(
+            &MenuItemBuilder::with_id("preferences", "Settings…")
+                .accelerator("CmdOrCtrl+,")
+                .build(app)?,
+        )
+        .separator()
         .item(&PredefinedMenuItem::services(app, None)?)
         .separator()
         .item(&PredefinedMenuItem::hide(app, None)?)
@@ -246,6 +252,8 @@ pub fn build_menu<R: Runtime>(
                 .accelerator("CmdOrCtrl+Shift+2")
                 .build(app)?,
         )
+        .separator()
+        .item(&MenuItemBuilder::with_id("font-settings", "Font…").build(app)?)
         .separator()
         .item(
             &MenuItemBuilder::with_id("toggle-fullscreen", "Toggle Full Screen")

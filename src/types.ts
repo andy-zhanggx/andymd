@@ -1,5 +1,7 @@
 // src/types.ts
 
+import { DEFAULT_CODE_FONT_FAMILY, DEFAULT_FONT_FAMILY } from './lib/fonts';
+
 export type FileKind = 'file' | 'dir';
 
 export interface FileNode {
@@ -48,7 +50,8 @@ export type EditorWidth = 'narrow' | 'normal' | 'wide' | 'full';
 
 export interface AppConfig {
   theme: ThemeMode;
-  fontFamily: string;
+  fontFamily: string;              // editor body text (CSS font-family stack)
+  codeFontFamily: string;          // code spans / fenced blocks
   fontSize: number;                // px
   lineHeight: number;              // multiplier, e.g. 1.6
   editorWidth: EditorWidth;
@@ -76,8 +79,8 @@ export interface AppConfig {
 
 export const DEFAULT_CONFIG: AppConfig = {
   theme: 'system',
-  fontFamily:
-    '-apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif',
+  fontFamily: DEFAULT_FONT_FAMILY,
+  codeFontFamily: DEFAULT_CODE_FONT_FAMILY,
   fontSize: 16,
   lineHeight: 1.7, // mixed CJK/Latin needs more leading than Latin-only
   editorWidth: 'normal',
