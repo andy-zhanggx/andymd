@@ -49,7 +49,7 @@ export function MarkdownEditor() {
   const openWs = useWorkspaceStore((s) => s.open);
   const getSession = useConfigStore((s) => s.getSession);
   const recordSession = useConfigStore((s) => s.recordSession);
-  const { fontSize, lineHeight, fontFamily, editorWidth, spellcheck, autoSave, smartPunctuation } =
+  const { fontSize, lineHeight, fontFamily, codeFontFamily, editorWidth, spellcheck, autoSave, smartPunctuation } =
     useConfigStore((s) => s.config);
   const sourceMode = useUIStore((s) => s.sourceMode);
   const focusMode = useUIStore((s) => s.focusMode);
@@ -482,7 +482,7 @@ export function MarkdownEditor() {
         value={doc.draft}
         spellCheck={false}
         onChange={(e) => setDraft(e.target.value)}
-        style={{ fontSize, lineHeight, zoom }}
+        style={{ fontSize, lineHeight, zoom, fontFamily: codeFontFamily }}
         aria-label="Markdown source"
       />
     );
@@ -522,6 +522,7 @@ export function MarkdownEditor() {
           fontFamily,
           zoom,
           display: buildError ? 'none' : undefined,
+          ['--editor-code-font' as string]: codeFontFamily,
         }}
         ref={setEditorRoot}
       />

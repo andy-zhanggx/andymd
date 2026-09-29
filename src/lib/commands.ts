@@ -58,6 +58,7 @@ export const COMMANDS: Command[] = [
   { id: 'toggle-source', title: 'Toggle Source Code Mode', category: 'View', shortcut: '⌘/', keywords: 'raw markdown' },
   { id: 'toggle-focus', title: 'Toggle Focus Mode', category: 'View', shortcut: 'F8' },
   { id: 'toggle-typewriter', title: 'Toggle Typewriter Mode', category: 'View', shortcut: 'F9' },
+  { id: 'font-settings', title: 'Font Settings…', category: 'View', shortcut: '⌘,', keywords: 'typeface preferences size line height code font' },
   { id: 'zoom-in', title: 'Zoom In', category: 'View', shortcut: '⇧⌘+' },
   { id: 'zoom-out', title: 'Zoom Out', category: 'View', shortcut: '⇧⌘−' },
   { id: 'zoom-actual', title: 'Actual Size', category: 'View', shortcut: '⇧⌘0', keywords: 'zoom reset 100%' },

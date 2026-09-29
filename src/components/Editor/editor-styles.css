@@ -129,11 +129,12 @@
   background: var(--code-bg);
   border-radius: 3px;
   padding: 0 4px;
-  font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+  font-family: var(--editor-code-font, ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace);
   font-size: 0.9em;
 }
 
 .editor-container .milkdown pre {
+  font-family: var(--editor-code-font, ui-monospace, SFMono-Regular, Menlo, monospace);
   margin: 0 0 1em;
   padding: 12px;
   background: var(--code-bg);
@@ -210,7 +211,7 @@
   border-radius: 6px;
   background: var(--bg-secondary, rgba(127, 127, 127, 0.08));
   color: var(--fg);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--editor-code-font, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 0.9em;
   line-height: 1.5;
   resize: vertical;

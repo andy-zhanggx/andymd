@@ -59,9 +59,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dismissed suggestion stays dismissed.
 - **Find Duplicate Notes….** Lists pairs of notes that say nearly the same
   thing, at three strictness levels, and opens both side by side.
+- **Font settings.** A new *Settings…* dialog (⌘, or View → Font…) lets you
+  switch the editor's body font between curated Latin + CJK pairings (Book:
+  Charter + Songti, Kai: Kaiti / LXGW WenKai, System: San Francisco +
+  PingFang, Humanist: Avenir Next + Hiragino Sans, Classic: New York +
+  Songti) or type any installed font family. Font size and line height get
+  sliders, and the code font (SF Mono, JetBrains Mono, Fira Code, Menlo, or
+  custom) is now configurable separately. Every preset shows a live sample in
+  its own face, and changes apply to the document immediately.
 
 ### Changed
 
+- **New default reading font.** Fresh installs now render the document in
+  the Book pairing — Charter for Latin text and Songti SC for CJK — instead of
+  the system sans-serif, for a calmer, book-like reading experience.
+  Existing configs keep whatever font they already had.
 - Headings without a space after the `#` are still recognised for `##标题`
   and deeper. A single `#` followed by a word (`#project`) is now a tag, as
   in Obsidian, not an H1.

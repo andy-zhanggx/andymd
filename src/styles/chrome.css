@@ -2212,3 +2212,44 @@
 .duplicates-sep {
   color: var(--fg-muted);
 }
+
+/* Font & typography settings dialog (extends the update-card dialog styles) */
+.font-settings { width: min(560px, 92vw); }
+.font-settings-body { max-height: 70vh; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.font-preset-list { display: flex; flex-direction: column; gap: 6px; }
+.font-preset {
+  display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left;
+  padding: 9px 12px; border: 1px solid var(--border); border-radius: 9px;
+  background: transparent; color: var(--fg-primary); cursor: pointer; font: inherit;
+}
+.font-preset:hover { background: var(--bg-secondary, rgba(127,127,127,0.08)); }
+.font-preset.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.font-preset-title { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--fg-secondary); }
+.font-preset-label { font-weight: 600; }
+.font-preset-badge {
+  font-size: 0.68rem; padding: 1px 6px; border-radius: 999px;
+  background: var(--accent); color: #fff;
+}
+.font-preset-sample { font-size: 1.05rem; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.font-preset-desc { font-size: 0.76rem; color: var(--fg-muted); }
+.font-preset-custom .update-token { margin: 2px 0; }
+.font-settings-row { display: flex; gap: 18px; }
+.font-settings-field { flex: 1; display: flex; flex-direction: column; }
+.font-settings-control { display: flex; align-items: center; gap: 10px; }
+.font-settings-control input[type="range"] { flex: 1; accent-color: var(--accent); }
+.font-settings-value { min-width: 3.4em; text-align: right; font-size: 0.82rem; font-variant-numeric: tabular-nums; color: var(--fg-secondary); }
+.font-code-presets { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.font-chip {
+  padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px;
+  background: transparent; color: var(--fg-primary); cursor: pointer; font-size: 0.8rem;
+}
+.font-chip:hover { background: var(--bg-secondary, rgba(127,127,127,0.08)); }
+.font-chip.active { border-color: var(--accent); color: var(--accent); }
+.font-code-custom { width: auto; flex: 1; min-width: 140px; font-size: 0.8rem; padding: 4px 9px; }
+.font-code-custom.active { border-color: var(--accent); }
+.font-settings-preview {
+  margin: 0; padding: 12px 14px; border-radius: 9px;
+  background: var(--bg-secondary, rgba(127,127,127,0.08)); color: var(--fg-primary);
+  overflow-wrap: anywhere;
+}
+.font-settings-preview code { background: var(--code-bg); border-radius: 3px; padding: 0 4px; font-size: 0.9em; }
